@@ -1,0 +1,4 @@
+-- Seed SQL file for SPEC-DB-001
+-- Dev/test seed data goes here.
+-- Supabase CLI applies this on `supabase db reset`.
+-- See .moai/project/db/seed-data.md for the seeding strategy.
