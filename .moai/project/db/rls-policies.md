@@ -24,7 +24,7 @@
 | completion_reports | ✅ ENABLED | 본인만 (서버 INSERT) |
 | point_logs | ✅ ENABLED | 본인만 (읽기 전용) |
 | notifications | ✅ ENABLED | 본인만 (서버 INSERT) |
-| **books** | ⚠️ **DISABLED** | 공개 카탈로그 — GRANT 기반 authenticated SELECT. `books_select_all` 정책 정의됐으나 RLS 비활성화로 미적용. **acceptance.md DoD #4 불일치 — 후속 검토 필요** |
+| books | ✅ ENABLED (0016 fix) | 공개 카탈로그 — `books_select_all` USING true → authenticated 허용, anon 차단 (인증 후 검색). service_role/postgres BYPASSRLS |
 
 ---
 

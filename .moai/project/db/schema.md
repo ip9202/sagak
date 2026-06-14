@@ -132,10 +132,9 @@ completion_reports(user_book_id).
 - **RLS 활성화**: 11개 사용자 데이터 테이블 (users, user_books, clubs, club_members,
   join_requests, emotion_records, sticker_reactions, reading_sessions,
   completion_reports, point_logs, notifications)
-- **books**: ⚠️ RLS **비활성화** (rowsecurity=false). 공개 카탈로그는 GRANT 기반
-  authenticated SELECT. `books_select_all` 정책이 정의됐으나 RLS 비활성화로 미적용.
-  acceptance.md DoD #4("books RLS 활성화")와 불일치 — 후속 검토 필요 (공개 카탈로그는
-  RLS 활성화 + USING(true) 또는 GRANT 중 설계 확정 권장).
+- **books**: ✅ RLS **활성화** (migration 0016 fix for DoD #4). `books_select_all`
+  정책(authenticated, USING true) 적용 → authenticated 공개 카탈로그 조회, anon 차단
+  (인증 후 도서 검색 = 설계 의도). owner(postgres)/service_role BYPASSRLS.
 - **SECURITY DEFINER 함수 (6, 모두 owner=postgres/BYPASSRLS)**:
   handle_new_user, handle_new_club_host, guard_join_request_status, join_request_accept,
   generate_completion_report, fn_user_in_club

@@ -39,6 +39,7 @@ SPEC-DB-001 구현: 15개 migration (T-001~T-009), 272 pgTAP 테스트 통과.
 | 20240614000013_create_indexes.sql | T-006 | 성능 인덱스 12개 (ERD §3) |
 | 20240614000014_enable_rls.sql | T-007/T-008 | RLS 11테이블 + 31 정책 + fn_user_in_club + 보안 뷰 (통합) |
 | 20240614000015_create_triggers.sql | T-009 | updated_at 트리거 3개 (set_updated_at 공용 함수, emotion_records 컬럼 추가) |
+| 20240614000016_enable_books_rls.sql | post-sync fix | books RLS 활성화 (DoD #4 / REQ-DB-013b fix — 0014 누락 보정, 0016 test로 검증) |
 
 ---
 
