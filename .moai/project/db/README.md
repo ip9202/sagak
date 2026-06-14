@@ -1,6 +1,6 @@
 # .moai/project/db/
 
-`/moai db init` 완료 (2026-06-14). 감정 공유 독서 모임 앱(사각)의 DB 메타데이터 공식 출처이다.
+SPEC-DB-001 구현 완료 (2026-06-14): 15개 migration (`supabase/migrations/0001-0015`), 272 pgTAP 테스트 통과. 감정 공유 독서 모임 앱(사각)의 DB 메타데이터 공식 출처이다.
 
 | 항목 | 값 |
 |------|-----|
@@ -67,10 +67,10 @@ MoAI calls `AskUserQuestion` to resolve the conflict before writing.
 | `queries.md` | Common queries, aggregations, reports | No — edit manually |
 | `seed-data.md` | Seed strategy, fixture locations, dev vs prod data | No — edit manually |
 
-> 현재 상태: `schema.md`·`erd.mmd`는 도메인 기반 시작 스켈레톤으로 채워져 있으나,
-> 실제 마이그레이션이 아직 없다. 첫 마이그레이션 작성 시 자동 동기화가 본격 가동된다.
-> `rls-policies.md`는 단일 스키마 + RLS 전략의 핵심 산출물이므로 비즈니스 결정 대기
-> 사항(모임 가입 승인, 공개 범위 등)을 해소하며 지속 보완한다.
+> 현재 상태: SPEC-DB-001 구현으로 15개 migration(`supabase/migrations/0001-0015`)이
+> 적용되었고, `schema.md`/`erd.mmd`/`migrations.md`/`rls-policies.md`가 live DB 기반
+> ground truth로 동기화 완료(2026-06-14). `rls-policies.md`는 단일 스키마 + RLS 전략의
+> 핵심 산출물이며, books RLS 비활성화(DoD #4 불일치) 등 후속 검토 사항을 추적한다.
 
 ---
 

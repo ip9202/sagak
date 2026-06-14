@@ -50,7 +50,7 @@ iOS/Android 모바일 앱 (React Native + Expo SDK 51+)
 - **보상·아카이빙**: 기록 누적 보상, 성취 배지, 아카이브 시각화, 데이터 내보내기
 - **마이페이지·설정**: 사용자 프로필, 알림 설정, 개인정보 처리, 이용약관
 
-> **참고**: 본 데이터 모델은 기획 문서(`.booktalk/pages_06_ERD.md`) 기반의 설계입니다. `db/schema.md`·`db/erd.mmd`의 구체화는 `/moai db init` 실행 후 진행됩니다.
+> **참고**: 본 데이터 모델은 기획 문서(`.booktalk/pages_06_ERD.md`) 기반으로 설계되었으며, SPEC-DB-001 구현(15개 migration, 272 테스트 통과)으로 `.moai/project/db/` 메타데이터가 동기화 완료되었습니다 (2026-06-14). 상세 스키마·ERD·RLS 정책은 `db/schema.md`·`db/erd.mmd`·`db/rls-policies.md` 참조.
 
 ## 데이터 모델
 
