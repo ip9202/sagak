@@ -1,0 +1,302 @@
+# 사각(Sa-gak) SPEC 카탈로그 — MVP 완결 로드맵
+
+> **생성**: 2026-06-14
+> **작성자**: 강력쇠주먹
+> **목적**: 현재 구현 완료된 SPEC-DB-001(백엔드)·SPEC-UI-001(프론트엔드 파운데이션)을
+> 제외한, MVP 완결에 필요한 14개 도메인 SPEC의 마스터 인덱스.
+> **단일 출처(SSOT)**: 본 카탈로그의 도메인 분할은 `.moai/project/product.md`(핵심 기능) +
+> `.moai/project/structure.md`(API 서피스) + `.moai/project/tech.md`(기술 스택)에 기반.
+> 각 SPEC의 데이터 모델은 `.moai/project/db/`(SPEC-DB-001 산출물)에 기반.
+
+---
+
+## 1. 현재 구현 상태 (제외 대상)
+
+| SPEC | 버전 | 범위 | 상태 |
+|------|------|------|------|
+| SPEC-DB-001 | 1.2.0 | 백엔드 — 12개 엔터티 스키마 + 21개 RLS 정책 + 트리거 + 보안 뷰 | ✅ 100% 완료 |
+| SPEC-UI-001 | 1.0.0 | 프론트엔드 파운데이션 — 디자인 토큰 + 6개 컴포넌트 + ThemeProvider | ✅ 100% 완료 |
+
+> 본 카탈로그의 14개 SPEC은 위 두 SPEC을 **선행 의존성**으로 갖는다.
+
+---
+
+## 2. MVP SPEC 로드맵 (Phase별)
+
+### 의존성 그래프
+
+```
+Phase 1 (파운데이션)
+  SPEC-API-001 ────────┬─→ SPEC-AUTH-001 ──→ SPEC-NAV-001
+                       │
+Phase 2 (핵심 도메인)  │
+  SPEC-BOOK-001 ───────┤
+       │               │
+       ▼               │
+  SPEC-LIBRARY-001 ◀───┘
+       │
+       ├─→ SPEC-EMOTION-001 ──→ SPEC-COMPLETION-001
+       │
+       ├─→ SPEC-CLUB-001 ──→ SPEC-CLUB-002
+       │         │                 │
+       │         └────────┬────────┘
+       │                  ▼
+       │           SPEC-FEED-001 ◀── SPEC-EMOTION-001
+       │
+       ├─→ SPEC-ROUTINE-001
+       │
+Phase 4 (참여/유지)
+  SPEC-NOTIF-001 ◀── SPEC-API-001, SPEC-AUTH-001
+  SPEC-PROFILE-001 ◀── SPEC-AUTH-001, SPEC-ROUTINE-001, SPEC-EMOTION-001
+
+Phase 5 (배포)
+  SPEC-DEPLOY-001 ◀── (모든 도메인 SPEC 완료 후 최종)
+```
+
+### Phase 요약
+
+| Phase | SPEC 수 | 범위 | 산출물 유형 |
+|-------|---------|------|------------|
+| 1 | 3 | 인프라·인증·네비게이션 | 클라이언트 파운데이션 |
+| 2 | 4 | 개인 독서 경험(도서/서재/감정/완독) | 도메인 기능 + 화면 |
+| 3 | 3 | 소셜 연결(Track A/B + 피드) | 도메인 기능 + Realtime |
+| 4 | 3 | 참여·유지(루틴/알림/마이) | 도메인 기능 + 외부 API |
+| 5 | 1 | 배포·CI/CD | 인프라 자동화 |
+| **계** | **14** | — | — |
+
+---
+
+## 3. SPEC 상세 카탈로그
+
+### Phase 1 — 파운데이션
+
+#### SPEC-API-001: Supabase 클라이언트 통합 및 API 레이어
+- **도메인**: INFRA
+- **우선순위**: high
+- **핵심 범위**: `@supabase/supabase-js` 클라이언트 싱글톤, 환경 변수 관리(dev/prod 분리), 타입 안전 쿼리 래퍼, 공통 에러 처리·재시도, 인증 헤더 자동 주입
+- **DB 엔터티**: 해당 없음 (클라이언트 인프라)
+- **API/Edge Function**: 모든 PostgREST 엔드포인트 기반
+- **의존성**: SPEC-DB-001(스키마), SPEC-UI-001(프로젝트 구조)
+- **구현 산출물**: `src/lib/supabase.ts`, `src/lib/api/*.ts`, `src/types/db.ts`(Supabase gen-types), `.env*`
+- **제외**: Edge Function 구현 로직(각 도메인 SPEC 처리)
+
+#### SPEC-AUTH-001: OAuth 인증 및 세션 관리
+- **도메인**: AUTH
+- **우선순위**: high
+- **핵심 범위**: 카카오/애플/구글 OAuth 로그인, 세션 관리(JWT), 자동 로그인, 로그아웃, 온보딩 프로필 설정(nickname/avatar), AuthContext 전역 상태, 인증 가드용 세션 훅
+- **DB 엔터티**: `users`(프로필), `auth.users`(Supabase 내부)
+- **API/Edge Function**: Supabase Auth (`signInWithOAuth`, `signOut`, `getSession`)
+- **의존성**: SPEC-API-001
+- **구현 산출물**: `src/auth/AuthContext.tsx`, `src/auth/useSession.ts`, `app/(auth)/*`(로그인/온보딩 화면)
+- **제외**: OAuth 앱 등록·콜백 URL 인프라 설정(SPEC-DEPLOY-001 영역), 온보딩 건너뛰기 분기 정책은 본 SPEC에서 정의
+
+#### SPEC-NAV-001: 네비게이션 및 라우팅 구조
+- **도메인**: NAV
+- **우선순위**: high
+- **핵심 범위**: Expo Router 파일 시스템 라우팅, 4개 탭(홈/서재/모임/마이) + 스택 네비게이션, 인증 가드(미인증 시 로그인 리다이렉트), 딥링크, 탭바 아이콘/스타일링
+- **DB 엔터티**: 해당 없음
+- **API/Edge Function**: 해당 없음
+- **의존성**: SPEC-AUTH-001(인증 가드)
+- **구현 산출물**: `app/(tabs)/_layout.tsx`, `app/(tabs)/index.tsx` 등 4개 탭, `app/(auth)/_layout.tsx`, 인증 가드 컴포넌트
+- **제외**: 각 탭의 실제 화면 콘텐츠(각 도메인 SPEC 처리), 본 SPEC은 라우팅 골격 + 빈 화면 셸만
+
+---
+
+### Phase 2 — 핵심 도메인 (개인 독서 경험)
+
+#### SPEC-BOOK-001: 도서 검색 및 등록
+- **도메인**: BOOK
+- **우선순위**: high
+- **핵심 범위**: Kakao Book Search API 연동(Edge Function `kakao-book-search` 프록시, CORS 해결), 바코드 스캔(`expo-camera`), 수동 검색(ISBN/제목/저자), 검색 결과 캐싱, 책 등록 → `books` 테이블 업서트
+- **DB 엔터티**: `books`(캐시 카탈로그)
+- **API/Edge Function**: `POST /functions/kakao-book-search`, `books` SELECT/INSERT
+- **의존성**: SPEC-API-001
+- **구현 산출물**: `src/features/book/searchApi.ts`, `src/features/book/BarcodeScanner.tsx`, `supabase/functions/kakao-book-search/`, 도서 검색 화면
+- **제외**: 서재 추가 플로우(SPEC-LIBRARY-001), 표지 이미지 Storage 업로드(표지만 표시)
+
+#### SPEC-LIBRARY-001: 개인 서재 관리
+- **도메인**: LIBRARY
+- **우선순위**: high
+- **핵심 범위**: 내 서재 CRUD, 진도 추적(`current_page` 업데이트 → `last_progress_at` 자동 갱신), 독서 상태 관리(reading/completed/shelved), 공개/비공개 설정(`is_public`), 서재 목록 정렬/필터
+- **DB 엔터티**: `user_books`, `books`
+- **API/Edge Function**: `/library` CRUD 엔드포인트
+- **의존성**: SPEC-BOOK-001(책 등록), SPEC-AUTH-001(사용자 식별)
+- **구현 산출물**: `src/features/library/*.ts`(API·hooks), 서재 화면, 책 상세 화면
+- **제외**: 완독 다이어리 생성(SPEC-COMPLETION-001 — DB 트리거가 자동 처리하지만 UI는 별도)
+
+#### SPEC-EMOTION-001: 감정 아카이브 및 스티커 반응
+- **도메인**: EMOTION
+- **우선순위**: high
+- **핵심 범위**: 페이지별 감정 기록(단어/한 줄) CRUD, 안전한 글쓰기 울타리(단어 질문지 유도), 공감 스티커 반응(3종: empathy/touching/comforted, 기록당 사용자당 1개), 스포일러 방지 블러(`EmotionRecordCard` 활용), 타임라인 뷰, 공개 범위 제어(visibility: public/club)
+- **DB 엔터티**: `emotion_records`, `sticker_reactions`
+- **API/Edge Function**: `/records` CRUD + `/records/{id}/reactions`
+- **의존성**: SPEC-LIBRARY-001(책 컨텍스트), SPEC-UI-001(`EmotionRecordCard`, `StickerReaction` 컴포넌트)
+- **구현 산출물**: `src/features/emotion/*.ts`, 감정 기록 입력 화면, 타임라인 화면
+- **제외**: 모임 피드 내 감정 표시(SPEC-FEED-001), 완독 다이어리 집계(SPEC-COMPLETION-001)
+
+#### SPEC-COMPLETION-001: 완독 다이어리 및 아카이브 시각화
+- **도메인**: COMPLETION
+- **우선순위**: medium
+- **핵심 범위**: 완독 처리 플로우(reading → completed 전환 트리거), `completion_reports.report_data` 시각화(감정 곡선, 하이라이트, 총 기록 수), "이 책과의 여정" 다이어리 뷰, 완독 성취 표시
+- **DB 엔터티**: `completion_reports`, `user_books`(상태 전환)
+- **API/Edge Function**: `GET /completion_reports`(조회), `generate-completion-report` Edge Function은 예비(DB 트리거가 이미 자동 생성)
+- **의존성**: SPEC-EMOTION-001(감정 데이터)
+- **구현 산출물**: `src/features/completion/*.ts`, 완독 다이어리 화면, 차트 컴포넌트
+- **제외**: 리치 콘텐츠(이미지 카드 등) 생성 Edge Function(확장 단계)
+
+---
+
+### Phase 3 — 소셜 연결 (Track A/B)
+
+#### SPEC-CLUB-001: Track A 합류형 요청
+- **도메인**: CLUB (SOCIAL-A)
+- **우선순위**: high
+- **핵심 범위**: 같은 책 읽는 독자에게 "같이 읽어요" 요청(Track A), `join_requests` 상태 기계(pending → accepted/declined), host 승인/거절 UI, Track A 활성·공개 독자 목록(`user_books_public` 뷰 활용), 요청 메시지
+- **DB 엔터티**: `join_requests`, `club_members`, `clubs`, `user_books_public`(뷰)
+- **API/Edge Function**: `/clubs/{id}/join`, `process-join-request` Edge Function
+- **의존성**: SPEC-LIBRARY-001(독자 목록), SPEC-AUTH-001(사용자 식별)
+- **구현 산출물**: `src/features/club/trackA/*.ts`, 독자 목록 화면, 요청/응답 화면
+- **제외**: Track B 모임 생성(SPEC-CLUB-002), 실시간 피드(SPEC-FEED-001)
+
+#### SPEC-CLUB-002: Track B 개설형 모임 관리
+- **도메인**: CLUB (SOCIAL-B)
+- **우선순위**: high
+- **핵심 범위**: 함께 읽기 모임 생성(0명 출발, host 자동 가입 트리거 연동), 모임 설정(duration_days/daily_pages/trigger_page), 진도 동기화, 참가자 관리(host 권한), 모임 상태 관리(active/closed)
+- **DB 엔터티**: `clubs`, `club_members`(host 자동 가입)
+- **API/Edge Function**: `/clubs` CRUD, `/clubs/{id}/progress`
+- **의존성**: SPEC-CLUB-001(상태 기계 패턴 공유), SPEC-BOOK-001(모임용 책)
+- **구현 산출물**: `src/features/club/trackB/*.ts`, 모임 생성 화면, 모임 관리 화면(host)
+- **제외**: 실시간 채팅(type=instant, 비목표), 모임 피드(SPEC-FEED-001)
+
+#### SPEC-FEED-001: 스포일러 방지 진도별 피드
+- **도메인**: FEED
+- **우선순위**: medium
+- **핵심 범위**: 진도별 슬라이딩 피드(현재 진도 기준 블러 처리), Supabase Realtime 구독(새 감정 기록/스티커 실시간 반영), 모임원 감정 기록 표시(visibility=club), 스포일러 해제 상호작용
+- **DB 엔터티**: `emotion_records`(visibility=club), `clubs`(진도)
+- **API/Edge Function**: `/clubs/{id}/feed`, Supabase Realtime(postgres_changes)
+- **의존성**: SPEC-CLUB-001/002(모임 컨텍스트), SPEC-EMOTION-001(감정 데이터)
+- **구현 산출물**: `src/features/feed/*.ts`, 모임 피드 화면, Realtime 훅
+- **제외**: 실시간 팝업 채팅(비목표), 좋아요/팔로우(비목표)
+
+---
+
+### Phase 4 — 참여/유지
+
+#### SPEC-ROUTINE-001: 독서 루틴 및 타이머
+- **도메인**: ROUTINE
+- **우선순위**: medium
+- **핵심 범위**: 다정한 독서 알림 설정(`reading_alarm_time`, `reading_alarm_enabled`), 독서 타이머(`reading_sessions` 시작/종료, `duration_seconds` 기록), 독서 습관 추적(연속 일수·누적 시간), 목표 설정
+- **DB 엔터티**: `reading_sessions`, `users`(alarm 설정)
+- **API/Edge Function**: `/sessions`, `/sessions/stats`
+- **의존성**: SPEC-LIBRARY-001(책 컨텍스트)
+- **구현 산출물**: `src/features/routine/*.ts`, 독서 타이머 화면, 루틴 통계 위젯
+- **제외**: 백그라운드 타이머 정확도 한계 문서화, 로컬 알림 스케줄링은 SPEC-NOTIF-001과 협력
+
+#### SPEC-NOTIF-001: 푸시 알림 및 알림 센터
+- **도메인**: NOTIF
+- **우선순위**: medium
+- **핵심 범위**: Expo Push Notifications 통합(토큰 관리), 알림 센터(`notifications` 테이블 읽음 처리), 알림 타입별 처리(reading_reminder/join_request_received/join_accepted/sticker_received/completion/club_signal), 알림 설정 UI, `send-notification` Edge Function
+- **DB 엔터티**: `notifications`
+- **API/Edge Function**: `/users/{id}/notifications`, `send-notification` Edge Function
+- **의존성**: SPEC-API-001, SPEC-AUTH-001(토큰-사용자 매핑)
+- **구현 산출물**: `src/features/notification/*.ts`, 알림 센터 화면, `supabase/functions/send-notification/`
+- **제외**: SMS/이메일 채널, 마케팅 푸시
+
+#### SPEC-PROFILE-001: 마이페이지, 통계 및 보상
+- **도메인**: PROFILE
+- **우선순위**: medium
+- **핵심 범위**: 사용자 프로필 조회/수정(`user_profiles` 뷰), 독서 통계(완독 수·누적 시간·감정 기록 수), 포인트 내역 조회(`point_logs`, MVP 조회 전용), 성취 배지 시각화, 설정(알림/공개범위), 이용약관·개인정보 처리방침 링크
+- **DB 엔터티**: `users`, `point_logs`, `reading_sessions`(통계)
+- **API/Edge Function**: `/users/{id}`, `/users/{id}/stats`, `/users/{id}/points`
+- **의존성**: SPEC-AUTH-001(프로필), SPEC-ROUTINE-001(통계), SPEC-EMOTION-001(기록 수)
+- **구현 산출물**: `src/features/profile/*.ts`, 마이페이지 화면, 통계 대시보드
+- **제외**: 포인트 사용(굿즈 교환, 후순위), 프리미엄 유료화(비목표), 데이터 내보내기(확장)
+
+---
+
+### Phase 5 — 배포
+
+#### SPEC-DEPLOY-001: 빌드, 배포 및 CI/CD
+- **도메인**: DEPLOY / DEVOPS
+- **우선순위**: medium
+- **핵심 범위**: EAS Build(iOS/Android 크로스 플랫폼 빌드), EAS Submit(TestFlight/Play Console), GitHub Actions CI/CD 파이프라인(코드 푸시 시 빌드·테스트·배포), Sentry 에러 추적 통합, 환경 분리(dev/staging/prod), 버전 관리·태깅 자동화, OAuth 앱 등록·콜백 URL 인프라 설정, Supabase Storage 버킷 정책
+- **DB 엔터티**: 해당 없음 (인프라)
+- **API/Edge Function**: 해당 없음 (인프라 구성)
+- **의존성**: 모든 도메인 SPEC(최종 통합 후 배포)
+- **구현 산출물**: `eas.json`, `.github/workflows/*.yml`, `sentry.config.*`, 환경 변수 문서, 배포 매뉴얼
+- **제외**: 데스크톱 웹 버전(비목표), A/B 테스트 인프라(확장)
+
+---
+
+## 4. 도메인 분류 요약
+
+| 도메인 코드 | SPEC | 수 |
+|------------|------|----|
+| INFRA | SPEC-API-001 | 1 |
+| AUTH | SPEC-AUTH-001 | 1 |
+| NAV | SPEC-NAV-001 | 1 |
+| BOOK | SPEC-BOOK-001 | 1 |
+| LIBRARY | SPEC-LIBRARY-001 | 1 |
+| EMOTION | SPEC-EMOTION-001, SPEC-COMPLETION-001 | 2 |
+| CLUB | SPEC-CLUB-001, SPEC-CLUB-002, SPEC-FEED-001 | 3 |
+| ROUTINE | SPEC-ROUTINE-001 | 1 |
+| NOTIF | SPEC-NOTIF-001 | 1 |
+| PROFILE | SPEC-PROFILE-001 | 1 |
+| DEPLOY | SPEC-DEPLOY-001 | 1 |
+
+---
+
+## 5. 비목표 (MVP 제외 — SPEC 작성 대상 아님)
+
+product.md "비목표" + SPEC-DB-001 "제외 범위" 기반:
+- 실시간 매칭 및 팝업 채팅 (`type=instant`, `chat_messages` 테이블)
+- 실시간 독서실/스터디룸 기능
+- 좋아요/팔로워 경쟁 메커니즘 (과시 엔진 회피)
+- 데스크톱 웹 버전
+- 포인트 사용(굿즈 교환) 로직
+- 프리미엄 유료화 기능
+- 데이터 마이그레이션/시드 데이터 자동화
+- 관리자 모듈 (`role='admin'` 권한 정책)
+
+---
+
+## 6. 진행 추적
+
+| Phase | SPEC | spec.md | plan.md | acceptance.md | 상태 |
+|-------|------|---------|---------|---------------|------|
+| 1 | SPEC-API-001 | ✅ | ✅ | ✅ | SPEC 작성 완료 (19 REQ) |
+| 1 | SPEC-AUTH-001 | ✅ | ✅ | ✅ | SPEC 작성 완료 (18 REQ) |
+| 1 | SPEC-NAV-001 | ✅ | ✅ | ✅ | SPEC 작성 완료 (13 REQ) |
+| 2 | SPEC-BOOK-001 | ✅ | ✅ | ✅ | SPEC 작성 완료 (16 REQ) |
+| 2 | SPEC-LIBRARY-001 | ✅ | ✅ | ✅ | SPEC 작성 완료 (16 REQ) |
+| 2 | SPEC-EMOTION-001 | ✅ | ✅ | ✅ | SPEC 작성 완료 (10 REQ) |
+| 2 | SPEC-COMPLETION-001 | ✅ | ✅ | ✅ | SPEC 작성 완료 (10 REQ) |
+| 3 | SPEC-CLUB-001 | ✅ | ✅ | ✅ | SPEC 작성 완료 (12 REQ) |
+| 3 | SPEC-CLUB-002 | ✅ | ✅ | ✅ | SPEC 작성 완료 (17 REQ) |
+| 3 | SPEC-FEED-001 | ✅ | ✅ | ✅ | SPEC 작성 완료 (8 REQ) |
+| 4 | SPEC-ROUTINE-001 | ✅ | ✅ | ✅ | SPEC 작성 완료 (10 REQ) |
+| 4 | SPEC-NOTIF-001 | ✅ | ✅ | ✅ | SPEC 작성 완료 (13 REQ) |
+| 4 | SPEC-PROFILE-001 | ✅ | ✅ | ✅ | SPEC 작성 완료 (8 REQ) |
+| 5 | SPEC-DEPLOY-001 | ✅ | ✅ | ✅ | SPEC 작성 완료 (24 REQ) |
+
+**총 REQ 수: 194개 / 14개 SPEC 전체 작성 완료 (2026-06-14)**
+
+---
+
+## 7. 추적성
+
+| 소스 문서 | 활용 |
+|----------|------|
+| `.moai/project/product.md` | 핵심 기능·사용 시나리오·비목표 (도메인 식별) |
+| `.moai/project/structure.md` | API 서피스·데이터 모델·외부 연동 (SPEC별 API 매핑) |
+| `.moai/project/tech.md` | 기술 스택·제약사항 (구현 산출물 기반) |
+| `.moai/project/db/` (SPEC-DB-001 산출물) | 엔터티·RLS 정책 (각 SPEC DB 의존성) |
+| `.moai/specs/SPEC-DB-001/` | 백엔드 완성 범위 (제외 확인) |
+| `.moai/specs/SPEC-UI-001/` | 프론트엔드 파운데이션 완성 범위 (제외 확인) |
+| `.booktalk/pages_*` | 기획 SSOT (각 SPEC 상세 작성 시 참조) |
+
+---
+
+버전: 1.1.0
+분류: SPEC 카탈로그 (인덱스)
+상태: 14개 SPEC 전체 작성 완료 (run 단계 대기)
