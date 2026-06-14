@@ -1,2 +1,3 @@
-// Jest setup file for @testing-library/react-native
-import '@testing-library/react-native/extend-expect';
+// Jest global setup.
+// @testing-library/react-native v13+ provides matchers automatically;
+// the legacy 'extend-expect' subpath import was removed and breaks resolution.
