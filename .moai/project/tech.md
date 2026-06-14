@@ -6,7 +6,7 @@
 
 ## 프론트엔드
 
-React Native + Expo SDK 51+를 주요 프레임워크로 사용하며 TypeScript를 통해 타입 안정성을 확보한다. 네이티브 모듈 의존성을 최소화하고 크로스 플랫폼 호환성을 극대화하기 위해 Expo의 빌드 시스템을 활용하며, 네비게이션은 Expo Router를 사용하여 파일 시스템 기반 라우팅을 구현한다. UI 컴포넌트는 React Native 기본 컴포넌트와 간단한 커스텀 컴포넌트로 구성되어 로딩 성능과 초기화 속도를 최적화하며, 상태 관리는 React Context API와 간단한 useReducer 패턴을 조합하여 사용한다. 성능 모니터링과 에러 추적을 위해 Sentry를 통합하여 배포 후 운영 품질을 관리한다.
+React Native + Expo SDK 55를 주요 프레임워크로 사용하며 React 19.2와 함께 개발되며 TypeScript strict 모드로 타입 안정성을 확보한다. 네이티브 모듈 의존성을 최소화하고 크로스 플랫폼 호환성을 극대화하기 위해 Expo의 빌드 시스템을 활용하며, 네비게이션은 Expo Router(~5)를 사용하여 파일 시스템 기반 라우팅을 구현한다. UI 컴포넌트는 React Native 기본 컴포넌트와 6가지 커스텀 컴포넌트(Button/Card/ProgressBar/BookCard/EmotionRecordCard/StickerReaction)로 구성되어 로딩 성능과 초기화 속도를 최적화하며, 상태 관리는 React Context API와 ThemeProvider, useTheme, useManualMode(dark 토글) 패턴을 조합하여 사용한다. 성능 모니터링과 에러 추적을 위해 Sentry를 통합하여 배포 후 운영 품질을 관리한다. 네이티브 모듈 의존성을 최소화하고 크로스 플랫폼 호환성을 극대화하기 위해 Expo의 빌드 시스템을 활용하며, 네비게이션은 Expo Router를 사용하여 파일 시스템 기반 라우팅을 구현한다. UI 컴포넌트는 React Native 기본 컴포넌트와 간단한 커스텀 컴포넌트로 구성되어 로딩 성능과 초기화 속도를 최적화하며, 상태 관리는 React Context API와 간단한 useReducer 패턴을 조합하여 사용한다. 성능 모니터링과 에러 추적을 위해 Sentry를 통합하여 배포 후 운영 품질을 관리한다.
 
 ## 백엔드 / 데이터베이스
 
@@ -30,7 +30,7 @@ Expo EAS Build를 통한 크로스 플랫폼 빌드와 EAS Submit을 통한 앱 
 
 ## 개발 환경 요구사항
 
-Node.js LTS 버전(20.x 이상)을 필수로 하며 npm이나 yarn을 통해 패키지를 관리한다. Expo CLI는 전역 설치되어 있어야 하며, Supabase CLI는 로컬 개발 환경 설정에 필요하다. iOS 개발을 위해서는 Xcode와 iOS SDK가 macOS 환경에서 필수이며, Android 개발을 위해서는 Android Studio와 SDK가 필요하다. 코드 품질 관리를 위해 ESLint, Prettier, TypeScript 설정을 통합하며, 테스트 프레임워크는 Jest와 React Native Testing Library(`@testing-library/react-native`)를 사용한다. 디버깅은 Expo 개발자 메뉴와 React DevTools를 통해 지원되며, 에러 추적을 위해 Sentry를 통합한다.
+Node.js LTS 버전(20.x 이상)을 필수로 하며 npm을 통해 패키지를 관리한다. Expo CLI는 전역 설치되어 있어야 하며, Supabase CLI는 로컬 개발 환경 설정에 필요하다. iOS 개발을 위해서는 Xcode와 iOS SDK가 macOS 환경에서 필수이며, Android 개발을 위해서는 Android Studio와 SDK가 필요하다. 코드 품질 관리를 위해 ESLint 9 flat config, Prettier, TypeScript 설정을 통합하며, 테스트 프레임워크는 Jest와 @testing-library/react-native를 사용한다. 디버깅은 Expo 개발자 메뉴와 React DevTools를 통해 지원되며, 에러 추적을 위해 Sentry를 통합한다. iOS 개발을 위해서는 Xcode와 iOS SDK가 macOS 환경에서 필수이며, Android 개발을 위해서는 Android Studio와 SDK가 필요하다. 코드 품질 관리를 위해 ESLint, Prettier, TypeScript 설정을 통합하며, 테스트 프레임워크는 Jest와 React Native Testing Library(`@testing-library/react-native`)를 사용한다. 디버깅은 Expo 개발자 메뉴와 React DevTools를 통해 지원되며, 에러 추적을 위해 Sentry를 통합한다.
 
 ## 디자인 시스템 토큰
 

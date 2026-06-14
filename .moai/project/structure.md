@@ -2,7 +2,7 @@
 
 ## 플랫폼
 
-iOS/Android 모바일 앱 (React Native + Expo SDK 51+)
+iOS/Android 모바일 앱 (React Native + Expo SDK 55 + React 19.2)
 
 ## 시스템 아키텍처
 
@@ -51,6 +51,28 @@ iOS/Android 모바일 앱 (React Native + Expo SDK 51+)
 - **마이페이지·설정**: 사용자 프로필, 알림 설정, 개인정보 처리, 이용약관
 
 > **참고**: 본 데이터 모델은 기획 문서(`.booktalk/pages_06_ERD.md`) 기반으로 설계되었으며, SPEC-DB-001 구현(15개 migration, 272 테스트 통과)으로 `.moai/project/db/` 메타데이터가 동기화 완료되었습니다 (2026-06-14). 상세 스키마·ERD·RLS 정책은 `db/schema.md`·`db/erd.mmd`·`db/rls-policies.md` 참조.
+
+## 클라이언트/프론트엔드 아키텍처
+
+클라이언트 아키텍처는 Expo Router 기반의 파일 시스템 네비게이션을 중심으로 구성되며, Supabase 백엔드와 병행하여 작동합니다.
+
+### 핵심 구조
+
+- **`app/`** (Expo Router 라우팅): `_layout.tsx` (ThemeProvider로 전체 앱 감싸기), `index.tsx` (메인 화면), `_dev.tsx` (컴포넌트 데모 및 dark 토글 기능)
+- **`src/components/`** (6가지 커스텀 컴포넌트): `Button.tsx`, `Card.tsx`, `ProgressBar.tsx`, `BookCard.tsx`, `EmotionRecordCard.tsx`, `StickerReaction.tsx`
+- **`src/theme/`** (디자인 시스템): `tokens.ts` (light 모드 토큰), `darkTokens.ts` (dark 모드 토큰), `theme.tsx` (ThemeProvider + useTheme + useManualMode 패턴)
+- **`src/types/`** (타입 정의): `Book.ts`, `EmotionRecord.ts`, `StickerType.ts` 도메인 타입 정의
+
+### 아키텍특 특징
+
+- Expo Router를 통한 파일 시스템 기반 라우팅으로 네비게이션 관리
+- ThemeProvider와 useTheme 훅을 통한 테마 관리 시스템 (수동 dark 모드 전환)
+- React Context API 기반 상태 관리
+- 6가지 재사용 가능 UI 컴포넌트 라이브러리
+- TypeScript strict 모드를 통한 �입 안정성
+- Supabase 백엔드와의 분리된 프론트엔드 아키텍처
+
+> **참고**: 이 클라이언트 아키텍처는 SPEC-UI-001에서 구현된 프론트엔드 기반으로, 기존 Supabase 백엔드와 병행 작동합니다.
 
 ## 데이터 모델
 
