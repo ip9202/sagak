@@ -15,7 +15,8 @@
 | T-006 | Button 컴포넌트 + 테스트 | T-005 | src/components/Button.tsx, __tests__/Button.test.tsx |
 | T-007 | Card 베이스 + ProgressBar 컴포넌트 + 테스트 | T-005 | src/components/Card.tsx, ProgressBar.tsx |
 | T-008 | BookCard + EmotionRecordCard 컴포넌트 + 테스트 | T-007 | src/components/BookCard.tsx, EmotionRecordCard.tsx |
-| T-009 | StickerReaction + 도메인 타입 + 데모 스크린 + 테스트 | T-008 | src/components/StickerReaction.tsx, src/types/index.ts, app/_dev.tsx |
+| T-009 | StickerReaction(3종) + 도메인 타입(Book/EmotionRecord/StickerType) + 테스트 | T-008 | src/components/StickerReaction.tsx, src/types/index.ts, __tests__/StickerReaction.test.tsx |
+| T-010 | 데모 스크린(app/_dev, light/dark 토글) + _layout(ThemeProvider) + index | T-009 | app/_layout.tsx, app/index.tsx, app/_dev.tsx |
 
 ## 파일 구조 (신규 생성, 그린필드)
 
@@ -51,17 +52,28 @@ sagak/
     └── *.test.tsx           # 컴포넌트별 테스트
 ```
 
-## 기술 스택 (프로덕션 안정 버전)
+## 기술 스택 (프로덕션 안정 버전 — SDK 55, 2026-06 기준)
 
-- `expo`: ^51.0.0 (SDK 51)
-- `react-native`: 0.74.x (SDK 51 대응)
-- `expo-router`: ^3.0.0
-- `typescript`: ^5.4.0
-- `@expo/vector-icons`: ^14.0.0
+> Phase 1 검증(manager-strategy, Context7 교차 검증) 결과: SDK 51은 2025년 iOS Expo Go 중단으로 동작 불가.
+> SDK 55로 상향 — SPEC "SDK 51+" 최소 요구를 준수하며 New Architecture 전용(그린필드라 호환성 이슈 없음).
+
+- `expo`: ~55.0.0 (SDK 55)
+- `react`: 19.2.0
+- `react-native`: 0.83.2 (SDK 55 고정)
+- `expo-router`: ~5.0.x
+- `babel-preset-expo`: ~55.0.x (필수)
+- `metro.config.js`: expo-router getDefaultConfig (필수)
+- `jest-expo`: ~55.0.x (preset)
 - `jest`: ^29.7.0
-- `@testing-library/react-native`: ^12.0.0
-- `eslint`: ^8.57.0
-- `prettier`: ^3.2.0
+- `@testing-library/react-native`: ^13.3.x
+- `typescript`: ~5.7.x (strict)
+- `@expo/vector-icons`: ~55.0.x (Feather)
+- `expo-linear-gradient`: ~55.0.x (ProgressBar gradient, §9.5)
+- `expo-blur`: ~55.0.x (스포일러 blur, §9.3 — SDK 55 Android stable)
+- `eslint`: ^9.x + eslint-config-expo (flat config)
+- `prettier`: ^3.5.x
+
+F1 비인터랙티브 검증: `npx expo export --platform ios` 성공으로 Metro 번들 검증 (Expo Go 대체).
 
 ## 리스크 분석
 
@@ -69,10 +81,13 @@ sagak/
 |---|--------|--------|------|
 | 1 | pages_11 토큰 값 누락/오타로 일관성 깨짐 | High | tokens.ts를 pages_11 §2-7과 1:1 매핑, 코드 리뷰 |
 | 2 | 다크모드 전환이 일부 컴포넌트에서 누락 | Medium | useTheme() 강제, 모든 컴포넌트 테스트에 dark 케이스 |
-| 3 | Noto 폰트 번들 크기 증가 | Medium | MVP는 시스템 폰트 fallback, 폰트 최적화는 별도 |
-| 4 | 스포일러 blur(12px)가 Android에서 차이 | Low | expo-blur 검토, 플랫폼 분기 |
+| 3 | ~~Noto 폰트 번들 크기 증가~~ | ~~Medium~~ | **해결** — 사용자 결정(시스템 폰트 fallback)으로 폐기 |
+| 4 | 스포일러 blur(12px) Android 차이 | Low | **완화** — expo-blur 도입(SDK 55 Android stable) |
 | 5 | 컴포넌트 과잉 추상화 (YAGNI 위반) | Medium | 6개 한정, 과도한 variant/prop 금지 |
-| 6 | pages_11 토큰이 미정의인 값 (disabled 텍스트 등) | Low | pages_11 §2.3 기준 보강, 누락값은 합의 후 추가 |
+| 6 | ~~pages_11 토큰 미정의값 (disabled 텍스트 등)~~ | ~~Low~~ | **해소** — text-disabled=#C8B8A8이 §2.3에 정의됨 확인 |
+| 7 | SDK 55 New Arch 전용 — 서드파티 호환성 | Medium | 그린필드 + 표준 Expo 패키지만 사용으로 완화 |
+| 8 | darkTokens 누락값(§3 6개 외)이 디자이너 미검증 추정값 | Medium | 합리적 파생 규칙 적용 + 주석 "pages_11 미명시, 파생값" 문서화 |
+| 9 | ProgressBar gradient 단일 용도 번들 영향 | Low | expo-linear-gradient 도입(사용자 결정), 단일 용도라 미미 |
 
 ## Definition of Done
 
