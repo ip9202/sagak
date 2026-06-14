@@ -2,11 +2,11 @@
 
 ## 개요
 
-사각은 TypeScript로 개발된 모바일 앱으로, React Native와 Expo SDK 51+를 사용하며 백엔드로는 Supabase를 통합한 완전한 서버리스 아키텍처를 채택한다. 실시간 동기화, 자동 백업, 확장성을 제공하는 Supabase의 PostgreSQL 데이터베이스와 PostgREST API, Edge Functions, Realtime 기능을 활용하며, 행수 기반 보안(RLS)을 통해 데이터 보안을 확보한다. 모든 기능이 모바일 앱에 최적화되어 있으며, 개발부터 배포까지 Expo 생태계를 통일된 환경으로 관리한다.
+사각은 TypeScript로 개발된 모바일 앱으로, React Native와 Expo SDK 55를 사용하며 백엔드로는 Supabase를 통합한 완전한 서버리스 아키텍처를 채택한다. 실시간 동기화, 자동 백업, 확장성을 제공하는 Supabase의 PostgreSQL 데이터베이스와 PostgREST API, Edge Functions, Realtime 기능을 활용하며, 행수 기반 보안(RLS)을 통해 데이터 보안을 확보한다. 모든 기능이 모바일 앱에 최적화되어 있으며, 개발부터 배포까지 Expo 생태계를 통일된 환경으로 관리한다.
 
 ## 프론트엔드
 
-React Native + Expo SDK 55를 주요 프레임워크로 사용하며 React 19.2와 함께 개발되며 TypeScript strict 모드로 타입 안정성을 확보한다. 네이티브 모듈 의존성을 최소화하고 크로스 플랫폼 호환성을 극대화하기 위해 Expo의 빌드 시스템을 활용하며, 네비게이션은 Expo Router(~5)를 사용하여 파일 시스템 기반 라우팅을 구현한다. UI 컴포넌트는 React Native 기본 컴포넌트와 6가지 커스텀 컴포넌트(Button/Card/ProgressBar/BookCard/EmotionRecordCard/StickerReaction)로 구성되어 로딩 성능과 초기화 속도를 최적화하며, 상태 관리는 React Context API와 ThemeProvider, useTheme, useManualMode(dark 토글) 패턴을 조합하여 사용한다. 성능 모니터링과 에러 추적을 위해 Sentry를 통합하여 배포 후 운영 품질을 관리한다. 네이티브 모듈 의존성을 최소화하고 크로스 플랫폼 호환성을 극대화하기 위해 Expo의 빌드 시스템을 활용하며, 네비게이션은 Expo Router를 사용하여 파일 시스템 기반 라우팅을 구현한다. UI 컴포넌트는 React Native 기본 컴포넌트와 간단한 커스텀 컴포넌트로 구성되어 로딩 성능과 초기화 속도를 최적화하며, 상태 관리는 React Context API와 간단한 useReducer 패턴을 조합하여 사용한다. 성능 모니터링과 에러 추적을 위해 Sentry를 통합하여 배포 후 운영 품질을 관리한다.
+React Native + Expo SDK 55를 주요 프레임워크로 사용하며 React 19.2와 함께 개발되며 TypeScript strict 모드로 타입 안정성을 확보한다. 네이티브 모듈 의존성을 최소화하고 크로스 플랫폼 호환성을 극대화하기 위해 Expo의 빌드 시스템을 활용하며, 네비게이션은 Expo Router(~5)를 사용하여 파일 시스템 기반 라우팅을 구현한다. UI 컴포넌트는 React Native 기본 컴포넌트와 6가지 커스텀 컴포넌트(Button/Card/ProgressBar/BookCard/EmotionRecordCard/StickerReaction)로 구성되어 로딩 성능과 초기화 속도를 최적화하며, 상태 관리는 React Context API와 ThemeProvider, useTheme, useManualMode(dark 토글) 패턴을 조합하여 사용한다. 성능 모니터링과 에러 추적을 위해 Sentry를 통합하여 배포 후 운영 품질을 관리한다.
 
 ## 백엔드 / 데이터베이스
 
