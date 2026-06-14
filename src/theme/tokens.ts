@@ -43,6 +43,70 @@ export const colors = {
   },
 } as const;
 
+export const spacing = {
+  1: 4,
+  2: 8,
+  3: 12,
+  4: 16,
+  5: 20,
+  6: 24,
+  8: 32,
+  10: 40,
+  12: 48,
+} as const;
+
+export const typography = {
+  displayLg: { fontSize: 28, fontWeight: '700' as const, lineHeight: 36 },
+  displayMd: { fontSize: 24, fontWeight: '700' as const, lineHeight: 32 },
+  headingLg: { fontSize: 20, fontWeight: '700' as const, lineHeight: 28 },
+  headingMd: { fontSize: 18, fontWeight: '600' as const, lineHeight: 26 },
+  headingSm: { fontSize: 16, fontWeight: '600' as const, lineHeight: 23 },
+  bodyLg: { fontSize: 16, fontWeight: '400' as const, lineHeight: 26 },
+  bodyMd: { fontSize: 14, fontWeight: '400' as const, lineHeight: 22 },
+  bodySm: { fontSize: 13, fontWeight: '400' as const, lineHeight: 20 },
+  caption: { fontSize: 12, fontWeight: '400' as const, lineHeight: 17 },
+  label: { fontSize: 11, fontWeight: '500' as const, lineHeight: 14 },
+} as const;
+
+export const radius = {
+  sm: 6,
+  md: 10,
+  lg: 16,
+  xl: 24,
+  full: 9999,
+} as const;
+
+export const shadow = {
+  sm: '0 1px 3px rgba(45,31,14,0.08)',
+  md: '0 4px 12px rgba(45,31,14,0.12)',
+  lg: '0 8px 24px rgba(45,31,14,0.16)',
+} as const;
+
+export const motion = {
+  duration: {
+    fast: 150,
+    normal: 250,
+    slow: 400,
+  },
+  easing: {
+    default: 'cubic-bezier(0.4, 0, 0.2, 1)',
+    spring: 'spring(tension:60,friction:12)',
+  },
+} as const;
+
+export const iconSizes = {
+  sm: 16,
+  md: 20,
+  lg: 24,
+  xl: 32,
+} as const;
+
+export const fontFamily = {
+  ios: 'Apple SD Gothic Neo',
+  android: 'Noto Sans KR',
+  point: 'Noto Serif KR',
+} as const;
+
 /**
  * @MX:ANCHOR
  * Design tokens object - single source of truth for all styling values
