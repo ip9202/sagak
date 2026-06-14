@@ -17,7 +17,7 @@ describe('StickerReaction Component (T-009)', () => {
 
   it('should toggle sticker selection', () => {
     const onSelectMock = jest.fn();
-    const { getByTestId } = render(
+    const { getByTestId, rerender } = render(
       <ThemeProvider>
         <StickerReaction selectedType={null} onTypeSelect={onSelectMock} />
       </ThemeProvider>
@@ -27,6 +27,13 @@ describe('StickerReaction Component (T-009)', () => {
     const empathyButton = getByTestId('sticker-empathy');
     fireEvent.press(empathyButton);
     expect(onSelectMock).toHaveBeenCalledWith('empathy');
+
+    // Re-render with updated selection to test toggle
+    rerender(
+      <ThemeProvider>
+        <StickerReaction selectedType={'empathy'} onTypeSelect={onSelectMock} />
+      </ThemeProvider>
+    );
 
     // Second click should deselect (toggle)
     onSelectMock.mockClear();

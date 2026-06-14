@@ -6,7 +6,7 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Switch } from 'react-native';
 import { useRouter } from 'expo-router';
-import { useTheme, ThemeMode } from '../src/theme/theme';
+import { useTheme, useManualMode } from '../src/theme/theme';
 import { Button } from '../src/components/Button';
 import { Card } from '../src/components/Card';
 import { ProgressBar } from '../src/components/ProgressBar';
@@ -17,12 +17,13 @@ import { StickerReaction } from '../src/components/StickerReaction';
 export default function DevScreen() {
   const router = useRouter();
   const theme = useTheme();
+  const { setManualMode } = useManualMode();
   const [isDark, setIsDark] = useState(theme.mode === 'dark');
 
-  const toggleDarkMode = () => {
-    setIsDark(!isDark);
-    // Note: In real app, this would update useColorScheme context
-    // For demo, we're just showing the toggle UI
+  const toggleDarkMode = (value: boolean) => {
+    setIsDark(value);
+    // Set manual mode: 'dark' when enabled, null when disabled (follows system)
+    setManualMode(value ? 'dark' : null);
   };
 
   return (

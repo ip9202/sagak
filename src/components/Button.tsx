@@ -128,8 +128,9 @@ const getTextColor = (variant: ButtonVariant, theme: ReturnType<typeof useTheme>
   switch (variant) {
     case 'primary':
     case 'destructive':
-    case 'disabled':
       return theme.colors.text.inverse;
+    case 'disabled':
+      return theme.colors.text.disabled;
     case 'secondary':
       return theme.colors.text.brand;
     case 'ghost':
@@ -153,9 +154,13 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     lineHeight: 22,
   },
-  // Ghost variant is smaller (40dp height)
+  // All 5 variants (primary, secondary, ghost, destructive, disabled)
+  primary: {},
+  secondary: {},
   ghost: {
     height: 40,
     paddingHorizontal: 12,
   },
+  destructive: {},
+  disabled: {},
 });

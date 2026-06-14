@@ -49,15 +49,15 @@ export const EmotionRecordCard: React.FC<EmotionRecordCardProps> = ({
   const timeLabel = daysAgo === 0 ? '오늘' : daysAgo === 1 ? '어제' : `${daysAgo}일 전`;
 
   return (
-    <Card style={[styles.card, style]} testID={testID}>
+    <Card style={StyleSheet.flatten([styles.card, style])} testID={testID}>
       {/* Left accent line - brand-300 2dp (C3) */}
       <View
-        style={[
+        style={StyleSheet.flatten([
           styles.accentLine,
           {
             backgroundColor: theme.colors.brand[300],
           },
-        ]}
+        ])}
       />
 
       <View style={styles.content}>

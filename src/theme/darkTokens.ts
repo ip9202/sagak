@@ -3,8 +3,6 @@
  * 6 explicitly defined values + derived rules
  */
 
-import { colors as lightColors } from './tokens';
-
 // Derived token rules (pages_11 미명시, 파생값):
 // - Text: brighten inversion (lighten by ~10-20%)
 // - Border: match surface tones

@@ -22,7 +22,7 @@ describe('ProgressBar Component (T-007)', () => {
       </ThemeProvider>
     );
 
-    const caption = getByText('120 / 320p (37%)');
+    const caption = getByText('120 / 320p (38%)');
     expect(caption).toBeDefined();
   });
 

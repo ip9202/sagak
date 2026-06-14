@@ -7,8 +7,8 @@ describe('Card Component (T-007)', () => {
   it('should render with bg-surface background', () => {
     const { getByTestId } = render(
       <ThemeProvider>
-        <Card>
-          <test-testid>Card Content</test-testid>
+        <Card testID="card">
+          Card Content
         </Card>
       </ThemeProvider>
     );
@@ -20,8 +20,8 @@ describe('Card Component (T-007)', () => {
   it('should have radius-lg and shadow-sm', () => {
     const { getByTestId } = render(
       <ThemeProvider>
-        <Card>
-          <test-testid>Card Content</test-testid>
+        <Card testID="card">
+          Card Content
         </Card>
       </ThemeProvider>
     );
@@ -33,21 +33,21 @@ describe('Card Component (T-007)', () => {
   it('should support custom style', () => {
     const { getByTestId } = render(
       <ThemeProvider>
-        <Card style={{ marginTop: 16 }}>
-          <test-testid>Card Content</test-testid>
+        <Card testID="card-custom" style={{ marginTop: 16 }}>
+          Card Content
         </Card>
       </ThemeProvider>
     );
 
-    const card = getByTestId('card');
+    const card = getByTestId('card-custom');
     expect(card.props.style).toBeDefined();
   });
 
   it('should support dark mode', () => {
     const { getByTestId } = render(
       <ThemeProvider>
-        <Card>
-          <test-testid>Card Content</test-testid>
+        <Card testID="card">
+          Card Content
         </Card>
       </ThemeProvider>
     );

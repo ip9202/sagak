@@ -41,7 +41,7 @@ export const BookCard: React.FC<BookCardProps> = ({
   const theme = useTheme();
 
   return (
-    <Card style={[styles.card, style]} testID={testID}>
+    <Card style={StyleSheet.flatten([styles.card, style])} testID={testID}>
       <View style={styles.content}>
         {/* Cover placeholder or image */}
         {coverUri ? (
