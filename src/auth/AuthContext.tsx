@@ -2,17 +2,18 @@
  * Authentication Context Provider
  * SPEC-AUTH-001 — REQ-AUTH-010: AuthContext 전역 상태 제공
  *
- * M1-1 범위 (AC-S1):
- * - AuthProvider 컴포넌트가 자식 트리를 감싼다
- * - session/user/profile/loading 상태를 노출한다
- * - signInWithProvider/signOut/refreshProfile 액션 스텁을 노출한다
- *
- * 실제 Supabase 통합(signInWithOAuth/onAuthStateChange/getSession)은
- * M1-2 ~ M1-5 TDD 사이클에서 순차적으로 구현된다.
+ * 구현 상태 (M1 마일스톤):
+ * - M1-1 AC-S1: AuthProvider 배치 + 상태/액션 노출 (완료)
+ * - M1-2 AC-S1: signInWithProvider 구현 — signInWithOAuth + redirectTo (완료)
+ * - M1-3 AC-S5/S6/S9: signOut 구현 — supabase.auth.signOut() (대기)
+ * - M1-4 AC-S2/S3/S4: getSession + onAuthStateChange 구독 (대기)
+ * - M1-5 AC-S7/S8: fetchProfile + refreshProfile (대기)
  */
 import React, { createContext, useState } from 'react';
 import type { Session, User } from '@supabase/supabase-js';
-import type { AuthContextValue, UserProfile } from './types';
+import type { AuthContextValue, AuthProvider, UserProfile } from './types';
+import { getSupabaseClient } from '../lib/supabase/client';
+import { getOAuthRedirectUri } from './oauth';
 
 // @MX:ANCHOR: [AUTO] AuthContext 단일 진실 원천 — app 전역 세션/프로필/인증 액션 노출
 // @MX:REASON: fan_in >= 3 (useSession, login.tsx, onboarding.tsx, 향후 모든 보호 라우트). 세션 동기화 로직이 여기에 집중되어 있으며 분산 시 SIGNED_IN/SIGNED_OUT 이벤트 불일치가 발생한다.
@@ -24,9 +25,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // @MX:TODO: [AUTO] M1-2 — signInWithOAuth 호출 + redirectTo(getOAuthRedirectUri) 전달
-  const signInWithProvider = async (): Promise<void> => {
-    // M1-2 GREEN 단계에서 구현
+  /**
+   * OAuth 로그인 액션
+   * REQ-AUTH-010: signInWithProvider(provider) — OAuth 로그인 액션
+   * REQ-AUTH-002: redirectTo에 getOAuthRedirectUri() 결과 전달 (딥링크 콜백)
+   *
+   * 세 제공자(kakao/apple/google)를 동일 경로로 처리한다.
+   */
+  const signInWithProvider = async (provider: AuthProvider): Promise<void> => {
+    await getSupabaseClient().auth.signInWithOAuth({
+      provider,
+      options: { redirectTo: getOAuthRedirectUri() },
+    });
   };
 
   // @MX:TODO: [AUTO] M1-3 — supabase.auth.signOut() 호출

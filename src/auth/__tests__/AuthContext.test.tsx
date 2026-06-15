@@ -17,6 +17,12 @@ import React, { useContext } from 'react';
 import { Text } from 'react-native';
 import { render, waitFor } from '@testing-library/react-native';
 
+// oauth 모듈 모킹 — expo-linking 경계는 oauth.test.ts에서 이미 검증됨
+const mockGetOAuthRedirectUri = jest.fn();
+jest.mock('../oauth', () => ({
+  getOAuthRedirectUri: (...args: unknown[]) => mockGetOAuthRedirectUri(...args),
+}));
+
 // getSupabaseClient 모듈을 먼저 모킹 (AuthProvider가 로드될 때와 동일한 인스턴스 주입)
 const mockSupabaseClient: {
   auth: {
@@ -50,6 +56,8 @@ const unsubscribeMock = jest.fn();
 beforeEach(() => {
   jest.clearAllMocks();
   onAuthCallback = null;
+  // getOAuthRedirectUri 기본 스텁 — 각 테스트에서 재정의 가능
+  mockGetOAuthRedirectUri.mockReturnValue('sagak://auth/callback');
   mockSupabaseClient.auth.getSession.mockReset();
   mockSupabaseClient.auth.onAuthStateChange.mockImplementation((cb: (event: string, session: unknown) => void) => {
     onAuthCallback = cb;
@@ -142,5 +150,76 @@ describe('AuthContext — M1-1 AC-S1: Provider 배치 및 상태 노출', () => 
     };
     const { getByText } = render(<Inner />);
     expect(getByText('no-provider')).toBeTruthy();
+  });
+});
+
+describe('AuthContext — M1-2 AC-S1: signInWithProvider OAuth 호출 (A1~A3)', () => {
+  /**
+   * 헬퍼: AuthProvider를 렌더링하고 첫 번째 context 값을 캡처한다.
+   * 세션이 없는 초기 상태로 설정한다.
+   */
+  async function renderAndCapture(): Promise<AuthContextValue> {
+    mockSupabaseClient.auth.getSession.mockResolvedValue({ data: { session: null }, error: null });
+    const captured: AuthContextValue[] = [];
+    render(
+      <AuthProvider>
+        <ContextProbe onValue={(v) => captured.push(v)} />
+      </AuthProvider>
+    );
+    await waitFor(() => expect(captured.length).toBeGreaterThan(0));
+    return captured[0];
+  }
+
+  it('A1 — signInWithProvider("kakao")가 signInWithOAuth를 kakao provider로 호출한다', async () => {
+    mockSupabaseClient.auth.signInWithOAuth.mockResolvedValue({ data: { provider: 'kakao', url: 'https://kauth.kakao.com/oauth/authorize' }, error: null });
+    const value = await renderAndCapture();
+
+    await value.signInWithProvider('kakao');
+
+    expect(mockSupabaseClient.auth.signInWithOAuth).toHaveBeenCalledTimes(1);
+    expect(mockSupabaseClient.auth.signInWithOAuth).toHaveBeenCalledWith({
+      provider: 'kakao',
+      options: { redirectTo: 'sagak://auth/callback' },
+    });
+  });
+
+  it('A2 — signInWithProvider("apple")가 signInWithOAuth를 apple provider로 호출한다', async () => {
+    mockSupabaseClient.auth.signInWithOAuth.mockResolvedValue({ data: { provider: 'apple', url: 'https://appleid.apple.com/auth/authorize' }, error: null });
+    const value = await renderAndCapture();
+
+    await value.signInWithProvider('apple');
+
+    expect(mockSupabaseClient.auth.signInWithOAuth).toHaveBeenCalledTimes(1);
+    expect(mockSupabaseClient.auth.signInWithOAuth).toHaveBeenCalledWith({
+      provider: 'apple',
+      options: { redirectTo: 'sagak://auth/callback' },
+    });
+  });
+
+  it('A3 — signInWithProvider("google")가 signInWithOAuth를 google provider로 호출한다', async () => {
+    mockSupabaseClient.auth.signInWithOAuth.mockResolvedValue({ data: { provider: 'google', url: 'https://accounts.google.com/o/oauth2/auth' }, error: null });
+    const value = await renderAndCapture();
+
+    await value.signInWithProvider('google');
+
+    expect(mockSupabaseClient.auth.signInWithOAuth).toHaveBeenCalledTimes(1);
+    expect(mockSupabaseClient.auth.signInWithOAuth).toHaveBeenCalledWith({
+      provider: 'google',
+      options: { redirectTo: 'sagak://auth/callback' },
+    });
+  });
+
+  it('signInWithProvider가 getOAuthRedirectUri() 결과를 redirectTo로 전달한다 (REQ-AUTH-002)', async () => {
+    mockSupabaseClient.auth.signInWithOAuth.mockResolvedValue({ data: { provider: 'kakao', url: 'https://kauth.kakao.com' }, error: null });
+    mockGetOAuthRedirectUri.mockReturnValue('sagak://custom-callback');
+    const value = await renderAndCapture();
+
+    await value.signInWithProvider('kakao');
+
+    expect(mockGetOAuthRedirectUri).toHaveBeenCalledTimes(1);
+    expect(mockSupabaseClient.auth.signInWithOAuth).toHaveBeenCalledWith({
+      provider: 'kakao',
+      options: { redirectTo: 'sagak://custom-callback' },
+    });
   });
 });
