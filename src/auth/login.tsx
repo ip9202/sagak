@@ -2,15 +2,17 @@
  * Login Screen
  * SPEC-AUTH-001 — REQ-AUTH-002~004
  *
- * M2-B 구현 상태:
- * - M2-B-1 AC-A2: 카카오 버튼 렌더링 — kakao 제공자로 signInWithProvider 호출 (완료)
- * - M2-B-2 AC-A3: 애플 버튼 렌더링 — apple 제공자로 signInWithProvider 호출 (완료)
- * - M2-B-3 AC-A4: OAuth 실패 처리 — 에러 메시지 표시 (완료)
+ * 구현 상태:
+ * - AC-A1: 카카오 버튼 — kakao 제공자로 signInWithProvider 호출
+ * - AC-A2: 구글 버튼 — google 제공자로 signInWithProvider 호출 (M4 추가)
+ * - AC-A3: 애플 버튼 — apple 제공자로 signInWithProvider 호출
+ * - AC-A4/A5: OAuth 실패 처리 — 에러 메시지 표시
  */
 import React, { useState, useContext } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { AuthContext } from './AuthContext';
 import type { AuthProvider } from './types';
+import { colors, spacing, typography, radius } from '../theme/tokens';
 
 /**
  * 로그인 화면 컴포넌트
@@ -50,7 +52,8 @@ export function LoginScreen() {
       if (__DEV__) {
         console.error(`OAuth ${providerNames[provider]} 로그인 실패:`, err);
       } else {
-        console.error(`OAuth ${providerNames[provider]} 로그인 실패:`, err instanceof Error ? err.message : 'Unknown error');
+        // prod: err.message 대신 err.name만 로깅 (RLS 정책명 등 정보 노출 방지)
+        console.error(`OAuth ${providerNames[provider]} 로그인 실패:`, err instanceof Error ? err.name : 'Unknown');
       }
     } finally {
       setLoading(null);
@@ -67,6 +70,8 @@ export function LoginScreen() {
         style={[styles.button, styles.kakaoButton]}
         onPress={() => handleSignIn('kakao')}
         disabled={loading !== null}
+        accessibilityLabel="카카오로 시작하기"
+        accessibilityRole="button"
       >
         <Text style={styles.buttonText}>
           {loading === 'kakao' ? '카카오 로그인 중...' : '카카오로 시작하기'}
@@ -74,9 +79,23 @@ export function LoginScreen() {
       </TouchableOpacity>
 
       <TouchableOpacity
+        style={[styles.button, styles.googleButton]}
+        onPress={() => handleSignIn('google')}
+        disabled={loading !== null}
+        accessibilityLabel="Google로 시작하기"
+        accessibilityRole="button"
+      >
+        <Text style={styles.googleButtonText}>
+          {loading === 'google' ? 'Google 로그인 중...' : 'Google로 시작하기'}
+        </Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity
         style={[styles.button, styles.appleButton]}
         onPress={() => handleSignIn('apple')}
         disabled={loading !== null}
+        accessibilityLabel="Apple로 시작하기"
+        accessibilityRole="button"
       >
         <Text style={styles.buttonText}>
           {loading === 'apple' ? 'Apple 로그인 중...' : 'Apple로 시작하기'}
@@ -91,22 +110,32 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 20,
+    padding: spacing[5],
   },
   title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    marginBottom: 30,
+    ...typography.displayMd,
+    color: colors.text.primary,
+    marginBottom: spacing[8],
   },
   button: {
     width: '100%',
-    padding: 15,
-    borderRadius: 8,
+    paddingVertical: spacing[4],
+    borderRadius: radius.md,
     alignItems: 'center',
-    marginBottom: 10,
+    marginBottom: spacing[3],
   },
   kakaoButton: {
     backgroundColor: '#FFD400',
+  },
+  // AC-A2: Google 버튼 — tokens 기반 스타일 (M4 추가)
+  googleButton: {
+    backgroundColor: colors.bg.surface,
+    borderWidth: 1,
+    borderColor: colors.border.default,
+  },
+  googleButtonText: {
+    ...typography.headingSm,
+    color: colors.text.primary,
   },
   appleButton: {
     backgroundColor: '#000000',
@@ -117,7 +146,8 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   error: {
-    color: '#FF0000',
-    marginBottom: 20,
+    ...typography.bodySm,
+    color: colors.semantic.error,
+    marginBottom: spacing[5],
   },
 });

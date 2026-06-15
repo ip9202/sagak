@@ -26,7 +26,24 @@
 - Phase 1.7: 11 stub files created (oauth.ts, types.ts, AuthContext.tsx, useSession.ts, 3 screens, 4 tests)
 - Phase 1.8: skipped (greenfield — no existing files to scan)
 
-### Phase 2B: TDD Implementation (manager-tdd, worktree isolation)
+### Phase 2B: TDD Implementation (manager-tdd)
 - Pre-task: expo-linking installed successfully
-- Phase 2B start: manager-tdd delegation initiated with worktree isolation
-- Target: 20 TDD cycles (PRE+M0~M4), 11 files, 33 ACs
+- M0~M2 implemented: types/oauth, AuthContext, useSession, login (kakao+apple)
+- 250 tests passing, src/auth/ coverage healthy
+
+### PR #4 merged (M0~M2 → develop)
+- Squash merge: e132bc0 (2026-06-15)
+- feature/SPEC-AUTH-001-oauth-auth deleted (local + remote)
+- Gap identified: Google button (A2) not yet covered in M2-B
+
+### Branch feature/SPEC-AUTH-001-onboarding-routing (M3 + M4)
+- Phase 2B resumed: manager-tdd delegated M3 onboarding + M4 integration + AC tests
+- M3: src/auth/onboarding.tsx — nickname validation (1-20), UPDATE via .eq('id', user.id), refreshProfile, error+session-retain on failure (REQ-AUTH-020~024, O3-O9)
+- M4: app/_layout.tsx AuthProvider (inside ThemeProvider), app/(auth) re-export from src/auth, Google button added to login.tsx (A2)
+- AC tests: it.skip removed; A1-A7 + O3-O9 real tests written
+- 277 tests pass, 0 skip, src/auth coverage 96.72% lines
+- tsc 0 errors, lint 0 errors, 0 .insert() calls (REQ-AUTH-004)
+- Phase 2.8a evaluator-active: PASS (Functionality 100, Security 100, Craft 95, Consistency 100), all AC verified
+- Phase 2.9 MX tags: onboarding.tsx @MX:ANCHOR/WARN/NOTE attached, consistent with AuthContext
+
+### SPEC-AUTH-001 status: COMPLETE (all 17 REQ, A1-A7/O1-O9/S1-S9/G1-G8 covered)
