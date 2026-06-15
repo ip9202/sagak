@@ -9,7 +9,7 @@
  * - M1-4 AC-S2/S3/S4: getSession 자동 로그인 + onAuthStateChange 구독 + fetchProfile (완료)
  * - M1-5 AC-S7/S8: refreshProfile 외부 노출 — 온보딩 후 수동 프로필 재조회 (완료)
  */
-import React, { createContext, useEffect, useState, useCallback } from 'react';
+import React, { createContext, useEffect, useState, useCallback, useRef } from 'react';
 import type { Session, User } from '@supabase/supabase-js';
 import type { AuthContextValue, AuthProvider, UserProfile } from './types';
 import { getSupabaseClient } from '../lib/supabase/client';
@@ -25,6 +25,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
 
+  // profileRef: onAuthStateChange 리스너(mount-once)가 항상 최신 profile을 읽도록 하는 ref.
+  // WHY: useEffect([], ...)로 한 번만 등록된 리스너가 fetchProfile을 클로저로 캡처한다.
+  //      fetchProfile이 [profile] 의존성을 가지면 매 렌더마다 새 함수가 생성되어도
+  //      리스너는 최초의 stale 버전(캡처 시점 profile === null)을 계속 사용하게 된다.
+  //      ref 패턴으로 fetchProfile을 안정화(deps [])하면 리스너가 캡처한 함수는
+  //      단 하나지만, 매 호출마다 profileRef.current를 통해 렌더 최신 profile을 읽는다.
+  //      결과: 캐시 의도(동일 userId 재조회 생략)가 보존되고 DB/RLS 중복 호출이 사라진다.
+  const profileRef = useRef<UserProfile | null>(null);
+  useEffect(() => {
+    profileRef.current = profile;
+  }, [profile]);
+
   /**
    * REQ-AUTH-013/AC-S4: public.users 프로필 조회
    * SIGNED_IN 이벤트 및 마운트 getSession 복원 시 호출된다.
@@ -32,11 +44,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
    * 실패 시에도 인증 흐름을 차단하지 않는다 — profile만 null로 유지하고
    * session/user는 유지한다. 사용자가 인증된 상태로 빈 프로필 UI를 볼 수 있도록 한다.
    *
-   * @MX:NOTE: [CACHE] userId별 프로필 캐싱으로 중복 조회 방지 (force 옵션으로 캐시 우회 가능)
+   * @MX:NOTE: [CACHE] userId별 프로필 캐싱으로 중복 조회 방지 (force 옵션으로 캐시 우회 가능).
+   *           캐시 판독은 profileRef.current를 사용하여 stale closure를 회피한다.
    */
   const fetchProfile = useCallback(async (userId: string, force = false): Promise<void> => {
     // 캐시된 프로필 확인 (force가 true면 캐시 무시)
-    if (!force && profile?.id === userId) {
+    // ref에서 최신 profile을 읽는다 — 상세 이유는 profileRef 선언부 주석 참조.
+    if (!force && profileRef.current?.id === userId) {
       return; // 이미 캐시된 프로필이 있으면 재사용
     }
 
@@ -51,7 +65,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       return;
     }
     setProfile(data as UserProfile);
-  }, [profile]);
+  }, []);
 
   /**
    * REQ-AUTH-012: 자동 로그인 — 앱 시작 시 getSession()으로 저장된 세션 복원
