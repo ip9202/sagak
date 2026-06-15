@@ -103,6 +103,18 @@ export default function TabsLayout() {
           tabBarAccessibilityLabel: '마이 탭',
         }}
       />
+      {/* 동적 라우트 — 탭바에 표시되지 않음 (href:null). S3/S4 스택 진입/복귀용.
+          REQ-NAV-013: 기본 전환은 React Navigation 슬라이드(기본값).
+          모달형 presentation은 별도 Stack 그룹 도입 시 지원 예정 (Tabs.Screen은
+          presentation 옵션을 타입 수준에서 지원하지 않으므로 현재는 href:null만 적용). */}
+      <Tabs.Screen
+        name="[bookId]"
+        options={{ href: null, headerShown: false }}
+      />
+      <Tabs.Screen
+        name="clubs/[clubId]"
+        options={{ href: null, headerShown: false }}
+      />
     </Tabs>
   );
 }
