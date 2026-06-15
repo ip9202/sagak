@@ -1,13 +1,7 @@
 /**
- * Onboarding screen for nickname and avatar input
+ * Onboarding screen route — re-exports src/auth OnboardingScreen
+ * SPEC-AUTH-001 — REQ-AUTH-020~024
+ *
+ * 실제 구현은 src/auth/onboarding.tsx에 있으며, 이 파일은 expo-router 라우트 진입점 역할만 한다.
  */
-
-import { View } from 'react-native';
-
-export default function OnboardingScreen() {
-  return (
-    <View>
-      {/* TODO: Implement nickname input, avatar selection, submit button */}
-    </View>
-  );
-}
+export { OnboardingScreen as default } from '../../src/auth/onboarding';
