@@ -8,6 +8,32 @@
 
 React Native + Expo SDK 55를 주요 프레임워크로 사용하며 React 19.2와 함께 개발되며 TypeScript strict 모드로 타입 안정성을 확보한다. 네이티브 모듈 의존성을 최소화하고 크로스 플랫폼 호환성을 극대화하기 위해 Expo의 빌드 시스템을 활용하며, 네비게이션은 Expo Router(~5)를 사용하여 파일 시스템 기반 라우팅을 구현한다. UI 컴포넌트는 React Native 기본 컴포넌트와 6가지 커스텀 컴포넌트(Button/Card/ProgressBar/BookCard/EmotionRecordCard/StickerReaction)로 구성되어 로딩 성능과 초기화 속도를 최적화하며, 클라이언트 상태 관리는 React Context API와 ThemeProvider, useTheme, useManualMode(dark 토글) 패턴을 조합한다. 서버 상태(데이터 페칭·캐싱·동기화)는 TanStack React Query(@tanstack/react-query)로 관리하며 DevTools를 통해 쿼리 디버깅을 지원하고, 감정 곡선 등 커스텀 데이터 시각화는 react-native-svg 기반으로 자체 구현하여 번들 크기를 최적화한다. 성능 모니터링과 에러 추적을 위해 Sentry를 통합하여 배포 후 운영 품질을 관리한다.
 
+### 의존성 라이브러리 (SPEC-API-001 추가)
+
+**백엔드 통합 (Supabase)**:
+- `@supabase/supabase-js` ^2.45.0 — Supabase 클라이언트 라이브러리 (PostgreSQL, PostgREST, Realtime, Storage, Auth 통합)
+- `expo-secure-store` ~13.0.0 — iOS Keychain/Android Keystore 세션 영속화 (JWT, refreshToken)
+- `expo-constants` ~17.0.0 — 빌드 시점 환경 변수 주입 (`app.config.ts` extra → Constants.expoConfig.extra)
+- `@react-native-async-storage/async-storage` 2.2.0 — SecureStore 2KB 초과 시 폴백 세션 저장소
+
+### 데이터 플로우 (SPEC-API-001)
+
+**환경 변수 초기화 파이프라인**:
+1. `app.config.ts` extra.eas → SUPABASE_URL/SUPABASE_ANON_KEY 정의
+2. EAS Build 빌드 시점 → 환경별 값 주입 (dev/staging/prod)
+3. 런타임 → Constants.expoConfig.extra로 값 읽기
+4. env.ts → getEnvVar/getOptionalEnvVar로 런타임 검증
+5. client.ts → 검증된 값으로 createClient() 호출
+6. 전역 싱글톤 → 모든 모듈에서 동일 인스턴스 공유
+
+**에러 처리 파이프라인**:
+1. API/Edge Function 호출 → 원본 에러 수신
+2. normalizeError → 표준화된 AppError 계층 구조로 변환
+3. classifyError → NetworkError/AuthError/ValidationError 등 카테고리 분류
+4. retryWithBackoff → 일시적 오류 시 지수 백오프로 재시도 (최대 3회)
+5. getUserFriendlyMessage → 사용자 표시용 메시지 생성
+6. logToSentry → 프로덕션 에러 Sentry 전송 (사용자 PII 제거)
+
 ## 백엔드 / 데이터베이스
 
 백엔드는 Supabase를 통해 서버리스 아키텍처를 구현하며, 데이터베이스는 PostgreSQL을 사용하고 API 계층은 PostgREST를 통해 자동 생성된 RESTful API를 활용한다. 비즈니스 로직 처리와 외부 API 연동은 Supabase Edge Functions에서 처리하며, 실시간 동기화 기능을 통해 사용자 간의 감정 공유와 모임 활동을 실시간으로 처리한다. 보안은 PostgreSQL의 RLS(Row Level Security)를 통해 구현하며, 모든 API 요청이 인증된 사용자에게만 접근 권한을 부여하고, 데이터는 자동으로 백업되고 복제되어 안정성을 보장한다. 스토리지는 Supabase Storage를 사용하여 책 표지 이미지와 사용자 업로드 파일을 관리한다.

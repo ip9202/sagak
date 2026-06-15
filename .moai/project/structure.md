@@ -62,6 +62,10 @@ iOS/Android 모바일 앱 (React Native + Expo SDK 55 + React 19.2)
 - **`src/components/`** (6가지 커스텀 컴포넌트): `Button.tsx`, `Card.tsx`, `ProgressBar.tsx`, `BookCard.tsx`, `EmotionRecordCard.tsx`, `StickerReaction.tsx`
 - **`src/theme/`** (디자인 시스템): `tokens.ts` (light 모드 토큰), `darkTokens.ts` (dark 모드 토큰), `theme.tsx` (ThemeProvider + useTheme + useManualMode 패턴)
 - **`src/types/`** (타입 정의): `Book.ts`, `EmotionRecord.ts`, `StickerType.ts` 도메인 타입 정의
+- **`src/config/`** (환경 변수 검증 및 접근): `env.ts` (getEnvVar/getOptionalEnvVar — 환경 변수 런타임 검증 및 타입 안전한 접근)
+- **`src/lib/supabase/`** (Supabase 클라이언트): `client.ts` (getSupabiceClient 싱글톤), `storageAdapter.ts` (SecureStore/AsyncStorage 폴백 세션 저장소 어댑터)
+- **`src/lib/api/`** (API 레이어): `errors.ts` (AppError 계층 구조 + normalizeError/classifyError), `retry.ts` (retryWithBackoff), `edgeFunctions.ts` (invokeEdgeFunction), `index.ts` (통합 진입점)
+- **`src/errors/`** (공통 에러 처리): `AppError.ts` (AppError 기본 클래스 + 7개 서브클래스 + ErrorCategory 타입)
 
 ### 아키텍특 특징
 
@@ -69,10 +73,13 @@ iOS/Android 모바일 앱 (React Native + Expo SDK 55 + React 19.2)
 - ThemeProvider와 useTheme 훅을 통한 테마 관리 시스템 (수동 dark 모드 전환)
 - React Context API 기반 상태 관리
 - 6가지 재사용 가능 UI 컴포넌트 라이브러리
-- TypeScript strict 모드를 통한 �입 안정성
+- TypeScript strict 모드를 통한 타입 안정성
 - Supabase 백엔드와의 분리된 프론트엔드 아키텍처
+- **API 파운데이션 (SPEC-API-001)**: 환경 변수 검증 → app.config.ts extra → Constants.expoConfig.extra → env.ts 검증 → createClient 파이프라인
+- **에러 파이프라인 (SPEC-API-001)**: normalizeError → classifyError → retryWithBackoff → getUserFriendlyMessage/logToSentry
+- **세션 영속화 (SPEC-API-001)**: SecureStore(iOS Keychain/Android Keystore) → 2KB 초과 시 AsyncStorage 폴백
 
-> **참고**: 이 클라이언트 아키텍처는 SPEC-UI-001에서 구현된 프론트엔드 기반으로, 기존 Supabase 백엔드와 병행 작동합니다.
+> **참고**: 이 클라이언트 아키텍처는 SPEC-UI-001에서 구현된 프론트엔드 기반으로, SPEC-API-001(백엔드 통합 파운데이션)이 Supabase 백엔드와 연결됩니다.
 
 ## 데이터 모델
 

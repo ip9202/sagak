@@ -74,11 +74,14 @@ Phase 5 (배포)
 #### SPEC-API-001: Supabase 클라이언트 통합 및 API 레이어
 - **도메인**: INFRA
 - **우선순위**: high
+- **상태**: ✅ 구현 완료 (16/19 REQ, 84% — 2026-06-15 PR #3 머지)
 - **핵심 범위**: `@supabase/supabase-js` 클라이언트 싱글톤, 환경 변수 관리(dev/prod 분리), 타입 안전 쿼리 래퍼, 공통 에러 처리·재시도, 인증 헤더 자동 주입
+- **완료 REQ**: REQ-API-001~007 (클라이언트 싱글톤, 설정, gen-types 기반, 세션 저장소), REQ-API-011~018 (에러 계층 구조, 재시도, Edge Function 래퍼, 공개 API, 단위 테스트, 환경 변수 분리, EAS Build 통합, 디버깅)
+- **연기 REQ**: REQ-API-008~010 (12엔터티/ENUM/뷰 타입 — SPEC-DB-001 스키마 배포 후 gen-types 실행 필요)
 - **DB 엔터티**: 해당 없음 (클라이언트 인프라)
 - **API/Edge Function**: 모든 PostgREST 엔드포인트 기반
 - **의존성**: SPEC-DB-001(스키마), SPEC-UI-001(프로젝트 구조)
-- **구현 산출물**: `src/lib/supabase.ts`, `src/lib/api/*.ts`, `src/types/db.ts`(Supabase gen-types), `.env*`
+- **구현 산출물**: `src/config/env.ts`, `src/lib/supabase/client.ts`, `src/lib/supabase/storageAdapter.ts`, `src/lib/api/errors.ts`, `src/lib/api/retry.ts`, `src/lib/api/edgeFunctions.ts`, `src/errors/AppError.ts`, `.env*`
 - **제외**: Edge Function 구현 로직(각 도메인 SPEC 처리)
 
 #### SPEC-AUTH-001: OAuth 인증 및 세션 관리
@@ -265,7 +268,7 @@ product.md "비목표" + SPEC-DB-001 "제외 범위" 기반:
 
 | Phase | SPEC | spec.md | plan.md | acceptance.md | 상태 |
 |-------|------|---------|---------|---------------|------|
-| 1 | SPEC-API-001 | ✅ | ✅ | ✅ | SPEC 작성 완료 (19 REQ) |
+| 1 | SPEC-API-001 | ✅ | ✅ | ✅ | 구현 완료 (16/19 REQ, 84% — REQ-008~010 스키마 의존으로 SPEC-DB-001 배포 후 연기) |
 | 1 | SPEC-AUTH-001 | ✅ | ✅ | ✅ | SPEC 작성 완료 (18 REQ) |
 | 1 | SPEC-NAV-001 | ✅ | ✅ | ✅ | SPEC 작성 완료 (13 REQ) |
 | 2 | SPEC-BOOK-001 | ✅ | ✅ | ✅ | SPEC 작성 완료 (16 REQ) |
@@ -282,6 +285,34 @@ product.md "비목표" + SPEC-DB-001 "제외 범위" 기반:
 | 0 | SPEC-UI-002 | ✅ | ✅ | ✅ | SPEC 작성 완료 (25 REQ) — 화면 패턴, 14개 도메인 SPEC 선행 의존성 |
 
 **총 REQ 수: 219개 / 15개 SPEC 전체 작성 완료 (2026-06-14)**
+
+---
+
+## 8. 구현 완료 SPEC 추적
+
+### SPEC-API-001: Supabase 클라이언트 통합 및 API 레이어
+- **구현 완료일**: 2026-06-15
+- **머지**: PR #3 (commit e5d01d9, develop 브랜치)
+- **구현 범위**: 16/19 REQ (84%) — REQ-API-001~007, REQ-API-011~018 완료
+- **연기 REQ**: REQ-API-008~010 (gen-types entity 타입 — SPEC-DB-001 스키마 배포 후 Supabase CLI gen-types 실행 필요)
+- **테스트**: 198개 통과, 커버리지 96%+
+- **새로운 의존성**: `@react-native-async-storage/async-storage` 2.2.0
+- **공개 API**:
+  - `getSupabiceClient` — Supabase 클라이언트 싱글톤 (src/lib/supabase/client.ts)
+  - `normalizeError` — 에러 표준화 (src/lib/api/errors.ts)
+  - `classifyError` — 에러 카테고리 분류 (src/lib/api/errors.ts)
+  - `retryWithBackoff` — 지수 백오프 재시도 (src/lib/api/retry.ts)
+  - `getUserFriendlyMessage` — 사용자 표시용 메시지 (src/lib/api/errors.ts)
+  - `logToSentry` — 에러 로깅 (src/lib/api/errors.ts)
+  - `invokeEdgeFunction` — Edge Function 래퍼 (src/lib/api/edgeFunctions.ts)
+  - `supabaseStorageAdapter` — 세션 저장소 어댑터 (src/lib/supabase/storageAdapter.ts)
+- **새로운 디렉토리**:
+  - `src/config/` — 환경 변수 검증 (env.ts)
+  - `src/lib/supabase/` — Supabase 클라이언트 및 세션 저장소
+  - `src/lib/api/` — API 에러 처리 및 Edge Function 래퍼
+  - `src/errors/` — 공통 에러 클래스 계층 (AppError + 7 서브클래스)
+- **보안 수정사항**: service_role 키 클라이언트 노출 이슈 리뷰에서 발견/수정 (security-mitigations.md 참조)
+- **후속 의존성**: 모든 도메인 SPEC(SPEC-AUTH-001, SPEC-NAV-001, SPEC-BOOK-001 등)이 이 파운데이션 위에 구현됨
 
 ---
 

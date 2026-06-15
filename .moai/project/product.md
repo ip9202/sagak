@@ -19,6 +19,7 @@
 **완료된 SPEC**:
 - **SPEC-DB-001**: 백엔드 구현 완료 (Supabase 스키마, API 엔드포인트, 인증 시스템)
 - **SPEC-UI-001**: 프론트엔드 기반 구현 완료 (Expo SDK 55 + React 19.2 + RN 0.83.2 + TypeScript strict, 디자인 토큰, ThemeProvider + useTheme + useManualMode, 6가지 컴포넌트, Jest 테스트 72/72, 커버리지 93.68%, 웹 업로드 검증)
+- **SPEC-API-001**: 백엔드 통합 파운데이션 완료 (Supabase 클라이언트 싱글톤, 환경 변수 검증, 공통 에러 처리, Edge Function 래퍼, 198개 테스트 통과, 커버리지 96%+)
 
 **남은 작업 (향후 SPEC에서 구현)**:
 - 실제 화면 구현 (홈/서재/클럽/마이 화면)

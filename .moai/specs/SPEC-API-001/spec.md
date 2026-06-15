@@ -3,12 +3,12 @@
 id: SPEC-API-001
 title: "Supabase Client Integration & API Layer"
 version: "1.0.0"
-status: draft
+status: implemented
 created: 2026-06-14
-updated: 2026-06-14
+updated: 2026-06-15
 author: "강력쇠주먹"
 priority: high
-issue_number: 0
+issue_number: 3
 labels: [infra, supabase, client, api, typescript, gen-types, environment]
 ---
 
@@ -383,3 +383,61 @@ React Query(v5, `@tanstack/react-query`), SWR, 순수 React 훅(`useEffect` + `u
 | REQ-API-TYPES | REQ-API-006 ~ REQ-API-010 | db/schema.md "Tables (12)", "Enums", "Views (2)" |
 | REQ-API-ERROR | REQ-API-011 ~ REQ-API-015 | tech.md "에러 추적"(Sentry), structure.md API 서피스 |
 | REQ-API-ENV | REQ-API-016 ~ REQ-API-019 | tech.md "빌드 및 배포"(EAS Build), "개발 환경 요구사항" |
+
+---
+
+## 8. 구현 노트 (Implementation Notes)
+
+### 구현 완료: 2026-06-15
+
+**구현 범위**: 16/19 REQ (84%)
+- 완료: REQ-API-001~007, REQ-API-011~018
+- 연기: REQ-API-008~010 (12엔터티/ENUM/뷰 타입 — SPEC-DB-001 스키마 배포 후 gen-types 실행 필요)
+
+**머지 정보**:
+- PR: #3
+- Commit: e5d01d9 (develop 브랜치 squash merge)
+- 브랜치: develop (Git Flow 준수)
+
+**테스트 및 품질**:
+- 총 198개 테스트 통과
+- 코드 커버리지: 96%+
+- TypeScript 컴파일: 0 에러
+- ESLint: 0 경고
+- 보안 리뷰: service_role 키 노출 이슈 발견/수정 (security-mitigations.md 참조)
+
+**새로운 의존성**:
+- `@react-native-async-storage/async-storage` 2.2.0 (세션 영속화 폴백)
+- `@supabase/supabase-js` ^2.45.0 (활성화됨)
+- `expo-secure-store` ~13.0.0 (활성화됨)
+- `expo-constants` ~17.0.0 (활성화됨)
+
+**공개 API 목록**:
+1. `getSupabiceClient` — Supabase 클라이언트 싱글톤 (`src/lib/supabase/client.ts`)
+2. `normalizeError` — 에러 표준화 (`src/lib/api/errors.ts`)
+3. `classifyError` — 에러 카테고리 분류 (`src/lib/api/errors.ts`)
+4. `retryWithBackoff` — 지수 백오프 재시도 (`src/lib/api/retry.ts`)
+5. `getUserFriendlyMessage` — 사용자 표시용 메시지 (`src/lib/api/errors.ts`)
+6. `logToSentry` — 에러 로깅 (`src/lib/api/errors.ts`)
+7. `invokeEdgeFunction` — Edge Function 래퍼 (`src/lib/api/edgeFunctions.ts`)
+8. `supabaseStorageAdapter` — 세션 저장소 어댑터 (`src/lib/supabase/storageAdapter.ts`)
+
+**새로운 디렉토리 구조**:
+- `src/config/` — 환경 변수 검증 및 접근 (`env.ts`)
+- `src/lib/supabase/` — Supabase 클라이언트 및 세션 저장소 (`client.ts`, `storageAdapter.ts`)
+- `src/lib/api/` — API 에러 처리 및 Edge Function 래퍼 (`errors.ts`, `retry.ts`, `edgeFunctions.ts`, `index.ts`)
+- `src/errors/` — 공통 에러 클래스 계층 (`AppError.ts`)
+
+**데이터 플로우**:
+1. 환경 변수: `app.config.ts` extra → Constants.expoConfig.extra → env.ts 검증 → createClient
+2. 에러 파이프라인: normalizeError → classifyError → retryWithBackoff → getUserFriendlyMessage/logToSentry
+3. 세션 영속화: SecureStore(iOS Keychain/Android Keystore) → 2KB 초과 시 AsyncStorage 폴백
+
+**보안 수정사항**:
+- 리뷰에서 service_role 키가 클라이언트 번들에 포함된 이슈 발견
+- 환경 변수 검증 로직 강화로 anon_key만 사용하도록 수정
+- service_role은 Edge Functions 서버 측에서만 사용하도록 보안 정책 강화
+
+**후속 의존성**:
+- 모든 도메인 SPEC(SPEC-AUTH-001, SPEC-NAV-001, SPEC-BOOK-001, SPEC-LIBRARY-001 등)이 본 API 레이어 파운데이션 위에 구현됨
+- SPEC-DB-001 스키마 배포 후 gen-types 실행으로 REQ-API-008~010 완료 예정
