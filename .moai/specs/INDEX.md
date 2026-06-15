@@ -311,7 +311,7 @@ product.md "비목표" + SPEC-DB-001 "제외 범위" 기반:
 
 run 워크플로우 실행 시, MoAI 오케스트레이터는 각 도메인 SPEC의 구현 에이전트 프롬프트에 다음을 **반드시 주입**해야 한다:
 1. `.moai/specs/SPEC-UI-002/spec.md` — 화면 패턴 REQ (3계층 레이아웃, 헤더 균일성, 카드 밀도, 빈/로딩/에러 상태, 탭바 규칙)
-2. Pencil 레퍼런스: `pencil-new.pen` — 4개 핵심 탭 화면(F03-Home/F04-Library/F11-Clubs/F15-My) + 6개 재사용 컴포넌트(StatusBar/TabBar/BookCard/PrimaryButton/GhostButton/EmotionRecordCard)
+2. Pencil 레퍼런스: `.moai/design/sagak.pen` — 4개 핵심 탭 화면(F03-Home/F04-Library/F11-Clubs/F15-My) + 2개 빈 상태 화면(F04-Library-Empty/F11-Clubs-Empty) + 7개 재사용 컴포넌트(StatusBar/TabBar/BookCard/PrimaryButton/GhostButton/EmotionRecordCard/EmptyState)
 3. `.moai/design/system.md` — 디자인 시스템 SSOT (토큰 테이블, craft 원칙)
 4. `src/theme/tokens.ts` — `$` 변수만 사용, 하드코딩 금지
 
