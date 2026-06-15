@@ -46,6 +46,8 @@ function isRetryable(category: string | undefined): boolean {
   return category !== undefined && RETRYABLE_CATEGORIES.has(category);
 }
 
+// @MX:WARN: [AUTO] 비동기 setTimeout 타이머로 백오프 대기를 구현 + 최대 3회 재시도 소진 시 에러 throw
+// @MX:REASON: sleep() 내부의 setTimeout 이 타이머 누수 위험을 가지며, MAX_RETRIES(3) 소진 후 throw 되는 에러는 retriesExhausted=true 표식으로 REQ-API-015 Sentry 로깅 대상이 된다. 타이머 정리와 재시도 한계를 변경할 때 이 계약을 깨뜨리면 로깅/관측 가능성이 고장난다.
 /**
  * REQ-API-013: 지수 백오프 재시도 래퍼
  *

@@ -105,16 +105,27 @@ describe('Environment Variables (REQ-API-016 ~ REQ-API-019)', () => {
     });
   });
 
-  describe('Service role key security (REQ-API-016)', () => {
-    it('service_role key should NOT be in EXPO_PUBLIC_* prefix (security check)', () => {
+  describe('service_role 키 클라이언트 번들 보안 (REQ-API-016)', () => {
+    it('service_role 키는 EXPO_PUBLIC_ 접두사를 사용해선 안 된다 (클라이언트 번들 보안)', () => {
       const fs = require('fs');
       const path = require('path');
 
       const envExamplePath = path.join(process.cwd(), '.env.example');
       const envExampleContent = fs.readFileSync(envExamplePath, 'utf8');
 
-      // Check that service_role key is documented
-      expect(envExampleContent).toContain('EXPO_PUBLIC_SUPABASE_SERVICE_ROLE_KEY');
+      // .env.example 에서 절대 EXPO_PUBLIC_ 접두사로 service_role 키를 선언하면 안 된다.
+      expect(envExampleContent).not.toContain('EXPO_PUBLIC_SUPABASE_SERVICE_ROLE');
+    });
+
+    it('app.config.ts 는 service_role 키를 extra 에 주입해선 안 된다 (클라이언트 번들 보안)', () => {
+      const fs = require('fs');
+      const path = require('path');
+
+      const appConfigPath = path.join(process.cwd(), 'app.config.ts');
+      const appConfigContent = fs.readFileSync(appConfigPath, 'utf8');
+
+      // app.config.ts 가 service_role 을 extra 필드에 주입하면 런타임에 노출된다.
+      expect(appConfigContent).not.toContain('SERVICE_ROLE');
     });
   });
 });

@@ -195,6 +195,8 @@ export function classifyError(error: unknown): ErrorCategory {
   return 'UNKNOWN';
 }
 
+// @MX:ANCHOR: [AUTO] 모든 API 호출 에러가 이 함수를 거치는 단일 정규화 지점
+// @MX:REASON: fan_in >= 3 예상 (모든 도메인 SPEC 호출 — Books/Library/Clubs/Feed 등 — 이 이 함수에 의존하며, 잘못된 정규화는 재시도/로깅/사용자 메시지 전반을 오염시킨다).
 /**
  * REQ-API-011: 에러 정규화 함수
  *

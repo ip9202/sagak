@@ -32,6 +32,8 @@ interface FunctionsInvokeResponse<T> {
   error: unknown;
 }
 
+// @MX:ANCHOR: [AUTO] 백엔드 Edge Function 호출의 단일 진입점 (public API boundary)
+// @MX:REASON: 모든 Edge Function 호출(kakao-book-search, process-join-request, generate-completion-report, send-notification)이 이 함수를 거치며, 에러 정규화/JWT 주입 계약을 위반하면 도메인 전반의 호출이 고장난다.
 /**
  * REQ-API-004: Edge Function 호출 래퍼.
  *
