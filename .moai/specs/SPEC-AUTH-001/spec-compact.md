@@ -2,9 +2,9 @@
 id: SPEC-AUTH-001
 title: "OAuth Authentication & Session Management — Compact Reference"
 version: "1.0.0"
-status: draft
+status: completed
 created: 2026-06-14
-updated: 2026-06-14
+updated: 2026-06-15
 author: "강력쇠주먹"
 priority: high
 issue_number: 0
@@ -126,5 +126,21 @@ SPEC-UI-001 (디자인 토큰/컴포넌트) ──↗
 | 5.3 | 애플 Sign in with Apple iOS 강제 요구사항 | 미해결 | (B) 양쪽 플랫폼 표시 |
 
 ---
+
+## 구현 노트 (Implementation Notes)
+
+본 SPEC은 2026-06-15에 전체 구현이 완료되었습니다:
+
+- **구현 범위**: 17개 REQ 모두 충족 (REQ-AUTH-001~004: OAuth, REQ-AUTH-010~014: 세션, REQ-AUTH-020~024: 온보딩, REQ-AUTH-030~033: 가드 훅)
+- **모듈 위치**: `src/auth/` (AuthContext, useSession, types, oauth, login, onboarding)
+- **라우팅**: `app/(auth)/`는 리익스포트 레이어 (실제 구현은 `src/auth/`에 존재)
+- **테스트 커버리지**: src/auth 모듈 96.72% (277개 테스트 통과)
+- **품질 검증**: TypeScript 0 에러, ESLint 0 에러, evaluator-active + expert-security PASS
+- **PR 기록**: #4 (M0-M2: AuthContext/useSession/login), #5 (M3 온보딩 + M4 라우터 통합)
+
+**plan.md와의 차이점**:
+- `src/auth/oauth.ts`: 원본 plan.md에 없던 신규 파일 (expo-linking 의존성 해결용 래퍼)
+- 구현 위치: `src/auth/*` (plan.md에는 `app/(auth)/*`로 기재됨) — 컴포넌트 분리/테스트 용이성을 위해 `src/auth/`에 실제 구현, `app/(auth)/`는 리익스포트 레이어로 변경
+- 그 외 모든 파일은 plan.md대로 구현됨
 
 *Compact reference generated from spec.md v1.0.0 + acceptance.md v1.0.0*

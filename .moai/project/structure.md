@@ -58,7 +58,15 @@ iOS/Android 모바일 앱 (React Native + Expo SDK 55 + React 19.2)
 
 ### 핵심 구조
 
-- **`app/`** (Expo Router 라우팅): `_layout.tsx` (ThemeProvider로 전체 앱 감싸기), `index.tsx` (메인 화면), `_dev.tsx` (컴포넌트 데모 및 dark 토글 기능)
+- **`app/`** (Expo Router 라우팅): `_layout.tsx` (AuthProvider + ThemeProvider로 전체 앱 감싸기), `index.tsx` (메인 화면), `_dev.tsx` (컴포넌트 데모 및 dark 토글 기능)
+- **`app/(auth)/`** (인증 라우트 그룹): `_layout.tsx` (인증 라우트 그룹 레이아웃), `login.tsx` (로그인 화면 — `src/auth/login.tsx` 리익스포트), `onboarding.tsx` (온보딩 화면 — `src/auth/onboarding.tsx` 리익스포트), `__tests__/` (인증 화면 테스트)
+- **`src/auth/`** (인증 모듈 — SPEC-AUTH-001):
+  - `AuthContext.tsx` (AuthProvider + 인증 상태 관리: session, user, profile, loading, onAuthStateChange, getSession, signInWithProvider, signOut, refreshProfile, fetchProfile 캐싱)
+  - `useSession.ts` (인증 훅: isAuthenticated, isOnboarded 파생값 + 액션 노출)
+  - `types.ts` (AuthProvider 유니온 타입: `'kakao' | 'apple' | 'google'`, UserProfile 인터페이스, AuthContextValue 타입)
+  - `oauth.ts` (OAuth 딥링크 처리: getOAuthRedirectUri — expo-linking 래퍼)
+  - `login.tsx` (LoginScreen — 카카오/애플/구글 OAuth 버튼)
+  - `onboarding.tsx` (OnboardingScreen — 닉네임 검증(1~20자), avatar 선택, UPDATE 요청, refreshProfile 호출)
 - **`src/components/`** (6가지 커스텀 컴포넌트): `Button.tsx`, `Card.tsx`, `ProgressBar.tsx`, `BookCard.tsx`, `EmotionRecordCard.tsx`, `StickerReaction.tsx`
 - **`src/theme/`** (디자인 시스템): `tokens.ts` (light 모드 토큰), `darkTokens.ts` (dark 모드 토큰), `theme.tsx` (ThemeProvider + useTheme + useManualMode 패턴)
 - **`src/types/`** (타입 정의): `Book.ts`, `EmotionRecord.ts`, `StickerType.ts` 도메인 타입 정의
@@ -70,6 +78,12 @@ iOS/Android 모바일 앱 (React Native + Expo SDK 55 + React 19.2)
 ### 아키텍특 특징
 
 - Expo Router를 통한 파일 시스템 기반 라우팅으로 네비게이션 관리
+- **인증 아키텍처 (SPEC-AUTH-001)**: 
+  - AuthContext가 앱 최상위(`app/_layout.tsx`)에서 ThemeProvider 내부에 배치되어 전역 인증 상태 관리
+  - `src/auth/` 모듈에 실제 구현(컴포넌트 분리, 테스트 용이성), `app/(auth)/`는 얇은 리익스포트 레이어(Expo Router 패턴)
+  - useSession 훅이 isAuthenticated, isOnboarded 파생값 제공하여 인증 가드(SPEC-NAV-001)에서 활용
+  - 자동 로그인: getSession()으로 앱 시작 시 세션 복원, onAuthStateChange로 4이벤트 구독(INITIAL_SESSION, SIGNED_IN, TOKEN_REFRESHED, SIGNED_OUT)
+  - OAuth 플로우: signInWithOAuth(provider, { redirectTo: getOAuthRedirectUri() })로 카카오/애플/구글 로그인 처리
 - ThemeProvider와 useTheme 훅을 통한 테마 관리 시스템 (수동 dark 모드 전환)
 - React Context API 기반 상태 관리
 - 6가지 재사용 가능 UI 컴포넌트 라이브러리
@@ -79,7 +93,7 @@ iOS/Android 모바일 앱 (React Native + Expo SDK 55 + React 19.2)
 - **에러 파이프라인 (SPEC-API-001)**: normalizeError → classifyError → retryWithBackoff → getUserFriendlyMessage/logToSentry
 - **세션 영속화 (SPEC-API-001)**: SecureStore(iOS Keychain/Android Keystore) → 2KB 초과 시 AsyncStorage 폴백
 
-> **참고**: 이 클라이언트 아키텍처는 SPEC-UI-001에서 구현된 프론트엔드 기반으로, SPEC-API-001(백엔드 통합 파운데이션)이 Supabase 백엔드와 연결됩니다.
+> **참고**: 이 클라이언트 아키텍처는 SPEC-UI-001에서 구현된 프론트엔드 기반으로, SPEC-API-001(백엔드 통합 파운데이션)이 Supabase 백엔드와 연결되며, SPEC-AUTH-001(OAuth 인증 및 세션 관리)이 인증 시스템을 완성했습니다.
 
 ## 데이터 모델
 

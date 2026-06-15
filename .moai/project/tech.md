@@ -8,13 +8,16 @@
 
 React Native + Expo SDK 55를 주요 프레임워크로 사용하며 React 19.2와 함께 개발되며 TypeScript strict 모드로 타입 안정성을 확보한다. 네이티브 모듈 의존성을 최소화하고 크로스 플랫폼 호환성을 극대화하기 위해 Expo의 빌드 시스템을 활용하며, 네비게이션은 Expo Router(~5)를 사용하여 파일 시스템 기반 라우팅을 구현한다. UI 컴포넌트는 React Native 기본 컴포넌트와 6가지 커스텀 컴포넌트(Button/Card/ProgressBar/BookCard/EmotionRecordCard/StickerReaction)로 구성되어 로딩 성능과 초기화 속도를 최적화하며, 클라이언트 상태 관리는 React Context API와 ThemeProvider, useTheme, useManualMode(dark 토글) 패턴을 조합한다. 서버 상태(데이터 페칭·캐싱·동기화)는 TanStack React Query(@tanstack/react-query)로 관리하며 DevTools를 통해 쿼리 디버깅을 지원하고, 감정 곡선 등 커스텀 데이터 시각화는 react-native-svg 기반으로 자체 구현하여 번들 크기를 최적화한다. 성능 모니터링과 에러 추적을 위해 Sentry를 통합하여 배포 후 운영 품질을 관리한다.
 
-### 의존성 라이브러리 (SPEC-API-001 추가)
+### 의존성 라이브러리 (SPEC-API-001 + SPEC-AUTH-001 추가)
 
 **백엔드 통합 (Supabase)**:
 - `@supabase/supabase-js` ^2.45.0 — Supabase 클라이언트 라이브러리 (PostgreSQL, PostgREST, Realtime, Storage, Auth 통합)
 - `expo-secure-store` ~13.0.0 — iOS Keychain/Android Keystore 세션 영속화 (JWT, refreshToken)
 - `expo-constants` ~17.0.0 — 빌드 시점 환경 변수 주입 (`app.config.ts` extra → Constants.expoConfig.extra)
 - `@react-native-async-storage/async-storage` 2.2.0 — SecureStore 2KB 초과 시 폴백 세션 저장소
+
+**OAuth 인증 (SPEC-AUTH-001)**:
+- `expo-linking` ~7.0.0 — OAuth 딥링크 콜백 URL 생성 (`makeRedirectUri`) 및 처리
 
 ### 데이터 플로우 (SPEC-API-001)
 
