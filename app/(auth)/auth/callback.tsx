@@ -22,8 +22,10 @@ import { useTheme } from '../../../src/theme/theme';
 import { useSession } from '../../../src/auth/useSession';
 
 export default function CallbackRoute() {
-  // D1: URL 파라미터 수신 (세션 교환은 onAuthStateChange에 위임, 여기서는 참조만)
-  useLocalSearchParams();
+  // D1: URL 파라미터 수신 — 반환값은 의도적으로 미사용(void 명시).
+  // 파라미터 수신 사실만 확립(딥링크 라우트 매칭 + D1 검증); 실제 토큰 교환은
+  // src/auth/AuthContext.tsx onAuthStateChange에 위임하므로 여기서 소비하지 않는다.
+  void useLocalSearchParams();
   const s = useSession();
   const router = useRouter();
   const theme = useTheme();
