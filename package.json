@@ -9,7 +9,8 @@
     "web": "expo start --web",
     "test": "jest",
     "lint": "eslint .",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "gen-types": "supabase gen-types typescript --src src/types/supabase.ts --schema public"
   },
   "dependencies": {
     "@expo/vector-icons": "^15.0.0",
