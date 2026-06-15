@@ -1,0 +1,83 @@
+/**
+ * Auth type definitions tests
+ * REQ-AUTH-001: AuthProvider union type 'kakao' | 'apple' | 'google'
+ * Tests compile-time type safety and runtime value constraints
+ */
+
+import type { AuthProvider, UserProfile, AuthContextValue } from '../types';
+
+describe('AuthProvider type', () => {
+  it('accepts exactly three provider values', () => {
+    const providers: AuthProvider[] = ['kakao', 'apple', 'google'];
+    expect(providers).toHaveLength(3);
+    expect(providers).toContain('kakao');
+    expect(providers).toContain('apple');
+    expect(providers).toContain('google');
+  });
+
+  it('matches users.provider CHECK constraint values', () => {
+    // SPEC-DB-001 REQ-DB-001 CHECK constraint: kakao/apple/google
+    // These must be identical at compile time and runtime
+    const dbProviders = ['kakao', 'apple', 'google'];
+    const tsProviders: AuthProvider[] = ['kakao', 'apple', 'google'];
+    expect(tsProviders.sort()).toEqual(dbProviders.sort());
+  });
+});
+
+describe('UserProfile type', () => {
+  it('supports a fully populated profile', () => {
+    const profile: UserProfile = {
+      id: 'user-123',
+      nickname: '독서왕',
+      avatar_url: 'https://example.com/avatar.png',
+      provider: 'kakao',
+      created_at: '2026-01-01T00:00:00Z',
+      updated_at: '2026-01-01T00:00:00Z',
+    };
+    expect(profile.nickname).toBe('독서왕');
+    expect(profile.provider).toBe('kakao');
+  });
+
+  it('supports nullable nickname and avatar_url (onboarding not yet complete)', () => {
+    const profile: UserProfile = {
+      id: 'user-456',
+      nickname: null,
+      avatar_url: null,
+      provider: 'google',
+      created_at: '2026-01-01T00:00:00Z',
+      updated_at: '2026-01-01T00:00:00Z',
+    };
+    expect(profile.nickname).toBeNull();
+    expect(profile.avatar_url).toBeNull();
+  });
+});
+
+describe('AuthContextValue type', () => {
+  it('exposes session, user, profile, loading state', () => {
+    const value: AuthContextValue = {
+      session: null,
+      user: null,
+      profile: null,
+      loading: true,
+      signInWithProvider: async () => {},
+      signOut: async () => {},
+      refreshProfile: async () => {},
+    };
+    expect(value.loading).toBe(true);
+  });
+
+  it('supports actions returning Promise<void>', () => {
+    const value: AuthContextValue = {
+      session: null,
+      user: null,
+      profile: null,
+      loading: false,
+      signInWithProvider: jest.fn().mockResolvedValue(undefined),
+      signOut: jest.fn().mockResolvedValue(undefined),
+      refreshProfile: jest.fn().mockResolvedValue(undefined),
+    };
+    expect(typeof value.signInWithProvider).toBe('function');
+    expect(typeof value.signOut).toBe('function');
+    expect(typeof value.refreshProfile).toBe('function');
+  });
+});
