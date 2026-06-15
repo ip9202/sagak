@@ -52,7 +52,8 @@ export function LoginScreen() {
       if (__DEV__) {
         console.error(`OAuth ${providerNames[provider]} 로그인 실패:`, err);
       } else {
-        console.error(`OAuth ${providerNames[provider]} 로그인 실패:`, err instanceof Error ? err.message : 'Unknown error');
+        // prod: err.message 대신 err.name만 로깅 (RLS 정책명 등 정보 노출 방지)
+        console.error(`OAuth ${providerNames[provider]} 로그인 실패:`, err instanceof Error ? err.name : 'Unknown');
       }
     } finally {
       setLoading(null);
@@ -69,6 +70,8 @@ export function LoginScreen() {
         style={[styles.button, styles.kakaoButton]}
         onPress={() => handleSignIn('kakao')}
         disabled={loading !== null}
+        accessibilityLabel="카카오로 시작하기"
+        accessibilityRole="button"
       >
         <Text style={styles.buttonText}>
           {loading === 'kakao' ? '카카오 로그인 중...' : '카카오로 시작하기'}
@@ -91,6 +94,8 @@ export function LoginScreen() {
         style={[styles.button, styles.appleButton]}
         onPress={() => handleSignIn('apple')}
         disabled={loading !== null}
+        accessibilityLabel="Apple로 시작하기"
+        accessibilityRole="button"
       >
         <Text style={styles.buttonText}>
           {loading === 'apple' ? 'Apple 로그인 중...' : 'Apple로 시작하기'}

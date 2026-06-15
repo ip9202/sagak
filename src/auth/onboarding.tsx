@@ -86,7 +86,8 @@ export function OnboardingScreen(): React.JSX.Element {
       if (__DEV__) {
         console.error('Onboarding UPDATE 실패:', err);
       } else {
-        console.error('Onboarding UPDATE 실패:', err instanceof Error ? err.message : 'Unknown error');
+        // prod: err.message 대신 err.name만 로깅 (RLS 정책명 등 정보 노출 방지)
+        console.error('Onboarding UPDATE 실패:', err instanceof Error ? err.name : 'Unknown');
       }
       setError(ERROR_MESSAGE);
     } finally {
