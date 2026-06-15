@@ -38,7 +38,7 @@ issue_number: 0
 #### 시나리오 G2: authenticated 상태에서 홈 탭 진입
 
 **Given** `useSession()`이 `authenticated` 상태를 반환함
-**And** 온보딩이 완료됨 (`isOnboardingComplete === true`)
+**And** 온보딩이 완료됨 (`isOnboarded === true`)
 **When** `app/index.tsx`의 리다이렉트 로직이 실행됨
 **Then** `router.replace('/(tabs)/')`가 호출됨
 **And** 홈 탭이 렌더링됨
@@ -70,7 +70,7 @@ issue_number: 0
 #### 시나리오 G6: 온보딩 미완료 사용자 가드
 
 **Given** `useSession()`이 `authenticated` 상태를 반환함
-**And** 온보딩이 미완료됨 (`isOnboardingComplete === false`)
+**And** 온보딩이 미완료됨 (`isOnboarded === false`)
 **When** `app/index.tsx`의 리다이렉트 로직이 실행됨
 **Then** `router.replace('/(auth)/onboarding')`가 호출됨
 **And** 온보딩 화면이 렌더링됨
@@ -269,7 +269,7 @@ issue_number: 0
 ### EC3: 온보딩 중 앱 강제 종료 후 재시작
 
 **상황**: 사용자가 온보딩 화면에서 닉네임 입력 중 앱을 강제 종료함. 세션은 생성되었으나 온보딩 미완료 상태.
-**기대 동작**: 재시작 시 `useSession()`이 `authenticated` + `isOnboardingComplete === false`를 반환. REQ-NAV-023 가드가 온보딩 화면으로 리다이렉트. 홈 탭 진입 차단.
+**기대 동작**: 재시작 시 `useSession()`이 `isAuthenticated === true, isOnboarded === false`를 반환. REQ-NAV-023 가드가 온보딩 화면으로 리다이렉트. 홈 탭 진입 차단.
 
 ### EC4: 딥링크 수신 시 앱이 백그라운드에 있음
 

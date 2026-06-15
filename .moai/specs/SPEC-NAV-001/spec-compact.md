@@ -16,7 +16,7 @@ issue_number: 0
 
 ---
 
-## 1. 요구사항 (Requirements) — 14개 REQ
+## 1. 요구사항 (Requirements) — 13개 REQ
 
 ### REQ-NAV-TABS: 4개 탭 네비게이션 구조 (3개 REQ)
 
@@ -39,10 +39,10 @@ issue_number: 0
 
 | REQ ID | 요구사항 요약 |
 |--------|--------------|
-| REQ-NAV-020 | `useSession()` 상태 기반 진입 분기 — loading: 스플래시/인디케이터, authenticated: `(tabs)` 홈 `router.replace`, unauthenticated: `(auth)/login` `router.replace`. |
+| REQ-NAV-020 | `useSession()` 기반 진입 분기 — `null` 반환(loading): 스플래시/인디케이터, `isAuthenticated===true`(+`isOnboarded===true`): `(tabs)` 홈 `router.replace`, `isAuthenticated===false`: `(auth)/login` `router.replace`. |
 | REQ-NAV-021 | `(auth)` 그룹 보호 — 인증 사용자의 `(auth)` 접근 시 `(tabs)` 리다이렉트. |
 | REQ-NAV-022 | `(tabs)` 그룹 보호 — 미인증 사용자의 `(tabs)` 접근 시 `(auth)/login` 리다이렉트. |
-| REQ-NAV-023 | 온보딩 미완료 가드 — authenticated + 온보딩 미완료 시 `(auth)/onboarding` 리다이렉트. |
+| REQ-NAV-023 | 온보딩 미완료 가드 — `isAuthenticated===true && isOnboarded===false` 시 `(auth)/onboarding` 리다이렉트. `isOnboarded`는 `profile.nickname` 기반 (SPEC-AUTH-001). |
 
 ### REQ-NAV-DEEPLINK: 딥링크 (2개 REQ)
 
@@ -57,7 +57,7 @@ issue_number: 0
 
 | 카테고리 | 시나리오 ID | 개수 | 핵심 검증 항목 |
 |----------|-----------|------|---------------|
-| 인증 가드 | G1~G7 | 7 | loading 점멸 없음, authenticated/unauthenticated 분기, 온보딩 가드, 양방향 그룹 보호 |
+| 인증 가드 | G1~G7 | 7 | `null`(loading) 점멸 없음, `isAuthenticated`/`isOnboarded` 분기, 온보딩 가드, 양방향 그룹 보호 |
 | 탭 네비게이션 | T1~T6 | 6 | 4개 탭 렌더링, 디자인 토큰 스타일링, 활성/비활성 색상, 다크모드, 탭 전환, placeholder 셸 |
 | 스택 라우트 | S1~S4 | 4 | bookId/clubId 파라미터 수신, 스택 진입/복귀, 탭 간 스택 유지 |
 | 딥링크 | D1~D4 | 4 | OAuth 콜백 수신, 유효/에러 토큰 분기, iOS/Android 스킴 등록 |
@@ -112,7 +112,7 @@ issue_number: 0
 | 의존 SPEC | 제공 자산 | 본 SPEC 소비 방식 |
 |-----------|-----------|-----------------|
 | SPEC-UI-001 | `app/_layout.tsx` (ThemeProvider), `src/theme/tokens.ts`, `useTheme()` | ThemeProvider 하위에 그룹 라우트 추가, 탭바 스타일링에 토큰 사용 |
-| SPEC-AUTH-001 | `useSession()` 훅 (loading/authenticated/unauthenticated + isOnboardingComplete) | 인증 가드에서 소비, 인터페이스 협약 |
+| SPEC-AUTH-001 | `useSession()` 훅 — `null`(loading) 또는 `{ isAuthenticated, isOnboarded, session, user, profile, ... }` (loading 완료 시) | 인증 가드에서 `isAuthenticated`/`isOnboarded` 불리언 소비. `isOnboarded` = `profile.nickname` 존재 기반 (REQ-AUTH-030~033). |
 
 ---
 

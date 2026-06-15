@@ -155,7 +155,7 @@ app/
 **우선순위**: Medium
 
 **범위**:
-- `app.json` / `app.config.js` — 딥링크 스킴 `sagak://` 등록 (iOS + Android)
+- `app.json` / `app.config.js` — 딥링크 스킴 `sagak://` — 이미 등록됨 (`app.json` scheme: `'sagak'`) — 검증만 수행 (REQ-NAV-030은 verification-only)
 - `app/(auth)/auth/callback.tsx` — OAuth 콜백 수신 라우트
 - 콜백 수신 → 세션 처리 위임 → 리다이렉트 연결
 
@@ -213,17 +213,17 @@ app/
 선언적 리다이렉트 방식을 사용한다:
 
 1. `app/index.tsx` (진입 분기):
-   - `useSession()` 호출 → `loading` / `authenticated` / `unauthenticated` 상태 획득
-   - `loading` 시: 스플래시/`ActivityIndicator` 렌더링 (네이티브 `expo-splash-screen` 유지 권장)
-   - `authenticated` + 온보딩 완료 시: `router.replace('/(tabs)/')` (홈)
-   - `authenticated` + 온보딩 미완료 시: `router.replace('/(auth)/onboarding')`
-   - `unauthenticated` 시: `router.replace('/(auth)/login')`
+   - `useSession()` 호출 → 반환값 분기
+   - `useSession() === null` (loading) 시: 스플래시/`ActivityIndicator` 렌더링 (네이티브 `expo-splash-screen` 유지 권장)
+   - `isAuthenticated === true && isOnboarded === true` 시: `router.replace('/(tabs)/')` (홈)
+   - `isAuthenticated === true && isOnboarded === false` 시: `router.replace('/(auth)/onboarding')`
+   - `isAuthenticated === false` 시: `router.replace('/(auth)/login')`
 
 2. `app/(tabs)/_layout.tsx` (그룹 보호):
-   - `useSession()` 확인 → `unauthenticated` 시 `router.replace('/(auth)/login')`
+   - `useSession()` 확인 → `isAuthenticated === false` 시 `router.replace('/(auth)/login')`
 
 3. `app/(auth)/_layout.tsx` (그룹 보호):
-   - `useSession()` 확인 → `authenticated` + 온보딩 완료 시 `router.replace('/(tabs)/')`
+   - `useSession()` 확인 → `isAuthenticated === true && isOnboarded === true` 시 `router.replace('/(tabs)/')`
 
 > `router.replace`를 사용하는 이유: 인증 플로우에서 뒤로 가기 스택에 진입 분기 화면을 남기지 않기 위함. `router.push`는 사용자가 뒤로 가기 시 인증 화면으로 회귀하는 문제를 유발한다.
 
@@ -236,7 +236,7 @@ app/
 ### 3.5 딥링크 구현 패턴
 
 1. `app.json` (또는 `app.config.js`):
-   - `scheme: "sagak"` 등록 (Expo Router가 자동으로 iOS/Android 딥링크 설정 생성)
+   - `scheme: "sagak"` — 이미 등록됨 (`app.json` scheme: `'sagak'`) — 검증만 수행 (REQ-NAV-030은 verification-only)
    - Supabase 대시보드 리다이렉트 URL: `sagak://auth/callback`
 
 2. `app/(auth)/auth/callback.tsx`:
@@ -297,11 +297,13 @@ ThemeProvider (SPEC-UI-001, app/_layout.tsx)
 
 ## 5. 리스크 및 대응 계획
 
-### 리스크 R1: SPEC-AUTH-001 `useSession()` 인터페이스 미정의 (높음)
+### 리스크 R1: SPEC-AUTH-001 `useSession()` 인터페이스 미정의 — 해소 (RESOLVED)
 
-**문제**: 본 SPEC은 `useSession()`이 `loading`/`authenticated`/`unauthenticated` 상태와 온보딩 완료 메타데이터를 반환한다고 가정하나, SPEC-AUTH-001이 아직 draft 단계이다.
+**상태**: SPEC-AUTH-001 완료로 인터페이스 확정됨. 리스크 해소.
 
-**대응**:
+**확정된 인터페이스** (`src/auth/useSession.ts`): `useSession()`은 `loading === true`일 때 `null`을 반환하며, 그 외에는 `{ session, user, profile, loading, isAuthenticated, isOnboarded, signInWithProvider, signOut, refreshProfile }` 객체를 반환한다. `isAuthenticated = session !== null && user !== null`, `isOnboarded = profile !== null && Boolean(profile.nickname)`.
+
+**대응 (이력)**:
 - 본 SPEC 구현 시 `useSession()` 인터페이스를 타입 정의로 먼저 고정한다 (`src/auth/useSession.ts`에 skeleton 타입만 정의)
 - SPEC-AUTH-001 구현 시 이 인터페이스를 준수하도록 협약한다
 - 인터페이스 불일치 발생 시 본 SPEC의 가정 섹션(2.2.1) 기준으로 SPEC-AUTH-001이 조정한다 (본 SPEC이 인터페이스 소스)
@@ -342,12 +344,14 @@ ThemeProvider (SPEC-UI-001, app/_layout.tsx)
 - 커스텀 백 핸들러는 MVP 범위 밖 (미결정 사항 5.5)
 - acceptance.md 시나리오 A3로 기본 동작 검증
 
-### 리스크 R6: 온보딩 완료 판단 기준 불확실성 (중간)
+### 리스크 R6: 온보딩 완료 판단 기준 불확실성 — 해소 (RESOLVED)
 
-**문제**: "온보딩 완료" 판단 기준(예: `session.user.nickname` 존재 여부 vs 별도 플래그)이 SPEC-AUTH-001에서 확정되지 않았다.
+**상태**: `isOnboarded` 불리언으로 확정됨. 리스크 해소.
 
-**대응**:
-- 본 SPEC은 "온보딩 완료 여부"를 `useSession()` 반환값의 불리언 필드(`isOnboardingComplete` 등)로 가정한다
+**확정된 기준**: `useSession()` 반환 객체의 `isOnboarded` 필드 (`profile.nickname` 존재 여부 기반, SPEC-AUTH-001 REQ-AUTH-030~033). 본 SPEC은 `isOnboarded` 필드만 소비한다.
+
+**대응 (이력)**:
+- 본 SPEC은 "온보딩 완료 여부"를 `useSession()` 반환값의 불리언 필드로 소비한다
 - SPEC-AUTH-001 구현 시 이 필드를 제공하도록 협약 (리스크 R1과 동일한 인터페이스 협약)
 - 구현 단계에서 실제 판단 로직은 SPEC-AUTH-001이 담당, 본 SPEC은 필드 소비만
 
@@ -387,15 +391,12 @@ ThemeProvider (SPEC-UI-001, app/_layout.tsx)
 
 ## 7. 산출물 요약
 
-### 7.1 신규 파일 (12개)
+### 7.1 신규 파일 (9개)
 
 ```
-app/(auth)/_layout.tsx
-app/(auth)/login.tsx
-app/(auth)/onboarding.tsx
 app/(auth)/auth/callback.tsx
 app/(tabs)/_layout.tsx
-app/(tabs)/index.tsx          ← 기존 파일이지만 데모 → 진입 분기로 전환 (수정)
+app/(tabs)/index.tsx
 app/(tabs)/library.tsx
 app/(tabs)/clubs.tsx
 app/(tabs)/my.tsx
@@ -403,15 +404,17 @@ app/(tabs)/[bookId].tsx
 app/(tabs)/clubs/[clubId].tsx
 ```
 
+> 이미 존재 (수정만 수행): `app/(auth)/_layout.tsx`, `app/(auth)/login.tsx`, `app/(auth)/onboarding.tsx` — SPEC-AUTH-001 산출물로 이미 생성됨. 본 SPEC은 `(auth)/_layout.tsx`에 가드 로직 추가만 수행하고, `login.tsx`/`onboarding.tsx`는 건드리지 않는다.
+>
 > `app/(tabs)/index.tsx`는 기존 `app/index.tsx`를 `(tabs)` 그룹으로 이동하는 것이다. 기존 `app/index.tsx`는 루트 진입 분기(리다이렉트 전용)로 전환된다.
 
 ### 7.2 수정 파일 (3개)
 
 ```
-app/_layout.tsx               ← ThemeProvider 보존 + 그룹 라우트 추가
+app/_layout.tsx               ← ThemeProvider 보존 + 그룹 라우트 추가 (AuthProvider는 이미 배치됨 — 본 SPEC이 추가하지 않음)
 app/index.tsx                 ← 데모 콘텐츠 제거 → useSession 리다이렉트
 app/_dev.tsx                  ← __DEV__ 게이트 추가
-app.json (또는 app.config.js) ← scheme: "sagak" 등록
+app.json (또는 app.config.js) ← scheme: "sagak" — 이미 등록됨, 검증만 수행
 ```
 
 ### 7.3 구현 코드 미작성 명시
