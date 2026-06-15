@@ -7,14 +7,37 @@
  */
 
 /**
+ * 에러 카테고리 (REQ-API-012)
+ * 7개 카테고리로 모든 에러를 분류한다.
+ */
+export type ErrorCategory =
+  | 'NETWORK'
+  | 'AUTH'
+  | 'RLS_DENIED'
+  | 'VALIDATION'
+  | 'NOT_FOUND'
+  | 'SERVER'
+  | 'UNKNOWN';
+
+/**
  * Base application error class
  * All custom errors should extend this class
  * REQ-API-011, REQ-API-012
+ *
+ * category / originalError / retriesExhausted 필드는 REQ-API-012 ~ 015 에러 처리 모듈에서
+ * 사용하기 위해 추가된 선택적 메타데이터이다. 기존 서브클래스와 테스트는 영향받지 않는다.
  */
 export class AppError extends Error {
   code: string;
   statusCode: number;
   name: string = 'AppError'; // Class property declaration
+
+  // REQ-API-012: 에러 카테고리 (선택 — normalizeError가 설정)
+  category?: ErrorCategory;
+  // REQ-API-011: 원본 에러 객체 보존 (선택)
+  originalError?: unknown;
+  // REQ-API-013/015: 재시도 3회 소진 표식 (선택)
+  retriesExhausted?: boolean;
 
   constructor(
     message: string,
