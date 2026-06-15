@@ -10,7 +10,7 @@
 import React from 'react';
 import { render, screen, waitFor, fireEvent } from '@testing-library/react-native';
 import { LoginScreen } from '../login';
-import { AuthProvider, AuthContext } from '../AuthContext';
+import { AuthContext } from '../AuthContext';
 import type { AuthContextValue } from '../types';
 
 // AsyncStorage 관련 네이티브 모듈 mock
@@ -122,7 +122,7 @@ describe('M2-B-3 AC-A4: OAuth 실패 처리', () => {
     fireEvent.press(kakaoButton);
 
     await waitFor(() => {
-      const errorMessage = screen.queryByText('로그인에 실패했습니다');
+      const errorMessage = screen.queryByText('카카오 로그인에 실패했습니다');
       expect(errorMessage).toBeTruthy();
     });
   });
@@ -149,7 +149,7 @@ describe('M2-B-3 AC-A4: OAuth 실패 처리', () => {
     // 첫 번째 클릭 (실패)
     fireEvent.press(kakaoButton);
     await waitFor(() => {
-      const errorMessage = screen.queryByText('로그인에 실패했습니다');
+      const errorMessage = screen.queryByText('카카오 로그인에 실패했습니다');
       expect(errorMessage).toBeTruthy();
     });
 

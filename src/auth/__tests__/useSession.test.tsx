@@ -84,7 +84,7 @@ describe('M2-A-2 AC-G2: 인증 상태 파생값', () => {
       }),
     });
 
-    expect(result.current.isAuthenticated).toBe(false);
+    expect(result.current!.isAuthenticated).toBe(false);
   });
 
   it('session이 있으면 authenticated는 true다', () => {
@@ -98,7 +98,7 @@ describe('M2-A-2 AC-G2: 인증 상태 파생값', () => {
       }),
     });
 
-    expect(result.current.isAuthenticated).toBe(true);
+    expect(result.current!.isAuthenticated).toBe(true);
   });
 
   it('profile이 없거나 nickname이 null이면 isOnboarded는 false다', () => {
@@ -113,7 +113,7 @@ describe('M2-A-2 AC-G2: 인증 상태 파생값', () => {
       }),
     });
 
-    expect(result.current.isOnboarded).toBe(false);
+    expect(result.current!.isOnboarded).toBe(false);
   });
 
   it('profile이 있고 nickname이 null이 아니면 isOnboarded는 true다', () => {
@@ -135,7 +135,7 @@ describe('M2-A-2 AC-G2: 인증 상태 파생값', () => {
       }),
     });
 
-    expect(result.current.isOnboarded).toBe(true);
+    expect(result.current!.isOnboarded).toBe(true);
   });
 });
 

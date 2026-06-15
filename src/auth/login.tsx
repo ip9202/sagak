@@ -39,8 +39,14 @@ export function LoginScreen() {
       setError(null);
       await signInWithProvider(provider);
     } catch (err) {
-      setError('로그인에 실패했습니다');
-      console.error('OAuth 로그인 실패:', err);
+      // 제공자별 구체적 에러 메시지
+      const providerNames: Record<AuthProvider, string> = {
+        kakao: '카카오',
+        apple: 'Apple',
+        google: 'Google',
+      };
+      setError(`${providerNames[provider]} 로그인에 실패했습니다`);
+      console.error(`OAuth ${providerNames[provider]} 로그인 실패:`, err);
     } finally {
       setLoading(null);
     }
