@@ -7,7 +7,7 @@
  * - M1-2 AC-S1: signInWithProvider 구현 — signInWithOAuth + redirectTo (완료)
  * - M1-3 AC-S6/S9: signOut 구현 — supabase.auth.signOut() + 상태 클리어 (완료)
  * - M1-4 AC-S2/S3/S4: getSession 자동 로그인 + onAuthStateChange 구독 + fetchProfile (완료)
- * - M1-5 AC-S7/S8: refreshProfile 외부 노출 (대기)
+ * - M1-5 AC-S7/S8: refreshProfile 외부 노출 — 온보딩 후 수동 프로필 재조회 (완료)
  */
 import React, { createContext, useEffect, useState } from 'react';
 import type { Session, User } from '@supabase/supabase-js';
@@ -146,9 +146,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setProfile(null);
   };
 
-  // @MX:TODO: [AUTO] M1-5 — public.users 프로필 재조회 (refreshProfile은 fetchProfile 재사용 예정)
+  /**
+   * 프로필 재조회 액션
+   * REQ-AUTH-013: public.users 재조회 — 온보딩 프로필 업데이트 이후 수동 갱신용
+   *
+   * 현재 인증된 사용자가 있을 때만 fetchProfile()을 재호출한다.
+   * 미인증 상태에서는 no-op이며, 조회 에러 시에도 reject하지 않는다
+   * (fetchProfile이 내부적으로 에러를 처리하여 profile을 null로 설정한다).
+   */
   const refreshProfile = async (): Promise<void> => {
-    // M1-5 GREEN 단계에서 구현 — 현재 user 기반 fetchProfile 재호출 예정
+    if (!user) return;
+    await fetchProfile(user.id);
   };
 
   const value: AuthContextValue = {

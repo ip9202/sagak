@@ -682,3 +682,181 @@ describe('AuthContext — M1-4 AC-S4: fetchProfile (public.users 조회)', () =>
     });
   });
 });
+
+describe('AuthContext — M1-5 AC-S7/S8: refreshProfile 액션 (public.users 재조회)', () => {
+  /**
+   * refreshProfile()은 온보딩 프로필 업데이트 이후 수동 재조회를 위해 외부에 노출된다.
+   * 현재 인증된 사용자의 id로 fetchProfile()을 재호출하여 profile 상태를 갱신한다.
+   *
+   * 계약:
+   * - 인증된 사용자가 있을 때: supabase.from('users') 재조회 → profile 상태 갱신
+   * - 인증되지 않은 상태: no-op (크래시 없음, from() 호출 없음)
+   * - 조회 에러 시: reject하지 않고 profile을 null로 유지
+   */
+
+  /**
+   * 헬퍼: SIGNED_IN 이벤트로 인증된 상태를 설정한 뒤 context 값을 캡처한다.
+   * from() 스텁은 클로저로 래핑하여 이후 데이터 교체를 허용한다.
+   * 주의: mockClear()는 구현까지 지우므로 호출 카운트만 측정할 때는
+   * 초기 로드 후의 from.mock.calls.length를 스냅샷하여 delta로 검증한다.
+   */
+  async function renderAuthenticated(
+    userId: string,
+    initialProfileRow: unknown
+  ): Promise<{
+    captured: AuthContextValue[];
+    setFromMock: (row: unknown, error?: unknown) => void;
+    baselineFromCalls: number;
+  }> {
+    mockSupabaseClient.auth.getSession.mockResolvedValue({ data: { session: null }, error: null });
+
+    // from() 스텁을 교체 가능한 클로저로 래핑
+    let currentRow = initialProfileRow;
+    let currentError: unknown = null;
+    const setFromMock = (row: unknown, error: unknown = null) => {
+      currentRow = row;
+      currentError = error;
+    };
+    mockSupabaseClient.from.mockImplementation(() => ({
+      select: jest.fn().mockReturnValue({
+        eq: jest.fn().mockReturnValue({
+          single: jest.fn().mockResolvedValue({ data: currentRow, error: currentError }),
+        }),
+      }),
+    }));
+
+    const captured: AuthContextValue[] = [];
+    render(
+      <AuthProvider>
+        <ContextProbe onValue={(v) => captured.push(v)} />
+      </AuthProvider>
+    );
+    await waitFor(() => {
+      expect(onAuthCallback).not.toBeNull();
+    });
+
+    const mockSession = makeMockSession(userId);
+    await act(async () => {
+      onAuthCallback?.('SIGNED_IN', mockSession);
+    });
+    // 초기 프로필 로드 대기
+    await waitFor(() => {
+      expect(captured[captured.length - 1].profile).not.toBeNull();
+    });
+
+    // 초기 로드 이후 from() 호출 수를 베이스라인으로 저장 — delta로 refreshProfile 호출 검증
+    const baselineFromCalls = mockSupabaseClient.from.mock.calls.length;
+
+    return { captured, setFromMock, baselineFromCalls };
+  }
+
+  it('R1 — 인증된 사용자에 대해 refreshProfile()이 supabase.from("users")를 재호출한다', async () => {
+    const profileRow = {
+      id: 'refresh-user',
+      nickname: '초기닉',
+      avatar_url: null,
+      provider: 'kakao',
+      created_at: '2026-01-01T00:00:00Z',
+      updated_at: '2026-01-01T00:00:00Z',
+    };
+    const { captured, baselineFromCalls } = await renderAuthenticated('refresh-user', profileRow);
+
+    // 주의: 최신 렌더의 refreshProfile 클로저를 사용해야 최신 user 상태를 캡처한다.
+    // captured[0]는 user가 null이던 초기 렌더의 클로저이므로 no-op가 된다.
+    const latestBeforeRefresh = captured[captured.length - 1];
+    await act(async () => {
+      await latestBeforeRefresh.refreshProfile();
+    });
+
+    // refreshProfile로 인해 from('users')가 정확히 1회 추가 호출되었는지 delta로 검증
+    expect(mockSupabaseClient.from.mock.calls.length).toBe(baselineFromCalls + 1);
+    // 마지막 호출 인자가 'users'
+    const lastCallArgs = mockSupabaseClient.from.mock.calls[mockSupabaseClient.from.mock.calls.length - 1];
+    expect(lastCallArgs[0]).toBe('users');
+  });
+
+  it('R2 — refreshProfile()이 갱신된 프로필 데이터를 profile 상태에 반영한다', async () => {
+    const initialRow = {
+      id: 'refresh-user-2',
+      nickname: '온보딩전',
+      avatar_url: null,
+      provider: 'kakao',
+      created_at: '2026-01-01T00:00:00Z',
+      updated_at: '2026-01-01T00:00:00Z',
+    };
+    const { captured, setFromMock } = await renderAuthenticated('refresh-user-2', initialRow);
+
+    // 온보딩 완료 후 프로필이 변경되었다고 가정 — from() 스텁 교체
+    const updatedRow = {
+      id: 'refresh-user-2',
+      nickname: '온보딩후닉',
+      avatar_url: 'https://cdn.example.com/avatar.png',
+      provider: 'kakao',
+      created_at: '2026-01-01T00:00:00Z',
+      updated_at: '2026-06-15T00:00:00Z',
+    };
+    setFromMock(updatedRow);
+
+    // 최신 렌더의 refreshProfile 클로저 사용 (현재 user 반영)
+    const latestBeforeRefresh = captured[captured.length - 1];
+    await act(async () => {
+      await latestBeforeRefresh.refreshProfile();
+    });
+
+    await waitFor(() => {
+      const latest = captured[captured.length - 1];
+      expect(latest.profile?.nickname).toBe('온보딩후닉');
+      expect(latest.profile?.avatar_url).toBe('https://cdn.example.com/avatar.png');
+    });
+  });
+
+  it('R3 — 인증되지 않은 상태에서 refreshProfile()은 no-op이다 (from 호출 없음, 크래시 없음)', async () => {
+    mockSupabaseClient.auth.getSession.mockResolvedValue({ data: { session: null }, error: null });
+
+    const captured: AuthContextValue[] = [];
+    render(
+      <AuthProvider>
+        <ContextProbe onValue={(v) => captured.push(v)} />
+      </AuthProvider>
+    );
+    await waitFor(() => {
+      expect(captured.length).toBeGreaterThan(0);
+    });
+
+    // 미인증 상태이므로 마운트 후에도 from()이 호출되지 않아야 한다
+    const callsBefore = mockSupabaseClient.from.mock.calls.length;
+
+    // reject 없이 이행되어야 한다
+    await expect(captured[0].refreshProfile()).resolves.toBeUndefined();
+
+    // 사용자가 없으므로 프로필 조회가 발생하지 않는다
+    expect(mockSupabaseClient.from.mock.calls.length).toBe(callsBefore);
+  });
+
+  it('R4 — refreshProfile()은 조회 에러 시 reject하지 않고 profile을 null로 유지한다', async () => {
+    const initialRow = {
+      id: 'error-user',
+      nickname: '기존닉',
+      avatar_url: null,
+      provider: 'kakao',
+      created_at: '2026-01-01T00:00:00Z',
+      updated_at: '2026-01-01T00:00:00Z',
+    };
+    const { captured, setFromMock } = await renderAuthenticated('error-user', initialRow);
+
+    // 이후 조회는 에러를 반환하도록 스텁 교체
+    setFromMock(null, { message: 'connection lost' });
+
+    // 최신 렌더의 refreshProfile 클로저 사용 (현재 user 반영)
+    const latestBeforeRefresh = captured[captured.length - 1];
+    // reject 없이 이행되어야 한다
+    await act(async () => {
+      await expect(latestBeforeRefresh.refreshProfile()).resolves.toBeUndefined();
+    });
+
+    await waitFor(() => {
+      const latest = captured[captured.length - 1];
+      expect(latest.profile).toBeNull();
+    });
+  });
+});
