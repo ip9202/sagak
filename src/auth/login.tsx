@@ -46,7 +46,12 @@ export function LoginScreen() {
         google: 'Google',
       };
       setError(`${providerNames[provider]} 로그인에 실패했습니다`);
-      console.error(`OAuth ${providerNames[provider]} 로그인 실패:`, err);
+      // 프로덕션 환경에서는 에러 타입/메시지만 로깅
+      if (__DEV__) {
+        console.error(`OAuth ${providerNames[provider]} 로그인 실패:`, err);
+      } else {
+        console.error(`OAuth ${providerNames[provider]} 로그인 실패:`, err instanceof Error ? err.message : 'Unknown error');
+      }
     } finally {
       setLoading(null);
     }
@@ -63,7 +68,9 @@ export function LoginScreen() {
         onPress={() => handleSignIn('kakao')}
         disabled={loading !== null}
       >
-        <Text style={styles.buttonText}>카카오로 시작하기</Text>
+        <Text style={styles.buttonText}>
+          {loading === 'kakao' ? '카카오 로그인 중...' : '카카오로 시작하기'}
+        </Text>
       </TouchableOpacity>
 
       <TouchableOpacity
@@ -71,7 +78,9 @@ export function LoginScreen() {
         onPress={() => handleSignIn('apple')}
         disabled={loading !== null}
       >
-        <Text style={styles.buttonText}>Apple로 시작하기</Text>
+        <Text style={styles.buttonText}>
+          {loading === 'apple' ? 'Apple 로그인 중...' : 'Apple로 시작하기'}
+        </Text>
       </TouchableOpacity>
     </View>
   );

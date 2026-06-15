@@ -9,7 +9,7 @@
  * - M1-4 AC-S2/S3/S4: getSession 자동 로그인 + onAuthStateChange 구독 + fetchProfile (완료)
  * - M1-5 AC-S7/S8: refreshProfile 외부 노출 — 온보딩 후 수동 프로필 재조회 (완료)
  */
-import React, { createContext, useEffect, useState } from 'react';
+import React, { createContext, useEffect, useState, useCallback } from 'react';
 import type { Session, User } from '@supabase/supabase-js';
 import type { AuthContextValue, AuthProvider, UserProfile } from './types';
 import { getSupabaseClient } from '../lib/supabase/client';
@@ -31,8 +31,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
    *
    * 실패 시에도 인증 흐름을 차단하지 않는다 — profile만 null로 유지하고
    * session/user는 유지한다. 사용자가 인증된 상태로 빈 프로필 UI를 볼 수 있도록 한다.
+   *
+   * @MX:NOTE: [CACHE] userId별 프로필 캐싱으로 중복 조회 방지 (force 옵션으로 캐시 우회 가능)
    */
-  const fetchProfile = async (userId: string): Promise<void> => {
+  const fetchProfile = useCallback(async (userId: string, force = false): Promise<void> => {
+    // 캐시된 프로필 확인 (force가 true면 캐시 무시)
+    if (!force && profile?.id === userId) {
+      return; // 이미 캐시된 프로필이 있으면 재사용
+    }
+
     const { data, error } = await getSupabaseClient()
       .from('users')
       .select('id, nickname, avatar_url, provider, created_at, updated_at')
@@ -44,7 +51,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       return;
     }
     setProfile(data as UserProfile);
-  };
+  }, [profile]);
 
   /**
    * REQ-AUTH-012: 자동 로그인 — 앱 시작 시 getSession()으로 저장된 세션 복원
@@ -151,12 +158,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
    * REQ-AUTH-013: public.users 재조회 — 온보딩 프로필 업데이트 이후 수동 갱신용
    *
    * 현재 인증된 사용자가 있을 때만 fetchProfile()을 재호출한다.
+   * force=true로 전달하여 캐시를 무시하고 항상 최신 프로필을 가져온다.
    * 미인증 상태에서는 no-op이며, 조회 에러 시에도 reject하지 않는다
    * (fetchProfile이 내부적으로 에러를 처리하여 profile을 null로 설정한다).
    */
   const refreshProfile = async (): Promise<void> => {
     if (!user) return;
-    await fetchProfile(user.id);
+    await fetchProfile(user.id, true); // force=true로 캐시 무시
   };
 
   const value: AuthContextValue = {
