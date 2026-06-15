@@ -36,6 +36,11 @@ yarn-error.*
 .env.local
 .env.*.local
 
+# Keep staging/production env templates for EAS builds (but not actual values)
+!.env.example
+!.env.staging
+!.env.production
+
 # OS
 .DS_Store
 Thumbs.db
