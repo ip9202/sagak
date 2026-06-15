@@ -1,9 +1,10 @@
-# Design System Constitution v3.2
+# Design System Constitution v3.4
 
 ## HISTORY
 
 - 2026-04-20 (SPEC-DESIGN-CONST-AMEND-001): Section 3 expanded to tripartite structure (3.1/3.2/3.3). Version 3.2.0 → 3.3.0 (v3.3.0). FROZEN zone extended to cover each subsection individually.
 - 2026-04-20: Relocated from `.claude/rules/agency/constitution.md` (v3.2.0) to `.claude/rules/moai/design/constitution.md` as part of SPEC-AGENCY-ABSORB-001 M1. Original path: `.claude/rules/agency/constitution.md`. No content changes. FROZEN zone and EVOLVABLE zone definitions are preserved verbatim.
+- 2026-06-14 (SPEC-UI-002): FROZEN zone extended with screen pattern design system (REQ-SCREEN-LAYOUT/HEADER/CARD/STATE/TABBAR) + non-competition principle + token-only styling. Version 3.3.0 → 3.4.0. Screen-level consistency is now centrally enforced across all 14 domain SPECs via INDEX.md Section 8 global declaration; run workflow injects SPEC-UI-002 + Pencil `.pen` reference into every domain SPEC implementation.
 
 ---
 
@@ -39,6 +40,9 @@ The following elements are immutable and can only be changed by human developers
 - [FROZEN] Pipeline phase ordering constraints (manager-spec always first, evaluator-active always last in loop)
 - [FROZEN] Pass threshold floor (minimum 0.60, cannot be lowered by evolution)
 - [FROZEN] Human approval requirement for evolution (require_approval in design.yaml)
+- [FROZEN] Screen pattern design system (SPEC-UI-002: REQ-SCREEN-LAYOUT/HEADER/CARD/STATE/TABBAR) — 3계층 레이아웃, 타이틀 균일성(fontSize 22/weight 700), 카드 밀도(cornerRadius 16/padding 16-20), 빈/로딩/에러 상태 패턴, 캡슐형 4탭
+- [FROZEN] Non-competition principle — 좋아요 수·팔로워·랭킹 표시 금지 (과시 엔진 회피)
+- [FROZEN] Token-only styling — 모든 화면·컴포넌트는 `src/theme/tokens.ts` 변수(`$brand-500` 등)만 사용, 하드코딩 금지
 
 ### EVOLVABLE Zone (Learner May Propose Changes)
 
@@ -396,9 +400,9 @@ If a graduated learning causes regression:
 
 ---
 
-Version: 3.3.0
+Version: 3.4.0
 Classification: FROZEN_AMENDMENT
 Original Source: agency/constitution.md v3.2.0
-Last Updated: 2026-04-20
+Last Updated: 2026-06-14
 Relocated: 2026-04-20 (SPEC-AGENCY-ABSORB-001 M1)
 REQ coverage: REQ-CONST-001, REQ-CONST-002, REQ-CONST-003, REQ-CONST-004

@@ -57,12 +57,13 @@ Phase 5 (배포)
 
 | Phase | SPEC 수 | 범위 | 산출물 유형 |
 |-------|---------|------|------------|
+| 0 | 1 | 화면 패턴 디자인 시스템 (모든 도메인 SPEC 선행 의존성) | 디자인 SSOT |
 | 1 | 3 | 인프라·인증·네비게이션 | 클라이언트 파운데이션 |
 | 2 | 4 | 개인 독서 경험(도서/서재/감정/완독) | 도메인 기능 + 화면 |
 | 3 | 3 | 소셜 연결(Track A/B + 피드) | 도메인 기능 + Realtime |
 | 4 | 3 | 참여·유지(루틴/알림/마이) | 도메인 기능 + 외부 API |
 | 5 | 1 | 배포·CI/CD | 인프라 자동화 |
-| **계** | **14** | — | — |
+| **계** | **15** | — | — |
 
 ---
 
@@ -278,8 +279,9 @@ product.md "비목표" + SPEC-DB-001 "제외 범위" 기반:
 | 4 | SPEC-NOTIF-001 | ✅ | ✅ | ✅ | SPEC 작성 완료 (13 REQ) |
 | 4 | SPEC-PROFILE-001 | ✅ | ✅ | ✅ | SPEC 작성 완료 (8 REQ) |
 | 5 | SPEC-DEPLOY-001 | ✅ | ✅ | ✅ | SPEC 작성 완료 (24 REQ) |
+| 0 | SPEC-UI-002 | ✅ | ✅ | ✅ | SPEC 작성 완료 (25 REQ) — 화면 패턴, 14개 도메인 SPEC 선행 의존성 |
 
-**총 REQ 수: 194개 / 14개 SPEC 전체 작성 완료 (2026-06-14)**
+**총 REQ 수: 219개 / 15개 SPEC 전체 작성 완료 (2026-06-14)**
 
 ---
 
@@ -297,6 +299,20 @@ product.md "비목표" + SPEC-DB-001 "제외 범위" 기반:
 
 ---
 
-버전: 1.1.0
+버전: 1.2.0
 분류: SPEC 카탈로그 (인덱스)
-상태: 14개 SPEC 전체 작성 완료 (run 단계 대기)
+상태: 15개 SPEC 전체 작성 완료 (run 단계 대기)
+
+---
+
+## 8. 글로벌 디자인 의존성 선언 (2026-06-14 추가)
+
+**모든 14개 도메인 SPEC은 SPEC-UI-002(화면 패턴 디자인 시스템)을 선행 의존성으로 가진다.**
+
+run 워크플로우 실행 시, MoAI 오케스트레이터는 각 도메인 SPEC의 구현 에이전트 프롬프트에 다음을 **반드시 주입**해야 한다:
+1. `.moai/specs/SPEC-UI-002/spec.md` — 화면 패턴 REQ (3계층 레이아웃, 헤더 균일성, 카드 밀도, 빈/로딩/에러 상태, 탭바 규칙)
+2. Pencil 레퍼런스: `pencil-new.pen` — 4개 핵심 탭 화면(F03-Home/F04-Library/F11-Clubs/F15-My) + 6개 재사용 컴포넌트(StatusBar/TabBar/BookCard/PrimaryButton/GhostButton/EmotionRecordCard)
+3. `.moai/design/system.md` — 디자인 시스템 SSOT (토큰 테이블, craft 원칙)
+4. `src/theme/tokens.ts` — `$` 변수만 사용, 하드코딩 금지
+
+이 선언은 개별 plan.md를 14번 수정하는 대신 run 단계에서 중앙 집중적으로 일관성을 강제한다. `.claude/rules/moai/design/constitution.md` FROZEN zone(v3.4.0)이 이를 보장한다.
