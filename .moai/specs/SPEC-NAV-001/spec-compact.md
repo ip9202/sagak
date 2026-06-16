@@ -2,9 +2,9 @@
 id: SPEC-NAV-001
 title: "Navigation & Routing Structure — Compact View"
 version: "1.0.0"
-status: draft
+status: completed
 created: 2026-06-14
-updated: 2026-06-14
+updated: 2026-06-16
 author: "강력쇠주먹"
 priority: high
 issue_number: 0

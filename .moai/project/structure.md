@@ -58,11 +58,12 @@ iOS/Android 모바일 앱 (React Native + Expo SDK 55 + React 19.2)
 
 ### 핵심 구조
 
-- **`app/`** (Expo Router 라우팅): `_layout.tsx` (AuthProvider + ThemeProvider로 전체 앱 감싸기), `index.tsx` (메인 화면), `_dev.tsx` (컴포넌트 데모 및 dark 토글 기능)
-- **`app/(auth)/`** (인증 라우트 그룹): `_layout.tsx` (인증 라우트 그룹 레이아웃), `login.tsx` (로그인 화면 — `src/auth/login.tsx` 리익스포트), `onboarding.tsx` (온보딩 화면 — `src/auth/onboarding.tsx` 리익스포트), `__tests__/` (인증 화면 테스트)
+- **`app/`** (Expo Router 라우팅): `_layout.tsx` (AuthProvider + ThemeProvider로 전체 앱 감싸기, `(tabs)`/`(auth)` 그룹 라우트 포함 — SPEC-NAV-001), `index.tsx` (인증 상태 기반 진입 분기: `(tabs)` 또는 `(auth)` 리다이렉트 — SPEC-NAV-001), `_dev.tsx` (컴포넌트 데모 및 dark 토글 기능, `__DEV__` 게이트)
+- **`app/(tabs)/`** (4개 탭 네비게이션 — SPEC-NAV-001): `_layout.tsx` (Tabs 네비게이터, Feather 아이콘, 디자인 토큰 스타일링, 인증 가드), `index.tsx` (홈 탭 placeholder), `library.tsx` (서재 탭 placeholder), `clubs.tsx` (모임 탭 placeholder), `my.tsx` (마이 탭 placeholder), `[bookId].tsx` (도서 상세 스택 라우트), `clubs/[clubId].tsx` (모임 상세 스택 라우트)
+- **`app/(auth)/`** (인증 라우트 그룹): `_layout.tsx` (인증 가드 — 인증 사용자의 접근 시 `(tabs)` 리다이렉트 — SPEC-NAV-001), `login.tsx` (로그인 화면 — `src/auth/login.tsx` 리익스포트), `onboarding.tsx` (온보딩 화면 — `src/auth/onboarding.tsx` 리익스포트), `auth/callback.tsx` (OAuth 콜백 라우트 — SPEC-NAV-001), `__tests__/` (인증 화면 테스트)
 - **`src/auth/`** (인증 모듈 — SPEC-AUTH-001):
   - `AuthContext.tsx` (AuthProvider + 인증 상태 관리: session, user, profile, loading, onAuthStateChange, getSession, signInWithProvider, signOut, refreshProfile, fetchProfile 캐싱)
-  - `useSession.ts` (인증 훅: isAuthenticated, isOnboarded 파생값 + 액션 노출)
+  - `useSession.ts` (인증 훅: `null` 반환 시 loading, `{ isAuthenticated, isOnboarded, ... }` 객체 반환 시 authenticated/unauthenticated — SPEC-NAV-001 인증 가드에서 소비)
   - `types.ts` (AuthProvider 유니온 타입: `'kakao' | 'apple' | 'google'`, UserProfile 인터페이스, AuthContextValue 타입)
   - `oauth.ts` (OAuth 딥링크 처리: getOAuthRedirectUri — expo-linking 래퍼)
   - `login.tsx` (LoginScreen — 카카오/애플/구글 OAuth 버튼)
@@ -78,10 +79,17 @@ iOS/Android 모바일 앱 (React Native + Expo SDK 55 + React 19.2)
 ### 아키텍특 특징
 
 - Expo Router를 통한 파일 시스템 기반 라우팅으로 네비게이션 관리
+- **네비게이션 구조 (SPEC-NAV-001)**:
+  - 루트 `_layout.tsx`에 `(tabs)`와 `(auth)` 그룹 라우트를 포함하는 Stack 네비게이터
+  - 4개 탭 네비게이션(홈/서재/모임/마이) — Feather 아이콘, 디자인 토큰 스타일링, `useTheme()` 연동
+  - 인증 가드: `useSession()` 기반 진입 분기(`null` → 스플래시, `isAuthenticated===true` → `(tabs)`, `isAuthenticated===false` → `(auth)`)
+  - 양방향 그룹 보호: 인증 사용자의 `(auth)` 접근 차단, 미인증 사용자의 `(tabs)` 접근 차단
+  - 스택 네비게이션: `[bookId]`, `clubs/[clubId]` 동적 라우트, 기본 슬라이드 전환
+  - 딥링크: `sagak://` 스킴, `auth/callback` OAuth 콜백 라우트
 - **인증 아키텍처 (SPEC-AUTH-001)**: 
   - AuthContext가 앱 최상위(`app/_layout.tsx`)에서 ThemeProvider 내부에 배치되어 전역 인증 상태 관리
   - `src/auth/` 모듈에 실제 구현(컴포넌트 분리, 테스트 용이성), `app/(auth)/`는 얇은 리익스포트 레이어(Expo Router 패턴)
-  - useSession 훅이 isAuthenticated, isOnboarded 파생값 제공하여 인증 가드(SPEC-NAV-001)에서 활용
+  - useSession 훅이 `null`(loading) 또는 `{ isAuthenticated, isOnboarded, ... }`(authenticated/unauthenticated) 반환 — SPEC-NAV-001 인증 가드에서 소비
   - 자동 로그인: getSession()으로 앱 시작 시 세션 복원, onAuthStateChange로 4이벤트 구독(INITIAL_SESSION, SIGNED_IN, TOKEN_REFRESHED, SIGNED_OUT)
   - OAuth 플로우: signInWithOAuth(provider, { redirectTo: getOAuthRedirectUri() })로 카카오/애플/구글 로그인 처리
 - ThemeProvider와 useTheme 훅을 통한 테마 관리 시스템 (수동 dark 모드 전환)
