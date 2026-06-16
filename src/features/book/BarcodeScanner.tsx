@@ -11,6 +11,7 @@ import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-nati
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { useTheme } from '../../theme/theme';
 import { isValidIsbn } from './isbn';
+import { shouldSuppressDuplicate } from './debounce';
 
 export interface BarcodeScannerProps {
   /** ISBN 인식 시 호출 (REQ-BOOK-008: 상위가 target='isbn' 검색으로 전환) */
@@ -23,10 +24,10 @@ export interface BarcodeScannerProps {
 }
 
 /**
- * REQ-BOOK-009 / S11: 동일 ISBN 중복 인식 방지 디바운스 윈도우 (ms)
- * @MX:NOTE: [AUTO] 2초 — 사용자가 같은 바코드를 연속 스캔해도 API 중복 호출 방지
+ * REQ-BOOK-009 / S11: 동일 ISBN 중복 인식 방지 디바운스 윈도우(ms) 는
+ * src/features/book/debounce.ts (DUPLICATE_DEBOUNCE_MS=2000) 로 추출.
+ * 단위 테스트가 디바운스 계약을 직접 검증 (REQ-BOOK-009 실질 검증).
  */
-const DUPLICATE_DEBOUNCE_MS = 2000;
 
 /**
  * REQ-BOOK-007 / S9: ISBN 바코드로 허용하는 타입 (EAN-13, UPC-A)
@@ -76,11 +77,18 @@ export const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
       // REQ-BOOK-007: 데이터가 유효한 ISBN 인지 검증
       if (!isValidIsbn(data)) return;
 
-      // REQ-BOOK-009 / S11: 2초 내 동일 ISBN 중복 인식 무시
+      // REQ-BOOK-009 / S11: 2초 내 동일 ISBN 중복 인식 무시 (순수 함수에 위임)
+      // @MX:NOTE: [AUTO] shouldSuppressDuplicate 는 src/features/book/debounce.ts 의 순수 함수.
+      //           setScanning(false)(S10) 이 컴포넌트 테스트에서 디바운스 분기 도달을 막기 때문에,
+      //           디바운스 계약 자체는 debounce.test.ts 단위 테스트가 검증한다.
       const now = Date.now();
       if (
-        lastIsbnRef.current === data &&
-        now - lastScannedAtRef.current < DUPLICATE_DEBOUNCE_MS
+        shouldSuppressDuplicate(
+          lastIsbnRef.current,
+          data,
+          lastScannedAtRef.current,
+          now
+        )
       ) {
         return;
       }
