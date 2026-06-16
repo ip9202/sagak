@@ -6,9 +6,9 @@
  *
  * 디자인 기준: Pencil F07-Scan (node acwCA). token-only 스타일링 (SPEC-UI-002 FROZEN).
  */
-import React, { useCallback, useRef, useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { CameraView } from 'expo-camera';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
+import { CameraView, useCameraPermissions } from 'expo-camera';
 import { useTheme } from '../../theme/theme';
 import { isValidIsbn } from './isbn';
 
@@ -48,6 +48,20 @@ export const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
   const [scanning, setScanning] = useState(true);
   const lastIsbnRef = useRef<string | null>(null);
   const lastScannedAtRef = useRef<number>(0);
+
+  // REQ-BOOK-006 / S6: 카메라 권한 조회 + 최초 요청 트리거
+  const [permission, requestPermission] = useCameraPermissions();
+
+  useEffect(() => {
+    // @MX:NOTE: [AUTO] permission === null(미확정) 시 최초 1회 권한 요청
+    if (permission === null) {
+      requestPermission();
+    }
+  }, [permission, requestPermission]);
+
+  // @MX:NOTE: [AUTO] 권한 파생 상태 — null(로딩) / granted / denied(or undetermined)
+  const permissionGranted = permission?.granted === true;
+  const permissionLoading = permission === null;
 
   const handleBarcodeScanned = useCallback(
     (result: { type: string; data: string }) => {
@@ -114,7 +128,8 @@ export const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
 
       {/* Viewfinder (Pencil F07-Scan: I3rvo) */}
       <View style={styles.viewfinder}>
-        {scanning && (
+        {/* REQ-BOOK-006 / S6: 권한 허용 + 스캔 중일 때만 카메라 렌더링 */}
+        {permissionGranted && scanning && (
           <CameraView
             style={styles.camera}
             active={true}
@@ -123,6 +138,40 @@ export const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
             }}
             onBarcodeScanned={handleBarcodeScanned}
           />
+        )}
+
+        {/* S6: 권한 로딩 상태 — 카메라 미렌더, 로딩 안내 */}
+        {permissionLoading && (
+          <View testID="permission-loading" style={styles.permissionState}>
+            <ActivityIndicator size="large" color={themeColors.text.inverse} />
+            <Text
+              style={[styles.permissionText, { color: themeColors.text.inverse }]}
+            >
+              카메라 권한을 확인하는 중...
+            </Text>
+          </View>
+        )}
+
+        {/* S7: 권한 거부/미결정 — 카메라 미렌더, 수동 입력 폴백 강조 */}
+        {!permissionLoading && !permissionGranted && (
+          <View testID="permission-denied" style={styles.permissionState}>
+            <Text
+              style={[
+                styles.permissionDeniedTitle,
+                { color: themeColors.text.inverse },
+              ]}
+            >
+              카메라 권한이 필요합니다
+            </Text>
+            <Text
+              style={[
+                styles.permissionDeniedHint,
+                { color: themeColors.text.inverse },
+              ]}
+            >
+              권한을 허용하거나 ISBN을 직접 입력할 수 있어요.
+            </Text>
+          </View>
         )}
 
         {/* ScanGuide (Pencil F07-Scan: eG0uf — 280x170, cornerRadius 16, stroke brand-300, strokeWidth 3) */}
@@ -136,14 +185,16 @@ export const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
           ]}
         />
 
-        <Text
-          style={[
-            styles.hint,
-            { color: themeColors.text.inverse },
-          ]}
-        >
-          ISBN 바코드를 가이드 안에 맞춰주세요
-        </Text>
+        {permissionGranted && (
+          <Text
+            style={[
+              styles.hint,
+              { color: themeColors.text.inverse },
+            ]}
+          >
+            ISBN 바코드를 가이드 안에 맞춰주세요
+          </Text>
+        )}
 
         <Pressable
           testID="manual-entry-button"
@@ -221,5 +272,26 @@ const styles = StyleSheet.create({
   manualEntryText: {
     fontSize: 14,
     fontWeight: '500',
+  },
+  // @MX:NOTE: [AUTO] 권한 게이트 UI — 로딩/거부 상태 중앙 정렬 컨테이너
+  permissionState: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 12,
+    marginBottom: 24,
+  },
+  permissionText: {
+    fontSize: 14,
+    textAlign: 'center',
+  },
+  permissionDeniedTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    textAlign: 'center',
+  },
+  permissionDeniedHint: {
+    fontSize: 13,
+    textAlign: 'center',
+    opacity: 0.85,
   },
 });

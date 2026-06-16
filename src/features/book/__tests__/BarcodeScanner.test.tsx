@@ -55,16 +55,21 @@ afterEach(() => {
   jest.useRealTimers();
 });
 
-describe('BarcodeScanner — REQ-BOOK-006 (S6/S7): 카메라 권한', () => {
-  // S6: 권한 로딩/요청 상태 렌더링
-  it('권한 미결정(null) 시에도 에러 없이 렌더링한다', () => {
+describe('BarcodeScanner — REQ-BOOK-006 (S6/S7): 카메라 권한 게이트', () => {
+  // S6-1: 권한 로딩(null) 상태 — 카메라 미렌더, 로딩 안내
+  it('권한 미결정(null) 시 CameraView 를 렌더링하지 않고 로딩 상태를 표시한다', () => {
     setPermissionResponse(null);
     const onIsbnDetected = jest.fn();
-    const { getByTestId } = renderScanner({ onIsbnDetected });
-    // 컴포넌트가 존재하면 됨 (로딩 상태 또는 폴백)
+    const { queryByTestId, getByTestId } = renderScanner({ onIsbnDetected });
+    // 컴포넌트 자체는 존재
     expect(getByTestId('barcode-scanner')).toBeTruthy();
+    // 로딩 중에는 카메라를 렌더링하면 안 됨 (권항 확인 전)
+    expect(queryByTestId('camera-view')).toBeNull();
+    // 로딩 안내 표시
+    expect(getByTestId('permission-loading')).toBeTruthy();
   });
 
+  // S6-2: 권한 granted — CameraView 렌더링 (긍정 단언)
   it('권한 granted 시 CameraView 를 렌더링한다', () => {
     setPermissionResponse(grantedPermission);
     const onIsbnDetected = jest.fn();
@@ -72,12 +77,22 @@ describe('BarcodeScanner — REQ-BOOK-006 (S6/S7): 카메라 권한', () => {
     expect(getByTestId('camera-view')).toBeTruthy();
   });
 
-  // S7: 권한 거부 시 ManualEntry 폴백
-  it('권한 거부 시 수동 입력 폴백(ManualEntry) 버튼을 렌더링한다', () => {
+  // S7-1: 권한 거부 — CameraView 렌더링 금지 (부정 단언)
+  it('권한 거부(denied) 시 CameraView 를 렌더링하지 않는다', () => {
     setPermissionResponse(deniedPermission);
     const onIsbnDetected = jest.fn();
-    const { getByTestId } = renderScanner({ onIsbnDetected });
+    const { queryByTestId } = renderScanner({ onIsbnDetected });
+    expect(queryByTestId('camera-view')).toBeNull();
+  });
+
+  // S7-2: 권한 거부 — 수동 입력 폴백 강조 (안내 + 버튼)
+  it('권한 거부 시 수동 입력 폴백(ManualEntry) 버튼과 권한 안내를 렌더링한다', () => {
+    setPermissionResponse(deniedPermission);
+    const onIsbnDetected = jest.fn();
+    const { getByTestId, getByText } = renderScanner({ onIsbnDetected });
     expect(getByTestId('manual-entry-button')).toBeTruthy();
+    // 권한 필요 안내 텍스트 (S7: 폴백 강조)
+    expect(getByText(/카메라 권한이 필요/)).toBeTruthy();
   });
 
   it('권한 거부 상태에서 ManualEntry 버튼 탭 시 onManualEntry 를 호출한다', () => {
