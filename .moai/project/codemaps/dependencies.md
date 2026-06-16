@@ -25,12 +25,24 @@ graph TB
         B6[src/theme/tokens.ts<br/>@MX:ANCHOR]
         B7[src/lib/api/index.ts]
         B8[src/lib/api/edgeFunctions.ts]
+        B9[src/features/book/searchApi.ts<br/>@MX:ANCHOR]
+        B10[src/features/book/bookDetailApi.ts<br/>@MX:ANCHOR]
     end
 
     subgraph "Infrastructure (src/lib/)"
         I1[src/lib/supabase/client.ts<br/>@MX:ANCHOR]
         I2[src/lib/supabase/storageAdapter.ts]
         I3[src/config/env.ts]
+    end
+
+    subgraph "Edge Functions"
+        E1[supabase/functions/<br/>kakao-book-search/index.ts]
+        E2[cacheManager.ts]
+        E3[kakaoClient.ts]
+    end
+
+    subgraph "External Services"
+        X1[Kakao Book Search API]
     end
 
     A1 --> B5
@@ -47,8 +59,14 @@ graph TB
     B5 --> B6
     B7 --> B8
     B8 --> I1
+    B9 --> B7
+    B9 --> I1
+    B10 --> I1
     I1 --> I2
     I1 --> I3
+    E1 --> E2
+    E1 --> E3
+    E3 --> X1
 ```
 
 ## Import Matrix
@@ -84,6 +102,18 @@ graph TB
 | 호출자 (src/lib/api/) | 대상 (src/lib/supabase/) | 임포트 | 용도 |
 |---------------------|------------------------|--------|------|
 | `src/lib/api/edgeFunctions.ts` | `src/lib/supabase/client.ts` | `getSupabaseClient` | Edge Function 호출 |
+
+### From `src/features/book/` to `src/lib/api/`
+
+| 호출자 (src/features/book/) | 대상 (src/lib/api/) | 임포트 | 용도 |
+|---------------------------|-------------------|--------|------|
+| `src/features/book/searchApi.ts` | `src/lib/api/edgeFunctions.ts` | `invokeEdgeFunction` | kakao-book-search Edge Function 호출 |
+
+### From `src/features/book/` to `src/lib/supabase/`
+
+| 호출자 (src/features/book/) | 대상 (src/lib/supabase/) | 임포트 | 용도 |
+|---------------------------|------------------------|--------|------|
+| `src/features/book/bookDetailApi.ts` | `src/lib/supabase/client.ts` | `getSupabaseClient` | PostgREST 직접 조회 (books 테이블) |
 
 ### From `src/lib/supabase/` to `src/config/`
 
@@ -181,28 +211,88 @@ import { supabaseStorageAdapter } from '@/lib/supabase/storageAdapter'
 
 **@MX:ANCHOR 권장:** ⚠️ - 저장소 인터페이스 변경 시 클라이언트 초기화 영향
 
+---
+
+### 6. `searchBooks` (Fan-in: 3+ 예상)
+
+**호출자 (M3/M4 구현 시):**
+- `BookSearchScreen` (M3) - 도서 검색 화면
+- `BarcodeScanner` (M3) - 바코드 스캔 ISBN 자동 전환
+- `BookDetailScreen` (M4) - 도서 상세에서 재검색
+
+**의존성:**
+```typescript
+import { searchBooks } from '@/features/book'
+```
+
+**중요도:** HIGH - 도서 검색 공개 API
+
+**@MX:ANCHOR 권장:** ✅ - 빈 쿼리 차단/응답 계약 위반 시 전체 검색 플로우 고장
+
+---
+
+### 7. `getBookDetail` (Fan-in: 3+ 예상)
+
+**호출자 (M4 및 이후):**
+- `BookDetailScreen` (M4) - 도서 상세 조회
+- 검색 결과 선택 시 (REQ-BOOK-014) - 검색→상세 이동
+- 서재 플로우 (SPEC-LIBRARY-001) - 내 서재 도서 상세
+
+**의존성:**
+```typescript
+import { getBookDetail } from '@/features/book'
+```
+
+**중요도:** HIGH - 도서 상세 조회 공개 API
+
+**@MX:ANCHOR 권장:** ✅ - PGRST116→NOT_FOUND 분류, RLS_DENIED 처리 핵심
+
+**호출자:**
+- `src/lib/supabase/client.ts` - 클라이언트 초기화 시 주입
+
+**의존성:**
+```typescript
+import { supabaseStorageAdapter } from '@/lib/supabase/storageAdapter'
+```
+
+**중요도:** MEDIUM - 세션 지속성 어댑터
+
+**@MX:ANCHOR 권장:** ⚠️ - 저장소 인터페이스 변경 시 클라이언트 초기화 영향
+
 ## Circular Dependency Check
 
-**검증 결과:** ✅ **순환 의존성 없음**
+**검증 결과:** ✅ **순환 의존성 없음 (BOOK 모듈 추가 후에도 정상)**
 
 **검증 방법:**
 1. `app/` → `src/` 의존성 (단방향)
 2. `src/auth/` → `src/lib/supabase/` 의존성 (단방향)
 3. `src/lib/api/` → `src/lib/supabase/` 의존성 (단방향)
-4. `src/lib/supabase/` → `src/config/` 의존성 (단방향)
+4. `src/features/book/` → `src/lib/api/` → `src/lib/supabase/` 의존성 (단방향)
+5. `src/features/book/` → `src/lib/supabase/` 의존성 (단방향)
+6. `src/lib/supabase/` → `src/config/` 의존성 (단방향)
 
 **의존성 방향:**
 ```
 app/ (Presentation)
   ↓ imports
 src/ (Business Logic)
+  ├── src/features/book/ → src/lib/api/ → src/lib/supabase/
+  └── src/features/book/ → src/lib/supabase/
   ↓ imports
 src/lib/ (Infrastructure)
 ```
 
+**BOOK 모듈 의존성 분석:**
+- ✅ `src/features/book/`는 `AUTH/NAV` 모듈을 임포트하지 않음 (독립적)
+- ✅ `src/features/book/` → `src/lib/api/` (invokeEdgeFunction)
+- ✅ `src/features/book/` → `src/lib/supabase/` (getSupabaseClient)
+- ✅ `src/features/book/` → `src/types/book.ts` (타입)
+- ✅ Edge Function(kakao-book-search)은 Deno 환경으로 완전히 분리
+
 **역방향 의존성 없음:**
 - `src/`는 `app/`를 임포트하지 않음
 - `src/lib/`는 `src/`를 임포트하지 않음
+- `src/features/book/`는 `src/auth/`나 `src/theme/`를 임포트하지 않음
 
 ## Bidirectional Consistency
 
@@ -238,16 +328,20 @@ src/lib/ (Infrastructure)
    - `useSession.ts` - @MX:ANCHOR (HIGH priority)
    - `useTheme.tsx` - @MX:ANCHOR (HIGH priority)
    - `getSupabaseClient.ts` - @MX:ANCHOR (CRITICAL priority)
+   - `searchBooks.ts` (BOOK) - @MX:ANCHOR (HIGH priority, M3 구현 시)
+   - `getBookDetail.ts` (BOOK) - @MX:ANCHOR (HIGH priority, M4 구현 시)
 
 2. **모듈 경계 강화:**
    - `app/`는 라우팅만 담당, 비즈니스 로직은 `src/`에 위임 (현재 잘 준수됨)
    - `src/lib/`는 인프라만 담당, 도메인 로직은 상위 계층에 (현재 잘 준수됨)
+   - `src/features/book/`는 독립 도메인 유지 (AUTH/NAV와 의존성 없음, 현재 잘 준수됨)
 
 3. **의존성 모니터링:**
    - 향후 `src/` → `app/` 역방향 임포트 방지 (린트 규칙 권장)
    - `src/lib/` → `src/` 역방향 임포트 방지 (린트 규칙 권장)
+   - `src/features/book/` → `src/auth/` 역방향 임포트 방지 (린트 규칙 권장)
 
 ---
 
 **Last Updated:** 2026-06-16  
-**Branch:** develop (82d2031)
+**Branch:** develop (4424251 → 852f0ac SPEC-BOOK-001 M1+M2 merged)

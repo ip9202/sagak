@@ -56,7 +56,16 @@
 | 모듈 | 경로 | 계층 | 목적 | 주요 익스포트 | SPEC 참조 |
 |------|------|------|------|-------------|-----------|
 | Domain Types | `src/types/index.ts` | Business | 도메인 타입 정의 | Book, EmotionRecord, StickerType | DB-001 |
+| Book Types | `src/types/book.ts` | Business | Book 도메인 타입 | SearchResult, BookRow, SearchTarget, 타입 가드(isSearchResult, isBookRow, isSearchTarget) | BOOK-001 REQ-BOOK-003/012/015 |
 | Supabase Types | `src/types/supabase.ts` | Business | Supabase DB 타입 | Database 타입 (gen-types pending) | API-001 REQ-API-007 |
+
+### Book Domain (`src/features/book/`)
+
+| 모듈 | 경로 | 계층 | 목적 | 주요 익스포트 | SPEC 참조 |
+|------|------|------|------|-------------|-----------|
+| Book Barrel | `src/features/book/index.ts` | Business | Book 도메인 barrel | searchBooks, getBookDetail, BookRow/SearchResult/SearchTarget | BOOK-001 |
+| Search API | `src/features/book/searchApi.ts` | Business | 도서 검색 클라이언트 API | searchBooks(query, target) → SearchResult[], 빈 쿼리 차단(REQ-BOOK-005), Edge Function 호출(kakao-book-search) | BOOK-001 REQ-BOOK-001/005 |
+| Detail API | `src/features/book/bookDetailApi.ts` | Business | 도서 상세 조회 API | getBookDetail(bookId) → BookRow, PostgREST 직접 조회, PGRST116→NOT_FOUND 분류 | BOOK-001 REQ-BOOK-013/015 |
 
 ### Components (`src/components/`)
 
@@ -91,6 +100,18 @@
 |------|------|------|------|-------------|-----------|
 | Error Constants | `src/errors/index.ts` | Infrastructure | 에러 상수 정의 | 에러 코드, 메시지 | API-001 |
 
+## Edge Functions (`supabase/functions/`)
+
+### kakao-book-search
+
+| 모듈 | 경로 | 계층 | 목적 | 주요 익스포트 | SPEC 참조 |
+|------|------|------|------|-------------|-----------|
+| Entry Handler | `index.ts` | Edge Function | 요청 핸들러, DI 컨테이너, Deno 서빙 셸 | handleSearchRequest, Deno.serve | BOOK-001 REQ-BOOK-001~005/010~012 |
+| Normalizer | `normalizer.ts` | Edge Function | Kakao 응답 정규화 | normalizeKakaoDocuments, NormalizedBook, 필수 필드 검증 | BOOK-001 REQ-BOOK-003 |
+| Mapper | `mapper.ts` | Edge Function | 정규화 → books 테이블 매핑 | mapToBookRow, BookUpsertRow, authors→author join | BOOK-001 REQ-BOOK-012 |
+| Cache Manager | `cacheManager.ts` | Edge Function | 캐시 조회/업서트 | findCachedBook(isbn), upsertBooks(batch), service_role 의존성 주입 | BOOK-001 REQ-BOOK-010/011 |
+| Kakao Client | `kakaoClient.ts` | Edge Function | Kakao API 클라이언트 | searchKakaoBooks, KakaoClientError, 타임아웃(8000ms) | BOOK-001 REQ-BOOK-001/002/004 |
+
 ## High Fan-in Modules (@MX:ANCHOR)
 
 | 모듈 | 호출자 수 | 호출자 목록 | 우선순위 | 비고 |
@@ -98,8 +119,10 @@
 | `useSession` | 4+ | `app/index.tsx`, `app/(tabs)/_layout.tsx`, `app/(auth)/_layout.tsx`, `app/(auth)/auth/callback.tsx` | **HIGH** | @MX:ANCHOR 후보 - 4개 라우트에서 사용 |
 | `useTheme` | 6+ | 모든 컴포넌트, 레이아웃 | **HIGH** | @MX:ANCHOR 후보 - 전역 테마 접근 |
 | `tokens` | 3+ | ThemeProvider, 다수 컴포넌트 | **MEDIUM** | 디자인 토큰 참조 |
-| `getSupabaseClient` | 임계적 | AuthContext, 모든 API 호출 | **CRITICAL** | @MX:ANCHOR 필수 - 싱글톤 클라이언트 |
+| `getSupabaseClient` | 임계적 | AuthContext, 모든 API 호출, getBookDetail | **CRITICAL** | @MX:ANCHOR 필수 - 싱글톤 클라이언트 |
 | `supabaseStorageAdapter` | 1 | Supabase 클라이언트 초기화 | **MEDIUM** | 세션 지속성 어댑터 |
+| `searchBooks` | 3+ (예상) | BookSearchScreen(M3), BarcodeScanner(M3), BookDetailScreen(M4) | **HIGH** | @MX:ANCHOR 후보 - 빈 쿼리 차단/응답 계약 |
+| `getBookDetail` | 3+ (예상) | BookDetailScreen(M4), 검색 결과 선택, 서재 플로우 | **HIGH** | @MX:ANCHOR 후보 - PGRST116→NOT_FOUND 분류 |
 
 ## 계층별 모듈 분포
 
@@ -109,20 +132,28 @@ Presentation: 13개 (app/)
 ├── 스크린: 7개 (index, login, onboarding, 4 tabs, callback)
 └── 동적 라우트: 2개 ([bookId], [clubId])
 
-Business: 20+개 (src/)
+Business: 24+개 (src/)
 ├── 인증: 6개 (AuthContext, useSession, types, oauth, login, onboarding)
 ├── 테마: 3개 (theme, tokens, darkTokens)
 ├── API: 4개 (index, errors, retry, edgeFunctions)
-├── 타입: 2개 (domain, supabase)
+├── 타입: 3개 (domain, book, supabase) [book.ts 추가]
+├── Book 도메인: 3개 (index, searchApi, bookDetailApi) [신규]
 └── 컴포넌트: 6개 (Button, Card, BookCard, EmotionRecordCard, ProgressBar, StickerReaction)
 
 Infrastructure: 5개 (src/lib/)
 ├── Supabase: 3개 (client, storageAdapter, realtime)
 ├── 환경 설정: 1개 (env.ts)
 └── 에러: 1개 (index.ts)
+
+Edge Functions: 5개 (supabase/functions/kakao-book-search/) [신규]
+├── index.ts (Entry Handler + Deno Shell)
+├── normalizer.ts (Kakao 응답 정규화)
+├── mapper.ts (정규화 → books 테이블 매핑)
+├── cacheManager.ts (캐시 조회/업서트)
+└── kakaoClient.ts (Kakao API 클라이언트)
 ```
 
 ---
 
 **Last Updated:** 2026-06-16  
-**Branch:** develop (82d2031)
+**Branch:** develop (4424251 → 852f0ac SPEC-BOOK-001 M1+M2 merged)

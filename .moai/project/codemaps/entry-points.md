@@ -262,6 +262,7 @@ if (__DEV__) {
 | `/tabs` | isAuthenticated && isOnboarded | 인증+온보딩 완료 | 메인 탭 |
 | `sagak://auth/callback` | OAuth 리다이렉트 | 딥링크 | 콜백 → useSession → 리다이렉트 |
 | `_dev.tsx` | 개발자 접근 | `__DEV__` true | 데모 화면 |
+| `POST /functions/v1/kakao-book-search` | Edge Function 호출 | Supabase Edge Function | handleSearchRequest → Kakao API/캐시 → 응답 |
 
 ---
 
@@ -293,4 +294,4 @@ graph TD
 ---
 
 **Last Updated:** 2026-06-16  
-**Branch:** develop (82d2031)
+**Branch:** develop (4424251 → 852f0ac SPEC-BOOK-001 M1+M2 merged)

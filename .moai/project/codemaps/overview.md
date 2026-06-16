@@ -29,6 +29,7 @@ graph TB
         F[src/theme/<br/>Theming]
         G[src/lib/api/<br/>API Layer]
         H[src/types/<br/>Domain Types]
+        Y[src/features/book/<br/>Book Domain]
     end
 
     subgraph "Infrastructure Layer (src/lib/)"
@@ -37,11 +38,16 @@ graph TB
         K[src/errors/<br/>Error Handling]
     end
 
+    subgraph "Edge Functions (supabase/functions/)"
+        Z[kakao-book-search<br/>Kakao API + Cache]
+    end
+
     subgraph "External Services"
         L[Supabase<br/>Database]
         M[Supabase<br/>Auth]
         N[Supabase<br/>Storage]
         O[OAuth<br/>Providers]
+        AA[Kakao<br/>Book Search API]
     end
 
     A --> E
@@ -58,6 +64,10 @@ graph TB
     E --> O
     I --> J
     G --> K
+    Y --> G
+    Y --> I
+    Z --> AA
+    Z --> L
 ```
 
 ## Module Structure
@@ -85,6 +95,7 @@ graph TB
 | **SPEC-API-001** | API Layer | ✅ Complete | Edge Functions, 에러 처리, 재시도 로직 |
 | **SPEC-AUTH-001** | Authentication | ✅ Complete | OAuth(Kakao/Apple/Google), Session, Onboarding |
 | **SPEC-NAV-001** | Navigation System | ✅ Complete | 4-tab navigator, 가드 로직, 딥링크 |
+| **SPEC-BOOK-001** | Book Search & Detail | ✅ Complete M1+M2 | Kakao Book Search API, Edge Function(kakao-book-search), 캐시 관리, 정규화, 매퍼 (M3/M4 UI/바코드 스캔 deferred) |
 
 ## Current State
 
@@ -95,6 +106,7 @@ graph TB
 - ✅ API 계층: Edge Functions 호출, 에러 처리, 재시도 메커니즘
 - ✅ 테마 시스템: 라이트/다크 모드, 디자인 토큰
 - ✅ 타입 안전성: TypeScript strict mode, Zod 스키마
+- ✅ 도서 검색: Kakao Book Search API 통합, Edge Function 캐싱, 정규화/매퍼 (M1+M2 완료)
 
 ## Key Patterns
 
@@ -170,13 +182,16 @@ Prettier (Formatting)
 
 ## Next Steps
 
-1. **SPEC-RECORD-001:** 감정 기록 기능 구현 (EmotionRecord API + UI)
-2. **SPEC-SOCIAL-001:** 소셜 기능 추가 (팔로우, 댓글, 좋아요)
-3. **SPEC-NOTIF-001:** 알림 시스템 (Push notifications, In-app notifications)
-4. **테스트 커버리지 확대:** 현재 277개 테스트 → 목표 85%+ 커버리지
+1. **SPEC-BOOK-001 M3:** 도서 검색 화면 구현 (BookSearchScreen)
+2. **SPEC-BOOK-001 M4:** 도서 상세 화면 구현 (BookDetailScreen)
+3. **SPEC-BOOK-001 M3:** 바코드 스캔 통합 (ISBN 자동 전환)
+4. **SPEC-RECORD-001:** 감정 기록 기능 구현 (EmotionRecord API + UI)
+5. **SPEC-SOCIAL-001:** 소셜 기능 추가 (팔로우, 댓글, 좋아요)
+6. **SPEC-NOTIF-001:** 알림 시스템 (Push notifications, In-app notifications)
+7. **테스트 커버리지 확대:** 현재 317개 테스트 → 목표 85%+ 커버리지
 
 ---
 
 **Last Updated:** 2026-06-16  
-**Branch:** develop (82d2031)  
+**Branch:** develop (4424251 → 852f0ac SPEC-BOOK-001 M1+M2 merged)  
 **Maintainer:** MoAI Documentation System
