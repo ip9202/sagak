@@ -28,8 +28,9 @@ describe('Supabase Types Infrastructure (REQ-API-006)', () => {
       const typesPath = path.join(process.cwd(), 'src/types/supabase.ts');
       const content = fs.readFileSync(typesPath, 'utf8');
 
-      // Verify Database interface export
-      expect(content).toContain('export interface Database');
+      // Verify Database type export (supabase CLI outputs `export type Database =`)
+      // interface 가 아닌 type 별칭으로 생성되므로 실제 출력 형태를 검증한다.
+      expect(content).toContain('export type Database');
       expect(content).toContain('public:');
 
       // Verify Json type export
