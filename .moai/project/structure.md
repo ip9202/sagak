@@ -70,8 +70,9 @@ iOS/Android 모바일 앱 (React Native + Expo SDK 55 + React 19.2)
   - `onboarding.tsx` (OnboardingScreen — 닉네임 검증(1~20자), avatar 선택, UPDATE 요청, refreshProfile 호출)
 - **`src/components/`** (6가지 커스텀 컴포넌트): `Button.tsx`, `Card.tsx`, `ProgressBar.tsx`, `BookCard.tsx`, `EmotionRecordCard.tsx`, `StickerReaction.tsx`
 - **`src/theme/`** (디자인 시스템): `tokens.ts` (light 모드 토큰), `darkTokens.ts` (dark 모드 토큰), `theme.tsx` (ThemeProvider + useTheme + useManualMode 패턴)
-- **`src/types/`** (타입 정의): `Book.ts`, `EmotionRecord.ts`, `StickerType.ts` 도메인 타입 정의
+- **`src/types/`** (타입 정의): `book.ts` (BookRow, SearchResult, SearchTarget + type guards, M2 완료), `EmotionRecord.ts`, `StickerType.ts` 도메인 타입 정의
 - **`src/config/`** (환경 변수 검증 및 접근): `env.ts` (getEnvVar/getOptionalEnvVar — 환경 변수 런타임 검증 및 타입 안전한 접근)
+- **`src/features/book/`** (도서 검색 API, M1+M2 완료): `searchApi.ts` (searchBooks, 빈 쿼리 차단), `bookDetailApi.ts` (getBookDetail, PGRST116→NOT_FOUND), `index.ts` (통합 진입점)
 - **`src/lib/supabase/`** (Supabase 클라이언트): `client.ts` (getSupabiceClient 싱글톤), `storageAdapter.ts` (SecureStore/AsyncStorage 폴백 세션 저장소 어댑터)
 - **`src/lib/api/`** (API 레이어): `errors.ts` (AppError 계층 구조 + normalizeError/classifyError), `retry.ts` (retryWithBackoff), `edgeFunctions.ts` (invokeEdgeFunction), `index.ts` (통합 진입점)
 - **`src/errors/`** (공통 에러 처리): `AppError.ts` (AppError 기본 클래스 + 7개 서브클래스 + ErrorCategory 타입)
@@ -129,11 +130,11 @@ iOS/Android 모바일 앱 (React Native + Expo SDK 55 + React 19.2)
 - `POST /auth/logout` - 로그아웃
 - `GET /auth/me` - 현재 사용자 정보
 
-**Books (검색/스캔/상세)**
-- `GET /books/search` - 클라이언트용 도서 검색 (내부적으로 Edge Function `kakao-book-search` 프록시 호출)
-- `POST /books/scan` - 바코드 스캔으로 책 등록
-- `GET /books/{id}` - 책 상세 정보
-- `GET /books/{id}/cover` - 책 표지 이미지
+**Books (검색/스캔/상세) — M1+M2 구현 완료 (2026-06-16)**
+- `searchBooks(query, target)` - 도서 검색 (내부적으로 Edge Function `kakao-book-search` 프록시 호출, `src/features/book/searchApi.ts`)
+- `getBookDetail(bookId)` - 책 상세 정보 (`src/features/book/bookDetailApi.ts`)
+- `POST /books/scan` - 바코드 스캔으로 책 등록 (M3, 미구현)
+- `GET /books/{id}/cover` - 책 표지 이미지 (직접 렌더링, Storage 업로드 없음)
 
 **Library CRUD (서재 관리)**
 - `GET /library` - 내 서재 목록
@@ -168,7 +169,7 @@ iOS/Android 모바일 앱 (React Native + Expo SDK 55 + React 19.2)
 - `POST /users/{id}/notifications` - 알림 설정
 
 **Edge Functions (카카오 연동, 가입 요청 처리, 완독 보고서)**
-- `POST /functions/kakao-book-search` - 카카오 도서 검색 프록시
+- `POST /functions/kakao-book-search` - 카카오 도서 검색 프록시 (M1 구현 완료, 2026-06-16)
 - `POST /functions/process-join-request` - 가입 요청 처리
 - `POST /functions/generate-completion-report` - 완독 다이어리 생성
 - `POST /functions/send-notification` - 푸시 알림 발송

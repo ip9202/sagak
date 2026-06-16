@@ -111,12 +111,14 @@ Phase 5 (배포)
 #### SPEC-BOOK-001: 도서 검색 및 등록
 - **도메인**: BOOK
 - **우선순위**: high
-- **핵심 범위**: Kakao Book Search API 연동(Edge Function `kakao-book-search` 프록시, CORS 해결), 바코드 스캔(`expo-camera`), 수동 검색(ISBN/제목/저자), 검색 결과 캐싱, 책 등록 → `books` 테이블 업서트
+- **상태**: ✅ 구현 완료 (M1+M2, PR #8, 852f0ac, 2026-06-16)
+- **핵심 범위 (완료 M1+M2)**: Kakao Book Search API 연동(Edge Function `kakao-book-search` 프록시, CORS 해결), 수동 검색(ISBN/제목/저자), 검색 결과 캐싱, 책 등록 → `books` 테이블 업서트, 책 상세 조회
+- **후속 (M3+M4, 미구현)**: 바코드 스캔(`expo-camera`), 도서 검색/상세 화면
 - **DB 엔터티**: `books`(캐시 카탈로그)
 - **API/Edge Function**: `POST /functions/kakao-book-search`, `books` SELECT/INSERT
 - **의존성**: SPEC-API-001
-- **구현 산출물**: `src/features/book/searchApi.ts`, `src/features/book/BarcodeScanner.tsx`, `supabase/functions/kakao-book-search/`, 도서 검색 화면
-- **제외**: 서재 추가 플로우(SPEC-LIBRARY-001), 표지 이미지 Storage 업로드(표지만 표시)
+- **구현 산출물**: `src/types/book.ts`, `src/features/book/{searchApi,bookDetailApi,index}.ts`, `supabase/functions/kakao-book-search/`
+- **제외**: 바코드 스캔(M3), 화면 UI(M4), 표지 이미지 Storage 업로드, 실제 Kakao API 키 배포(SPEC-DEPLOY-001)
 
 #### SPEC-LIBRARY-001: 개인 서재 관리
 - **도메인**: LIBRARY
@@ -271,7 +273,7 @@ product.md "비목표" + SPEC-DB-001 "제외 범위" 기반:
 | 1 | SPEC-API-001 | ✅ | ✅ | ✅ | 구현 완료 (16/19 REQ, 84% — REQ-008~010 스키마 의존으로 SPEC-DB-001 배포 후 연기) |
 | 1 | SPEC-AUTH-001 | ✅ | ✅ | ✅ | 구현 완료 (18/18 REQ, PR #5 머지 1145686) |
 | 1 | SPEC-NAV-001 | ✅ | ✅ | ✅ | 구현 완료 (13/13 REQ, PR #7 머지 8fa545b, 317 테스트, 커버리지 82.5%) |
-| 2 | SPEC-BOOK-001 | ✅ | ✅ | ✅ | SPEC 작성 완료 (16 REQ) |
+| 2 | SPEC-BOOK-001 | ✅ | ✅ | ✅ | 구현 완료 (PR #8, 852f0ac, 2026-06-16 — M1+M2 범위, M3/M4 후속) |
 | 2 | SPEC-LIBRARY-001 | ✅ | ✅ | ✅ | SPEC 작성 완료 (16 REQ) |
 | 2 | SPEC-EMOTION-001 | ✅ | ✅ | ✅ | SPEC 작성 완료 (10 REQ) |
 | 2 | SPEC-COMPLETION-001 | ✅ | ✅ | ✅ | SPEC 작성 완료 (10 REQ) |
@@ -300,7 +302,16 @@ product.md "비목표" + SPEC-DB-001 "제외 범위" 기반:
 | 1 | SPEC-AUTH-001 | 2026-06-15 | #5 | 1145686 | 18/18 (100%) | 317/317 | 85%+ |
 | 1 | SPEC-NAV-001 | 2026-06-16 | #7 | 8fa545b | 13/13 (100%) | 317/317 | 82.5% |
 
+### Phase 2 핵심 도메인 — 진행 중
+
+| Phase | 구현 완료 SPEC | 구현 일자 | PR | 커밋 | REQ 완료율 | 테스트 | 커버리지 |
+|-------|---------------|----------|----|----|-----------|--------|---------|
+| 2 | SPEC-BOOK-001 | 2026-06-16 | #8 | 852f0ac | 10/16 (M1+M2) | 373/373 | 100%/96.87% |
+
 **Phase 1 완결 상태**: 인프라·인증·네비게이션 파운데이션 100% 완성. 도메인 SPEC(SPEC-BOOK-001, SPEC-LIBRARY-001 등) 구현 준비 완료.
+
+**Phase 2 진행 상태 (2026-06-16 기준)**:
+- **SPEC-BOOK-001**: M1+M2 구현 완료 (Edge Function + Client API), M3/M4 후续
 
 ---
 
