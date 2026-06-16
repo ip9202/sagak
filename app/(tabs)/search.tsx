@@ -15,9 +15,11 @@
  * scan.tsx 에서 router.replace('/search', { initialQuery: isbn, initialTarget: 'isbn' }).
  */
 import React, { useCallback } from 'react';
+import { Alert } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { BookSearchScreen } from '../../src/features/book/BookSearchScreen';
 import { resolveBookId } from '../../src/features/book/resolveBookId';
+import { getUserFriendlyMessage } from '../../src/lib/api/errors';
 import type { SearchTarget } from '../../src/types/book';
 
 export default function SearchRoute() {
@@ -34,9 +36,15 @@ export default function SearchRoute() {
         const id = await resolveBookId(result.isbn);
         router.push(`/book/${id}`);
       } catch (error) {
-        // @MX:NOTE: [AUTO] NOT_FOUND(미등록 ISBN) 등 실패 시 라우팅 중단. 사용자 친화적 메시지 노출은 UI 계층(BookSearchScreen/useLibrary, T-007~010)에서 getUserFriendlyMessage 로 통합 처리 예정. 현재는 콘솔 로깅만 수행.
-        // eslint-disable-next-line no-console
-        console.warn('[search.route] resolveBookId failed', (error as { category?: string })?.category, result.isbn);
+        // @MX:NOTE: [AUTO] NOT_FOUND(미등록 ISBN) 등 실패 시 라우팅 중단. SPEC-LIBRARY-001 TASK-010: getUserFriendlyMessage 로 사용자 친화적 메시지 노출. 미등록 ISBN(책 미등록) 시 등록 플로우 안내.
+        const appError = error as { category?: string; code?: string };
+        const friendly = getUserFriendlyMessage(error as never);
+        const isNotFound = appError?.category === 'NOT_FOUND';
+        const title = isNotFound ? '등록되지 않은 책이에요' : '이동할 수 없어요';
+        const body = isNotFound
+          ? '이 책은 아직 서비스에 등록되지 않았어요. 다른 책을 검색해 보세요.'
+          : friendly;
+        Alert.alert(title, body);
       }
     },
     [router],

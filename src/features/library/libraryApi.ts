@@ -91,6 +91,41 @@ export async function getLibrary(filter: LibraryFilter): Promise<LibraryItem[]> 
 }
 
 /**
+ * 단일 서재 항목을 book_id 로 조회한다 (상세 화면용).
+ *
+ * 사용자가 서재 탭을 거치지 않고 상세로 직접 진입하는 경로(search → /book/<id>)를
+ * 지원하기 위해 user_books 를 book_id + user_id 로 단일 행 조회한다.
+ * - 0행(서재 미등록 책): null 반환 (에러 아님 — UI 에서 "서재에 추가" CTA 표시)
+ * - RLS/네트워크 에러: AppError throw
+ *
+ * @MX:NOTE: [AUTO] 단일 항목 조회 — BookDetailScreen(TASK-010) 진입 경로. null 은 미등록을 의미해 에러가 아님.
+ * @MX:SPEC SPEC-LIBRARY-001
+ */
+export async function getLibraryItem(
+  bookId: string,
+  userId: string,
+): Promise<LibraryItem | null> {
+  const client = getSupabaseClient();
+
+  let result: { data: LibraryItem | null; error: unknown };
+  try {
+    result = await client
+      .from('user_books')
+      .select(LIBRARY_SELECT)
+      .eq('book_id', bookId)
+      .eq('user_id', userId)
+      .maybeSingle();
+  } catch (error) {
+    throw normalizeError(error);
+  }
+
+  if (result.error) {
+    throw normalizeError(result.error);
+  }
+  return result.data ?? null;
+}
+
+/**
  * 서재 항목을 DELETE 한다.
  *
  * id + user_id 복합 조건으로 RLS 보조 필터를 적용한다.

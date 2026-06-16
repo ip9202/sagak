@@ -8,6 +8,22 @@
  */
 import React from 'react';
 import { render, screen } from '@testing-library/react-native';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+
+// SPEC-LIBRARY-001 TASK-010: BookDetailScreen 이 mutation hooks 사용 → QueryClientProvider 필요
+function wrapWithQueryClient(element: React.ReactElement): React.ReactElement {
+  const client = new QueryClient({
+    defaultOptions: {
+      queries: { retry: false, gcTime: 0, staleTime: 0 },
+      mutations: { retry: false },
+    },
+  });
+  return React.createElement(
+    QueryClientProvider,
+    { client },
+    element,
+  );
+}
 
 jest.mock('@react-native-async-storage/async-storage', () => ({
   default: { getItem: jest.fn(), setItem: jest.fn(), removeItem: jest.fn(), clear: jest.fn() },
@@ -16,6 +32,15 @@ jest.mock('@react-native-async-storage/async-storage', () => ({
 jest.mock('expo-secure-store', () => ({
   default: { getItemAsync: jest.fn(), setItemAsync: jest.fn(), deleteItemAsync: jest.fn() },
 }));
+
+jest.mock('expo-linear-gradient', () => {
+  const R = require('react');
+  const { View } = require('react-native');
+  return {
+    LinearGradient: (props: { children?: React.ReactNode }) =>
+      R.createElement(View, props),
+  };
+});
 
 // useSession mock — SPEC-BOOK-001 M4-3 BookDetailScreen 이 consume.
 // 기본: loading(null) → ActivityIndicator 렌더링 (파라미터 수신 자체는 라우트 단에서 보증)
@@ -26,6 +51,27 @@ jest.mock('../../../src/auth/useSession', () => ({
 // bookDetailApi mock — 로딩 상태에서는 호출되지 않으므로 안전망
 jest.mock('../../../src/features/book/bookDetailApi', () => ({
   getBookDetail: jest.fn(),
+}));
+
+// SPEC-LIBRARY-001 TASK-010: BookDetailScreen 이 useLibraryItem/mutation hooks 사용.
+// 라우팅 파라미터 수신 테스트이므로 라이브러리 의존성은 안전망으로 mock.
+jest.mock('../../../src/features/library/libraryApi', () => ({
+  __esModule: true,
+  getLibrary: jest.fn(),
+  getLibraryItem: jest.fn(),
+  addBook: jest.fn(),
+  deleteBook: jest.fn(),
+  updateProgress: jest.fn(),
+  updateStatus: jest.fn(),
+  updateVisibility: jest.fn(),
+}));
+jest.mock('../../../src/features/library/useLibraryItem', () => ({
+  useLibraryItem: jest.fn(() => ({
+    data: null,
+    isLoading: false,
+    isError: false,
+    error: null,
+  })),
 }));
 
 // useLocalSearchParams를 테스트별로 오버라이드 가능하게 팩토리에서 변수 참조
@@ -54,7 +100,7 @@ describe('S1: 도서 상세 [bookId] 파라미터 수신 (SPEC-BOOK-001 M4-6 Boo
     // BookDetailScreen 은 useSession()=null(loading) 시 ActivityIndicator(testID book-detail-loading) 렌더링.
     // 라우트가 파라미터를 수신해 BookDetailScreen 에 전달했다면 로딩 인디케이터가 표시된다.
     mockSearchParams.bookId = 'book-42';
-    render(<BookDetailRoute />);
+    render(wrapWithQueryClient(<BookDetailRoute />));
     expect(screen.getByTestId('book-detail-loading')).toBeTruthy();
   });
 });

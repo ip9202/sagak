@@ -9,10 +9,36 @@
  */
 import React from 'react';
 import { render, waitFor } from '@testing-library/react-native';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ThemeProvider } from '../../../theme/theme';
 import { BookDetailScreen, type BookDetailScreenProps } from '../BookDetailScreen';
 import type { BookRow } from '../../../types/book';
 import { AppError } from '../../../errors';
+
+// 네이티브 모듈 mock (BookDetailScreen 이 useLibraryItem/mutation hooks 로 supabase 경유 로드)
+jest.mock('@react-native-async-storage/async-storage', () => ({
+  __esModule: true,
+  default: {
+    getItem: jest.fn(),
+    setItem: jest.fn(),
+    removeItem: jest.fn(),
+    clear: jest.fn(),
+  },
+}));
+jest.mock('expo-secure-store', () => ({
+  setItemAsync: jest.fn(),
+  getItemAsync: jest.fn(),
+  deleteItemAsync: jest.fn(),
+  WHEN_UNLOCKED: 'WHEN_UNLOCKED',
+}));
+jest.mock('expo-linear-gradient', () => {
+  const R = require('react');
+  const { View } = require('react-native');
+  return {
+    LinearGradient: (props: { children?: React.ReactNode }) =>
+      R.createElement(View, props),
+  };
+});
 
 // useSession mock — 각 테스트에서 반환값 오버라이드
 jest.mock('../../../auth/useSession', () => ({
@@ -24,18 +50,52 @@ jest.mock('../bookDetailApi', () => ({
   getBookDetail: jest.fn(),
 }));
 
+// libraryApi mock (BookDetailScreen 이 useLibraryItem/mutation 으로 경유)
+jest.mock('../../library/libraryApi', () => ({
+  __esModule: true,
+  getLibrary: jest.fn(),
+  getLibraryItem: jest.fn(),
+  addBook: jest.fn(),
+  deleteBook: jest.fn(),
+  updateProgress: jest.fn(),
+  updateStatus: jest.fn(),
+  updateVisibility: jest.fn(),
+}));
+
+// useLibraryItem mock — 기본 미등록(null)
+jest.mock('../../library/useLibraryItem', () => ({
+  useLibraryItem: jest.fn(() => ({
+    data: null,
+    isLoading: false,
+    isError: false,
+    error: null,
+  })),
+}));
+
 import { useSession } from '../../../auth/useSession';
 import { getBookDetail } from '../bookDetailApi';
 
 const mockedUseSession = useSession as jest.MockedFunction<typeof useSession>;
 const mockedGetBookDetail = getBookDetail as jest.MockedFunction<typeof getBookDetail>;
 
-// 헬퍼: ThemeProvider + 인증된 세션으로 감싼 렌더
+function createTestQueryClient(): QueryClient {
+  return new QueryClient({
+    defaultOptions: {
+      queries: { retry: false, gcTime: 0, staleTime: 0 },
+      mutations: { retry: false },
+    },
+  });
+}
+
+// 헬퍼: QueryClientProvider + ThemeProvider + 인증된 세션으로 감싼 렌더
 function renderScreen(props: BookDetailScreenProps) {
+  const client = createTestQueryClient();
   return render(
-    <ThemeProvider>
-      <BookDetailScreen {...props} />
-    </ThemeProvider>
+    <QueryClientProvider client={client}>
+      <ThemeProvider>
+        <BookDetailScreen {...props} />
+      </ThemeProvider>
+    </QueryClientProvider>
   );
 }
 
