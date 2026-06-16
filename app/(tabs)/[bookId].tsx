@@ -20,6 +20,8 @@ export default function BookDetailRoute() {
     <BookDetailScreen
       bookId={bookId}
       onRequireAuth={() => router.replace('/(auth)/login')}
+      // SPEC-LIBRARY-001 evaluator FINDING-1: 삭제 성공 시 이전 화면(검색/서재)으로 복귀 (AC-LIB-007/008)
+      onDeleted={() => router.back()}
     />
   );
 }
