@@ -111,6 +111,15 @@ export default function TabsLayout() {
         name="[bookId]"
         options={{ href: null, headerShown: false }}
       />
+      {/* SPEC-BOOK-001 M4: 검색·스캔 화면 — 탭바 미표시 (href:null), 스택 진입용 */}
+      <Tabs.Screen
+        name="search"
+        options={{ href: null, headerShown: false }}
+      />
+      <Tabs.Screen
+        name="scan"
+        options={{ href: null, headerShown: false }}
+      />
       <Tabs.Screen
         name="clubs/[clubId]"
         options={{ href: null, headerShown: false }}

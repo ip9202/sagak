@@ -1,30 +1,25 @@
 /**
  * 도서 상세 동적 라우트 — [bookId]
- * SPEC-NAV-001 — REQ-NAV-010, 인수 시나리오 S1
+ * SPEC-BOOK-001 M4-6 — SPEC-NAV-001 stub 에서 BookDetailScreen 통합으로 교체
  *
- * 본 SPEC은 bookId 파라미터 수신까지만 보증한다.
- * 실제 도서 상세 콘텐츠는 SPEC-LIBRARY-001에서 구현한다 (EC5: 잘못된 bookId 처리 위임).
+ * bookId param 을 BookDetailScreen 에 전달.
+ * 미인증 감지 시(onRequireAuth) 로그인 플로우로 이동.
+ *
+ * 주의: SPEC-NAV-001 은 bookId 파라미터 수신까지만 보증했으나,
+ * SPEC-BOOK-001 M4-3 의 BookDetailScreen 구현체를 연결한다.
  */
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
-import { useLocalSearchParams } from 'expo-router';
-import { useTheme } from '../../src/theme/theme';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import { BookDetailScreen } from '../../src/features/book/BookDetailScreen';
 
 export default function BookDetailRoute() {
   const { bookId } = useLocalSearchParams<{ bookId: string }>();
-  const theme = useTheme();
+  const router = useRouter();
+
   return (
-    <View style={[styles.container, { backgroundColor: theme.colors.bg.base }]}>
-      <Text style={[styles.title, { color: theme.colors.text.primary }]}>도서 상세</Text>
-      <Text style={[styles.placeholder, { color: theme.colors.text.tertiary }]}>
-        bookId: {bookId}
-      </Text>
-    </View>
+    <BookDetailScreen
+      bookId={bookId}
+      onRequireAuth={() => router.replace('/(auth)/login')}
+    />
   );
 }
-
-const styles = StyleSheet.create({
-  container: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 8 },
-  title: { fontSize: 20, fontWeight: '700' },
-  placeholder: { fontSize: 14 },
-});
