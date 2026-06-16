@@ -1,6 +1,6 @@
 # Sa-gak Data Flow Paths
 
-주요 데이터 흐름 — 인증 가드, OAuth 딥링크, 테마, 세션 지속성, 도서 검색/상세 조회 API(M1/M2) + 수동 검색/바코드 스캔/상세 UI(M3/M4)
+주요 데이터 흐름 — 인증 가드, OAuth 딥링크, 테마, 세션 지속성, 도서 검색/상세 조회 API(M1/M2) + 수동 검색/바코드 스캔/상세 UI(M3/M4) + 서재/진행률/ISBN→UUID 매핑(LIBRARY-001)
 
 ## 1. Auth Guard Flow
 
@@ -55,11 +55,11 @@ sequenceDiagram
 ```typescript
 export function useSession() {
   const context = useContext(AuthContext)
-  
+
   if (context === undefined) {
     throw new Error('useSession must be used within AuthProvider')
   }
-  
+
   return context.session
 }
 ```
@@ -98,393 +98,73 @@ sequenceDiagram
     participant Router as Router
 
     User->>OAuth: OAuth 요청 (signInWithProvider)
-    OAuth->>OAuth: 사용자 승인
-    OAuth->>DeepLink: 리다이렉트 with auth code
-    DeepLink->>Callback: 앱 열림 (sagak://auth/callback)
-    
-    Callback->>Callback: useLocalSearchParams() (discarded)
-    Callback->>Callback: useSession() 호출
-    
-    Note over Callback,Listener: AuthContext listener already listening
-    Listener->>Client: Supabase auth listener trigger
-    Client->>Client: Exchange auth code for tokens
-    Client-->>Listener: Session established
-    
-    Listener->>Listener: Update AuthContext state
-    Listener->>Callback: useSession returns new state
-    
-    alt isNewUser
-        Callback->>Router: router.replace('/auth/onboarding')
-    else existingUser
+    OAuth-->>User: Authorization Code
+    OAuth-->>DeepLink: 딥링크 리다이렉트
+    DeepLink->>Callback: navigate('callback')
+    Callback->>Callback: useLocalSearchParams()
+    Callback->>Listener: waitForAuthStateChange()
+    Listener->>Client: getSession()
+    Client-->>Listener: Session data
+    Listener-->>Callback: Auth state event
+
+    alt Auth success
         Callback->>Router: router.replace('/tabs')
+    else Auth failure
+        Callback->>Router: router.replace('/auth/login')
     end
 ```
 
 ### Key Implementation
-
-**File:** `src/auth/AuthContext.tsx` (onAuthStateChange)
-
-```typescript
-useEffect(() => {
-  const { data: authListener } = supabase.auth.onAuthStateChange(
-    async (event, session) => {
-      if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
-        // Fetch user profile
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', session.user.id)
-          .single()
-        
-        setSessionState({
-          session,
-          user: session.user,
-          profile,
-          loading: false,
-          isAuthenticated: true,
-          isOnboarded: profile?.nickname !== null
-        })
-      } else if (event === 'SIGNED_OUT') {
-        setSessionState({
-          session: null,
-          user: null,
-          profile: null,
-          loading: false,
-          isAuthenticated: false,
-          isOnboarded: false
-        })
-      }
-    }
-  )
-
-  return () => authListener.subscription.unsubscribe()
-}, [])
-```
-
-### Deep-link Parameter Handling
 
 **File:** `app/(auth)/auth/callback.tsx`
 
 ```typescript
-export default function CallbackScreen() {
-  const router = useRouter()
-  // const params = useLocalSearchParams() // discarded, not used
-  
-  const session = useSession()
-  
-  useEffect(() => {
-    if (session === null) {
-      return // still loading
-    }
-    
-    if (session.isAuthenticated) {
-      if (session.isOnboarded) {
-        router.replace('/tabs')
-      } else {
-        router.replace('/auth/onboarding')
-      }
+const { accessToken, refreshToken, error } = useLocalSearchParams()
+
+useEffect(() => {
+  const waitForAuth = async () => {
+    const { data } = await supabase.auth.getSession()
+    if (data.session) {
+      router.replace('/tabs')
     } else {
       router.replace('/auth/login')
     }
-  }, [session, router])
-  
-  return <ActivityIndicator />
-}
-```
-
-**참고:** 딥링크 파라미터는 사용되지 않음. 실제 토큰 교환은 Supabase Auth listener가 처리합니다.
-
----
-
-## 3. Theme Flow
-
-**목적:** 라이트/다크 모드 전환 및 테마 토큰 제공
-
-**진입점:** `app/_layout.tsx` (ThemeProvider), 모든 컴포넌트 (useTheme)
-
-```mermaid
-sequenceDiagram
-    participant Layout as app/_layout.tsx
-    participant Provider as ThemeProvider
-    participant Hook as useTheme()
-    participant Tokens as tokens.ts
-    participant DarkTokens as darkTokens.ts
-    participant System as Appearance (System)
-    participant Store as AsyncStorage (Manual Mode)
-
-    Layout->>Provider: <ThemeProvider>
-    Provider->>System: Appearance.getColorScheme()
-    System-->>Provider: 'light' | 'dark'
-    
-    Provider->>Store: AsyncStorage.getItem('themeMode')
-    Store-->>Provider: null | 'light' | 'dark'
-    
-    alt manual mode set
-        Provider->>Provider: Use stored mode
-    else auto mode (default)
-        Provider->>Provider: Use system scheme
-    end
-    
-    Provider->>Tokens: import tokens
-    Provider->>DarkTokens: import darkTokens
-    
-    Note over Provider,DarkTokens: Merge tokens based on colorScheme
-    
-    Loop Every component render
-        Component->>Hook: useTheme()
-        Hook-->>Component: { theme, colorScheme, setManualMode }
-        Component->>Component: Apply theme tokens
-    end
-```
-
-### Key Implementation
-
-**File:** `src/theme/theme.tsx`
-
-```typescript
-export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const systemColorScheme = Appearance.getColorScheme()
-  const [manualMode, setManualModeState] = useState<'light' | 'dark' | null>(null)
-  const colorScheme = manualMode || systemColorScheme || 'light'
-  
-  const themeTokens = colorScheme === 'dark' 
-    ? { ...tokens, ...darkTokens }
-    : tokens
-  
-  const setManualMode = useCallback((mode: 'light' | 'dark') => {
-    setManualModeState(mode)
-    AsyncStorage.setItem('themeMode', mode)
-  }, [])
-  
-  return (
-    <ThemeContext.Provider value={{ theme: themeTokens, colorScheme, setManualMode }}>
-      {children}
-    </ThemeContext.Provider>
-  )
-}
-```
-
-### Token Resolution
-
-**File:** `src/theme/tokens.ts`
-
-```typescript
-export default {
-  colors: {
-    primary: '#6366f1',
-    secondary: '#8b5cf6',
-    background: '#ffffff',
-    surface: '#f3f4f6',
-    // ... more tokens
-  },
-  spacing: {
-    xs: 4,
-    sm: 8,
-    md: 16,
-    lg: 24,
-    xl: 32,
-  },
-  typography: {
-    h1: { fontSize: 32, fontWeight: '700' },
-    h2: { fontSize: 24, fontWeight: '600' },
-    body: { fontSize: 16, fontWeight: '400' },
   }
-}
-```
-
-**File:** `src/theme/darkTokens.ts` (overrides)
-
-```typescript
-export default {
-  colors: {
-    background: '#000000',
-    surface: '#1f2937',
-    // ... other dark overrides
-  }
-}
-```
-
-### Theme Consumption
-
-**예시: `src/components/Button.tsx`**
-
-```typescript
-export function Button(props: ButtonProps) {
-  const { theme } = useTheme()
-  
-  return (
-    <TouchableOpacity 
-      style={[
-        styles.button, 
-        { backgroundColor: theme.colors.primary }
-      ]}
-    >
-      <Text style={[styles.text, { color: theme.colors.onPrimary }]}>
-        {props.title}
-      </Text>
-    </TouchableOpacity>
-  )
-}
+  waitForAuth()
+}, [])
 ```
 
 ---
 
-## 4. Session Persistence Flow
+## 3. Book Search Flow (수동 검색)
 
-**목적:** 세션 토큰을 SecureStore/AsyncStorage에 지속적으로 저장
+**목적:** 도서 검색어 → 카카오 책 검색 API → 검색 결과 표시
 
-**진입점:** `src/lib/supabase/client.ts` (초기화 시 어댑터 주입)
-
-```mermaid
-sequenceDiagram
-    participant Client as getSupabaseClient()
-    participant Adapter as supabaseStorageAdapter
-    participant SecureStore as Expo SecureStore
-    participant AsyncStorage as AsyncStorage
-    participant Supabase as Supabase Client
-
-    Client->>Adapter: Create adapter instance
-    Adapter->>Adapter: Check platform
-    
-    alt iOS/Android
-        Adapter->>SecureStore: Use SecureStore (encrypted)
-    else Web/Fallback
-        Adapter->>AsyncStorage: Use AsyncStorage (plaintext)
-    end
-    
-    Client->>Supabase: createClient({ auth: { storage: adapter } })
-    Supabase->>Supabase: Initialize with custom storage
-    
-    Note over Supabase,Adapter: Supabase uses adapter for all session operations
-    
-    Loop Session operations
-        Supabase->>Adapter: storage.getItem('session')
-        Adapter->>SecureStore/AsyncStorage: Read token
-        SecureStore/AsyncStorage-->>Adapter: Return token
-        Adapter-->>Supabase: Return session
-    end
-```
-
-### Key Implementation
-
-**File:** `src/lib/supabase/storageAdapter.ts`
-
-```typescript
-import * as SecureStore from 'expo-secure-store'
-import AsyncStorage from '@react-native-async-storage/async-storage'
-
-const SecureStoreAvailable = Platform.OS !== 'web'
-
-export const supabaseStorageAdapter = {
-  getItem: (key: string) => {
-    if (SecureStoreAvailable) {
-      return SecureStore.getItemAsync(key)
-    } else {
-      return AsyncStorage.getItem(key)
-    }
-  },
-  setItem: (key: string, value: string) => {
-    if (SecureStoreAvailable) {
-      return SecureStore.setItemAsync(key, value)
-    } else {
-      return AsyncStorage.setItem(key, value)
-    }
-  },
-  removeItem: (key: string) => {
-    if (SecureStoreAvailable) {
-      return SecureStore.deleteItemAsync(key)
-    } else {
-      return AsyncStorage.removeItem(key)
-    }
-  }
-}
-```
-
-**File:** `src/lib/supabase/client.ts`
-
-```typescript
-import { createClient } from '@jsr/supabase__supabase-js'
-import { supabaseStorageAdapter } from './storageAdapter'
-import { getEnvVar } from '@/config/env'
-
-let supabaseInstance: SupabaseClient | null = null
-
-export function getSupabaseClient() {
-  if (supabaseInstance) {
-    return supabaseInstance
-  }
-  
-  supabaseInstance = createClient(
-    getEnvVar('EXPO_PUBLIC_SUPABASE_URL'),
-    getEnvVar('EXPO_PUBLIC_SUPABASE_ANON_KEY'),
-    {
-      auth: {
-        storage: supabaseStorageAdapter,
-        autoRefreshToken: true,
-        persistSession: true,
-        detectSessionInUrl: false
-      }
-    }
-  )
-  
-  return supabaseInstance
-}
-```
-
-### Storage Security
-
-| 플랫폼 | 저장소 | 보안 | 설명 |
-|-------|-------|------|------|
-| iOS | SecureStore (Keychain) | ✅ 암호화됨 | 하드웨어 보안 모듈에 저장 |
-| Android | SecureStore (Keystore) | ✅ 암호화됨 | 키 스토어에 암호화 저장 |
-| Web | AsyncStorage (localStorage) | ⚠️ 평문 | HTTPS 전송에 의존, 개발용 |
-
----
-
-## 5. Book Search Flow (SPEC-BOOK-001 M1+M2)
-
-**목적:** 도서 검색 요청을 Edge Function으로 전달하여 Kakao API 또는 캐시된 결과 반환
-
-**진입점:** `src/features/book/searchApi.ts` → `invokeEdgeFunction('kakao-book-search')`
+**진입점:** `app/(tabs)/search.tsx` → `src/features/book/BookSearchScreen.tsx`
 
 ```mermaid
 sequenceDiagram
-    participant UI as BookSearchScreen (M3)
-    participant Client as searchBooks()
+    participant User as User
+    participant Screen as BookSearchScreen
+    participant Hook as useDebounce()
+    participant API as searchApi
     participant Edge as Edge Function<br/>kakao-book-search
-    participant Cache as findCachedBook()
     participant Kakao as Kakao Book API
-    participant DB as Supabase books 테이블
-    participant Supabase as getSupabaseClient()
 
-    UI->>Client: searchBooks(query, target)
-    Client->>Client: 빈 쿼리 검증 (REQ-BOOK-005)
-    
-    alt 빈/공백 쿼리
-        Client-->>UI: throw AppError(VALIDATION)
-        UI->>UI: "검색어를 입력해 주세요"
-    else 유효한 쿼리
-        Client->>Edge: invokeEdgeFunction('kakao-book-search', {query, target})
-        Edge->>Edge: handleSearchRequest()
-        
-        alt target=isbn && 캐시 히트 (REQ-BOOK-010)
-            Edge->>Cache: findCachedBook(client, isbn)
-            Cache->>DB: SELECT * FROM books WHERE isbn = $1
-            DB-->>Cache: BookRow (캐시된)
-            Cache-->>Edge: cached BookRow
-            Edge->>Edge: cacheRowToSearchResult (역변환)
-            Edge-->>Client: { data: [SearchResult] }
-            Client-->>UI: SearchResult[]
-        else 캐시 미스 (REQ-BOOK-001)
-            Edge->>Kakao: searchKakaoBooks({query, target, apiKey})
-            Kakao-->>Edge: KakaoSearchResponse {documents[]}
-            Edge->>Edge: normalizeKakaoDocuments (정규화)
-            Edge->>Edge: mapToBookRow (매핑)
-            Edge->>DB: upsertBooks(rows[]) (REQ-BOOK-011)
-            DB->>DB: ON CONFLICT (isbn) DO UPDATE (배치)
-            Edge-->>Client: { data: [SearchResult] }
-            Client-->>UI: SearchResult[]
-        end
+    User->>Screen: 입력 검색어
+    Screen->>Hook: useDebounce(query, 300ms)
+    Hook-->>Screen: debouncedQuery
+
+    alt 빈 쿼리
+        Screen->>Screen: 요청 차단 (REQ-BOOK-005)
+    else 유효 쿼리
+        Screen->>API: searchBooks(debouncedQuery)
+        API->>Edge: invokeEdgeFunction('kakao-book-search')
+        Edge->>Kakao: HTTP GET (카카오 API)
+        Kakao-->>Edge: 검색 결과
+        Edge-->>API: SearchResult[]
+        API-->>Screen: SearchResult[]
+        Screen->>User: 결과 리스트 표시
     end
 ```
 
@@ -495,239 +175,77 @@ sequenceDiagram
 ```typescript
 export async function searchBooks(
   query: string,
-  target: SearchTarget = 'title'
+  target: SearchTarget = 'all'
 ): Promise<SearchResult[]> {
-  // REQ-BOOK-005: 빈/공백 쿼리 차단
-  if (!query || query.trim().length === 0) {
-    const err = new AppError('검색어를 입력해 주세요', 'VALIDATION_ERROR', 400);
-    err.category = 'VALIDATION' as ErrorCategory;
-    throw err;
+  if (!query.trim()) {
+    return [] // 빈 쿼리 차단 (REQ-BOOK-005)
   }
 
-  const response = await invokeEdgeFunction<SearchResponse>('kakao-book-search', {
-    query: query.trim(),
-    target,
-  });
+  const { data, error } = await invokeEdgeFunction('kakao-book-search', {
+    query,
+    target
+  })
 
-  return response?.data ?? [];
+  if (error) throw normalizeError(error)
+  return data as SearchResult[]
 }
 ```
 
-### Edge Flow: Cache Hit vs Miss
-
-**Cache Hit (target=isbn):**
-1. `findCachedBook(client, isbn)` → `SELECT * FROM books WHERE isbn = $1`
-2. 히트 시: `cacheRowToSearchResult` 역변환 → 즉시 반환 (Kakao API 생략)
-3. 시나리오: S13 (이미 검색된 ISBN 재검색)
-
-**Cache Miss:**
-1. `searchKakaoBooks` → Kakao API 호출
-2. `normalizeKakaoDocuments` → 필수 필드 검증
-3. `mapToBookRow` → `authors[]` → `author` (join)
-4. `upsertBooks(rows[])` → 단일 배치 `upsert` (ON CONFLICT isbn)
-5. 시나리오: S14 (신규 ISBN), S18 (title/author 검색)
-
-### Security Boundary
-
-| 경계 | 클라이언트 (anon + SELECT) | Edge Function (service_role + upsert) |
-|------|---------------------------|--------------------------------------|
-| **권한** | `EXPO_PUBLIC_SUPABASE_ANON_KEY` | `SUPABASE_SERVICE_ROLE_KEY` (env-only) |
-| **작업** | `SELECT * FROM books` | `INSERT/UPDATE books` (RLS 우회) |
-| **Kakao 키** | ❌ 노출 금지 (REQ-BOOK-002) | ✅ `KAKAO_REST_API_KEY` (Deno.env) |
-| **목적** | 검색 결과 읽기 | 캐시 쓰기, Kakao API 호출 |
-
 ---
 
-## 6. Book Detail Flow (SPEC-BOOK-001 M1+M2)
+## 4. Barcode Scan Flow (ISBN 스캔)
 
-**목적:** bookId로 books 테이블에서 단일 행 조회 (Edge Function 경유 없이 PostgREST 직접 호출)
+**목적:** 카메라 → 바코드 스캔 → ISBN 검증 → resolveBookId → 서재 등록 또는 상세 진입
 
-**진입점:** `src/features/book/bookDetailApi.ts` → `getSupabaseClient().from('books')`
+**진입점:** `app/(tabs)/scan.tsx` → `src/features/book/BarcodeScanner.tsx`
 
 ```mermaid
 sequenceDiagram
-    participant UI as BookDetailScreen (M4)
-    participant Client as getBookDetail()
-    participant Supabase as getSupabaseClient()
-    participant PostgREST as PostgREST
-    participant DB as books 테이블
+    participant User as User
+    participant Screen as BarcodeScanner
+    participant Camera as expo-camera
+    participant Permission as useCameraPermissions
+    participant ISBN as isbn.ts
+    participant Debounce as debounce.ts
+    participant Resolver as resolveBookId.ts
+    participant DB as Supabase (books)
 
-    UI->>Client: getBookDetail(bookId)
-    Client->>Supabase: getSupabaseClient()
-    Supabase->>PostgREST: from('books').select('*').eq('id', bookId).single()
-    PostgREST->>DB: SELECT * FROM books WHERE id = $1
-    DB-->>PostgREST: {data: BookRow, error: null} or {data: null, error: PGRST116}
-    
-    alt 성공 (1행)
-        PostgREST-->>Supabase: {data: BookRow, error: null}
-        Supabase-->>Client: BookRow
-        Client-->>UI: BookRow (시나리오 S19)
-    else 0행 (PGRST116)
-        PostgREST-->>Supabase: {data: null, error: {code: 'PGRST116', message: '...'}}
-        Supabase->>Client: normalizeError(error)
-        Client->>Client: classifyError → NOT_FOUND
-        Client-->>UI: throw AppError(NOT_FOUND) (시나리오 S20)
-    else RLS 거부 (42501)
-        PostgREST-->>Supabase: {data: null, error: {code: '42501', message: '...'}}
-        Supabase->>Client: normalizeError(error)
-        Client->>Client: classifyError → RLS_DENIED
-        Client-->>UI: throw AppError(RLS_DENIED) (시나리오 S22)
-    end
-```
+    User->>Screen: 스캔 탭 누름
+    Screen->>Permission: requestPermission()
+    alt 권한 없음
+        Permission-->>Screen: null | denied
+        Screen->>User: 권한 요청 UI / 거부 안내
+    else 권한 있음
+        Permission-->>Screen: granted
+        Screen->>Camera: <CameraView />
+        Camera->>Camera: onBarcodeScanned(event)
+        Camera-->>Screen: ISBN13 데이터
 
-### Key Implementation
+        Screen->>ISBN: isValidIsbn13(isbn)
+        alt 유효하지 않음
+            ISBN-->>Screen: false
+            Screen->>User: "유효하지 않은 ISBN"
+        else 유효함
+            ISBN-->>Screen: true
 
-**File:** `src/features/book/bookDetailApi.ts`
+            Screen->>Debounce: shouldSuppressDuplicate(isbn, lastScanned)
+            alt 중복 스캔 (2000ms 이내)
+                Debounce-->>Screen: true
+                Screen->>User: "이미 스캔됨 (무시)"
+            else 새 스캔
+                Debounce-->>Screen: false
+                Screen->>Resolver: resolveBookId(isbn)
 
-```typescript
-export async function getBookDetail(bookId: string): Promise<BookRow> {
-  const client = getSupabaseClient();
-
-  let result: { data: BookRow | null; error: unknown };
-  try {
-    result = await client
-      .from('books')
-      .select('*')
-      .eq('id', bookId)
-      .single();
-  } catch (error) {
-    throw normalizeError(error);
-  }
-
-  if (result.error || !result.data) {
-    throw normalizeError(result.error ?? new Error('Book not found'));
-  }
-
-  return result.data;
-}
-```
-
-### Error Classification
-
-| PostgREST 코드 | normalizeError → classifyError | AppError.category | 시나리오 |
-|----------------|-------------------------------|-------------------|----------|
-| `PGRST116` (0행) | `NOT_FOUND` | `NOT_FOUND` | S20 (존재하지 않는 bookId) |
-| `42501` (RLS) | `RLS_DENIED` | `PERMISSION` | S22 (권한 없음) |
-| 네트워크 에러 | `NETWORK_ERROR` | `NETWORK` | S4 (Edge Function 타임아웃) |
-
----
-
-## Data Flow Health Check
-
-| 흐름 | 상태 | 비고 |
-|------|------|------|
-| Auth Guard | ✅ 정상 | useSession 기반 분기, null/undefined 안전하게 처리 |
-| OAuth Deep-link | ✅ 정상 | 딥링크 파라미터 폐기, Supabase listener 의존 |
-| Theme | ✅ 정상 | 시스템/수동 모드 전환, 토큰 병합 작동 |
-| Session Persistence | ✅ 정상 | SecureStore/AsyncStorage 폴백, 플랫폼 감지 |
-| Book Search (API) | ✅ 정상 (M1+M2) | Edge Function 경유, 캐시 히트/미스 분기, Kakao API 폴백 |
-| Book Detail (API) | ✅ 정상 (M1+M2) | PostgREST 직접 조회, PGRST116→NOT_FOUND 분류 |
-| Manual Search (UI) | ✅ 정상 (M4) | BookSearchScreen → searchBooks, 빈 쿼리 차단/빈 결과 안내 |
-| Barcode Scan (UI) | ✅ 정상 (M3) | BarcodeScanner → 권한 게이트 → ISBN 검증 → 디바운스 → 자동 검색 |
-| Book Detail (UI) | ✅ 정상 (M4) | BookDetailScreen → useSession 가드 → getBookDetail → 3상태 분기 |
-
----
-
-## 7. Manual Search Flow (SPEC-BOOK-001 M4)
-
-**목적:** 사용자가 키워드로 도서를 검색하고 결과에서 선택하여 상세로 이동
-
-**진입점:** `app/(tabs)/search.tsx` (href:null) → `src/features/book/BookSearchScreen.tsx`
-
-```mermaid
-sequenceDiagram
-    participant User as 사용자
-    participant Lib as library.tsx
-    participant Route as /search (href:null)
-    participant UI as BookSearchScreen
-    participant API as searchBooks()
-    participant Card as SearchResultCard
-    participant Nav as router
-
-    User->>Lib: 검색 진입 CTA 탭
-    Lib->>Route: router.push('/search')
-    Route->>UI: BookSearchScreen 렌더링
-
-    User->>UI: 검색어 입력 + 검색 버튼
-    UI->>UI: 빈 쿼리 검증 (REQ-BOOK-005)
-    
-    alt 빈/공백 쿼리
-        UI->>User: "검색어를 입력해 주세요" (인라인 안내)
-    else 유효한 쿼리
-        UI->>API: searchBooks(query, target)
-        Note over API: Edge Function 플로우 (섹션 5 참조)
-        API-->>UI: SearchResult[]
-        
-        alt 0건 결과
-            UI->>User: 빈 결과 안내 ("검색 결과가 없습니다")
-        else 1건 이상
-            UI->>Card: SearchResult[] 렌더링
-            Card->>User: 카드 목록 표시 (formatPublishedMonth)
-            User->>Card: 결과 선택
-            Card->>Nav: onSelectBook → /book/{isbn}
-            Note over Nav: known-issue: ISBN→bookId 매핑<br/>(SPEC-LIBRARY-001 후속)
-        end
-    end
-```
-
-### Key Implementation
-
-**File:** `src/features/book/BookSearchScreen.tsx`
-
-- `searchBooks` 연동 (빈 쿼리 차단은 API 계층에서 1차, UI에서 2차 안내)
-- 빈 결과 안내 표시
-- `SearchResultCard`로 결과 렌더링
-
-**File:** `src/components/SearchResultCard.tsx`
-
-- `formatPublishedMonth`로 출판월 포맷 (YYYY.MM)
-- `useTheme` 토큰 적용
-
----
-
-## 8. Barcode Scan Flow (SPEC-BOOK-001 M3)
-
-**목적:** 카메라로 도서 바코드를 스캔하여 ISBN을 추출하고 자동 검색으로 전환
-
-**진입점:** `app/(tabs)/scan.tsx` (href:null, 풀스크린) → `src/features/book/BarcodeScanner.tsx`
-
-```mermaid
-sequenceDiagram
-    participant User as 사용자
-    participant Lib as library.tsx
-    participant Route as /scan (href:null)
-    participant Scanner as BarcodeScanner
-    participant Perm as useCameraPermissions
-    participant Cam as CameraView (expo-camera)
-    participant ISBN as isValidIsbn()
-    participant Debounce as shouldSuppressDuplicate()
-    participant Nav as router
-
-    User->>Lib: 스캔 진입 CTA 탭
-    Lib->>Route: router.push('/scan')
-    Route->>Scanner: BarcodeScanner 렌더링
-    Scanner->>Perm: useCameraPermissions()
-    Perm-->>Scanner: status (null/granted/denied)
-    
-    alt null (로딩)
-        Scanner->>User: 권한 요청 대기
-    else denied
-        Scanner->>User: 권한 거부 안내 + 설정 이동 CTA
-    else granted
-        Scanner->>Cam: CameraView + barcodeScannerSettings
-        Cam->>Scanner: onBarcodeScanned({rawValue})
-        Scanner->>ISBN: isValidIsbn(rawValue)
-        
-        alt 유효하지 않은 ISBN
-            Scanner->>User: 무시 (체크디짓 실패)
-        else 유효한 ISBN
-            Scanner->>Debounce: shouldSuppressDuplicate(isbn, now)
-            
-            alt 중복 (2000ms 이내)
-                Scanner->>Scanner: 무시 (REQ-BOOK-009)
-            else 신규
-                Scanner->>Nav: router.replace('/search', {isbn})
-                Note over Nav: 자동 검색 트리거 → 섹션 7 플로우
+                Resolver->>DB: SELECT id FROM books WHERE isbn = $1
+                alt ISBN 미등록 (0행)
+                    DB-->>Resolver: null
+                    Resolver-->>Screen: NOT_FOUND AppError
+                    Screen->>User: "등록되지 않은 책"
+                else ISBN 등록됨
+                    DB-->>Resolver: { id: UUID }
+                    Resolver-->>Screen: UUID
+                    Screen->>Screen: router.push(`/book/${UUID}`)
+                end
             end
         end
     end
@@ -735,68 +253,80 @@ sequenceDiagram
 
 ### Key Implementation
 
-**File:** `src/features/book/BarcodeScanner.tsx`
+**File:** `src/features/book/resolveBookId.ts` (SPEC-LIBRARY-001 TASK-002)
 
-- `useCameraPermissions` 권한 게이트 3상태 (null/granted/denied)
-- `CameraView` + `barcodeScannerSettings` (expo-camera)
-- `onBarcodeScanned` 핸들러 → ISBN 검증 → 디바운스 → 라우팅
+```typescript
+export async function resolveBookId(isbn: string): Promise<string> {
+  const client = getSupabaseClient()
 
-**File:** `src/features/book/isbn.ts` (순수함수)
+  const result = await client
+    .from('books')
+    .select('id')
+    .eq('isbn', isbn)
+    .maybeSingle()
 
-- `isValidIsbn` → `isValidIsbn13` / `isValidIsbn10` 체크디짓 검증 (REQ-BOOK-007)
+  if (result.error) throw normalizeError(result.error)
+  if (!result.data) {
+    throw new AppError(`등록되지 않은 ISBN: ${isbn}`, 'NOT_FOUND', 404)
+  }
 
-**File:** `src/features/book/debounce.ts` (순수함수)
+  return result.data.id
+}
+```
 
-- `shouldSuppressDuplicate(isbn, now)` → `DUPLICATE_DEBOUNCE_MS=2000` 이내 중복 차단 (REQ-BOOK-009)
-
-### Permission States
-
-| 상태 | 조건 | 액션 |
-|------|------|------|
-| `null` | 권한 요청 로딩 중 | 대기 |
-| `granted` | 카메라 권한 승인 | CameraView 렌더링 |
-| `denied` | 권한 거부 | 안내 + 설정 이동 CTA |
+**특이사항:**
+- `maybeSingle()` 사용: 0행 → `data: null` (NOT_ERROR), 1행 → `data: {id}`
+- ISBN은 UNIQUE 제약조건이므로 최대 1행 보장
+- 미등록 ISBN은 에러가 아닌 "책을 서재에 추가" UI로 연결하는 흐름 (BookDetailScreen)
 
 ---
 
-## 9. Book Detail UI Flow (SPEC-BOOK-001 M4)
+## 5. Book Detail Flow (상세 + 서재 통합)
 
-**목적:** bookId로 도서 상세를 조회하고 인증 가드(RLS)를 처리하여 표시
+**목적:** 도서 상세 + 서재 진행률 표시 + 진도/상태 mutation
 
-**진입점:** `app/(tabs)/[bookId].tsx` (동적 라우트) → `src/features/book/BookDetailScreen.tsx`
+**진입점:** `app/(tabs)/[bookId].tsx` → `src/features/book/BookDetailScreen.tsx`
 
 ```mermaid
 sequenceDiagram
-    participant Nav as router
-    participant Route as /book/{bookId}
-    participant UI as BookDetailScreen
-    participant Session as useSession()
-    participant API as getBookDetail()
-    participant Format as formatPublishedMonth()
-    participant User as 사용자
+    participant Route as Dynamic Route<br/>[bookId].tsx
+    participant Screen as BookDetailScreen
+    participant DetailAPI as bookDetailApi
+    participant LibraryHook as useLibrary
+    participant Resolver as resolveBookId
+    participant Supabase as Supabase (PostgREST)
+    participant QueryCache as React Query Cache
 
-    Nav->>Route: router.push('/book/123')
-    Route->>UI: BookDetailScreen 렌더링
-    UI->>Session: useSession() (가드)
-    
-    alt session === null
-        UI->>User: ActivityIndicator
-    else !isAuthenticated
-        UI->>Nav: router.replace('/auth/login') (S22 RLS 거부 사전 차단)
-    else authenticated
-        UI->>API: getBookDetail(bookId)
-        Note over API: PostgREST 플로우 (섹션 6 참조)
-        
-        alt 성공 (BookRow)
-            API-->>UI: BookRow
-            UI->>Format: formatPublishedMonth(publishedDate)
-            UI->>User: 상세 정보 표시 (제목/저자/출판월/표지)
-        else NOT_FOUND (S20)
-            API-->>UI: throw AppError(NOT_FOUND)
-            UI->>User: "도서를 찾을 수 없습니다"
-        else RLS_DENIED (S22)
-            API-->>UI: throw AppError(RLS_DENIED)
-            UI->>User: "권한이 없습니다" / 로그인 유도
+    Route->>Screen: bookId (UUID) 전달
+    Screen->>DetailAPI: getBookDetail(bookId)
+    DetailAPI->>Supabase: SELECT * FROM books WHERE id = $1
+    alt RLS 거부 (PGRST116)
+        Supabase-->>DetailAPI: error { code: 'PGRST116', ... }
+        DetailAPI->>DetailAPI: classifyError() → RLS_DENIED
+        DetailAPI-->>Screen: throw AppError (RLS_DENIED)
+        Screen->>Screen: useSession 가드 (REQ-BOOK-015 S22)
+        Screen->>User: "접근 권한 없음"
+    else 성공
+        Supabase-->>DetailAPI: BookRow
+        DetailAPI-->>Screen: BookRow
+
+        Screen->>LibraryHook: useLibrary({ bookId })
+        LibraryHook->>QueryCache: useQuery(['library', bookId])
+        alt 캐시 히트
+            QueryCache-->>LibraryHook: LibraryItem
+        else 캐시 미스
+            LibraryHook->>Supabase: SELECT * FROM user_books WHERE book_id = $1
+            Supabase-->>LibraryHook: LibraryItem | null
+            LibraryHook->>QueryCache: cache.set(['library', bookId], data)
+            QueryCache-->>LibraryHook: LibraryItem
+        end
+        LibraryHook-->>Screen: LibraryItem | null (서재 미등록)
+
+        alt LibraryItem === null
+            Screen->>User: "서재에 추가" CTA (미등록 상태)
+        else LibraryItem !== null
+            Screen->>User: 진행률 + 진도/상태 UI 표시
+            Screen->>Screen: useLibraryItem() (mutations)
         end
     end
 ```
@@ -805,14 +335,274 @@ sequenceDiagram
 
 **File:** `src/features/book/BookDetailScreen.tsx`
 
-- `useSession` 가드 (인증 상태 확인 — RLS 거부 사전 차단)
-- `getBookDetail(bookId)` 호출
-- 3상태 분기: BookRow / NOT_FOUND(S20) / RLS_DENIED(S22)
-- `formatPublishedMonth`로 출판월 포맷
+```typescript
+const { data: book, isLoading: bookLoading, error: bookError } = useQuery({
+  queryKey: ['book', bookId],
+  queryFn: () => getBookDetail(bookId),
+})
 
-**SPEC-NAV-001 통합:** 기존 `[bookId].tsx` stub을 BookDetailScreen으로 교체 (M4).
+const { data: libraryItem } = useLibrary({
+  bookId,
+  enabled: !!book, // book 로딩 완료 후 서재 조회
+})
+
+const updateProgress = useLibraryItem('progress')
+const updateStatus = useLibraryItem('status')
+```
+
+**특이사항:**
+- `getBookDetail`와 `useLibrary` 병렬 실행 가능하지만, 서재 조회는 `enabled: !!book`으로 book 로딩 완료 후 진행
+- `resolveBookId`는 스캔 흐름에서만 호출되고, 여기서는 UUID 직접 사용
 
 ---
 
-**Last Updated:** 2026-06-16  
-**Branch:** develop (852f0ac → a293e8d SPEC-BOOK-001 M3+M4 merged)
+## 6. Library Mutation Flow (서재 진도/상태 업데이트)
+
+**목적:** 서재 항목의 진도/상태/공개여부 업데이트 + React Query 캐시 무효화
+
+**진입점:** `src/features/library/useLibraryItem.ts`
+
+```mermaid
+sequenceDiagram
+    participant UI as BookDetailScreen
+    participant Hook as useLibraryItem
+    participant QueryClient as QueryClient
+    participant API as libraryApi
+    participant Supabase as Supabase (PostgREST)
+    participant DB as Database (books + user_books)
+    participant Trigger as DB Trigger<br/>update_last_progress_at
+
+    UI->>Hook: updateProgress.mutate({ currentPage: 42 })
+    Hook->>QueryClient: useMutation开始
+    Hook->>Hook: Optimistic Update (로컬 캐시)
+    Hook->>QueryClient: setQueryData(['library', bookId], optimisticData)
+    QueryClient-->>UI: 즉시 UI 갱신 (낙관적 업데이트)
+
+    Hook->>API: updateProgress({ id, userId, currentPage: 42 })
+    API->>Supabase: UPDATE user_books SET current_page = 42 WHERE id = $1
+    Supabase->>DB: UPDATE 실행
+    DB->>Trigger: AFTER UPDATE 트리거 시작
+    Trigger->>DB: UPDATE user_books SET last_progress_at = NOW()
+    DB-->>Supabase: 완료
+
+    alt 성공
+        Supabase-->>API: success
+        API-->>Hook: void
+        Hook->>QueryClient: invalidateQueries(['library'])
+        QueryClient->>Supabase: refetch (최신 데이터)
+        Supabase-->>QueryClient: LibraryItem[]
+        QueryClient-->>UI: UI 갱신 (실제 데이터)
+    else 실패 (네트워크/RLS)
+        Supabase-->>API: error
+        API-->>Hook: error
+        Hook->>QueryClient: rollback (낙관적 업데이트 취소)
+        QueryClient-->>UI: UI 복원
+        Hook->>UI: getUserFriendlyMessage(error)
+    end
+```
+
+### Key Implementation
+
+**File:** `src/features/library/useLibraryItem.ts`
+
+```typescript
+export function useLibraryItem(type: 'progress' | 'status' | 'visibility') {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: (input) => {
+      switch (type) {
+        case 'progress':
+          return updateProgress(input)
+        case 'status':
+          return updateStatus(input)
+        case 'visibility':
+          return updateVisibility(input)
+      }
+    },
+    onMutate: async (variables) => {
+      // Optimistic update
+      queryClient.setQueryData(['library', variables.bookId], (old) => ({
+        ...old,
+        [type === 'progress' ? 'currentPage' : type]: variables.value
+      }))
+    },
+    onError: (error) => {
+      // Rollback on error
+      queryClient.invalidateQueries(['library'])
+    },
+    onSuccess: () => {
+      // Refetch on success
+      queryClient.invalidateQueries(['library'])
+    }
+  })
+}
+```
+
+**특이사항:**
+- `last_progress_at`은 DB 트리거가 관리하므로, `updateProgress` payload에는 포함하지 않음 (AC-TRIG-001)
+- 낙관적 업데이트 실패 시 자동 롤백
+- `invalidateQueries(['library'])`로 관련 캐시 무효화
+
+---
+
+## 7. Query Infrastructure Flow (React Query 캐싱)
+
+**목적:** 앱 전역 React Query 싱글톤 → 캐시 공유 + HMR 안정성
+
+**진입점:** `app/_layout.tsx` → `src/lib/query/queryClient.ts`
+
+```mermaid
+sequenceDiagram
+    participant Layout as _layout.tsx
+    participant QC as getQueryClient()
+    participant Global as globalThis
+    participant Provider as QueryClientProvider
+    participant Hook1 as useLibrary
+    participant Hook2 as useLibraryItem
+    participant Cache as QueryCache
+
+    Layout->>QC: getQueryClient()
+    QC->>Global: globalThis['__SAGAK_QUERY_CLIENT__']
+    alt 인스턴스 없음 (최초)
+        Global-->>QC: undefined
+        QC->>QC: createQueryClient()
+        QC->>Global: globalThis[key] = new QueryClient()
+        Global-->>QC: QueryClient 인스턴스
+    else 인스턴스 있음 (HMR)
+        Global-->>QC: QueryClient 인스턴스
+    end
+    QC-->>Layout: QueryClient
+
+    Layout->>Provider: <QueryClientProvider client={client}>
+    Provider->>Hook1: useLibrary() useQuery 시작
+    Hook1->>Cache: cache.set(['library', userId], data)
+    Cache-->>Hook1: LibraryItem[]
+
+    Provider->>Hook2: useLibraryItem() useMutation 시작
+    Hook2->>Cache: cache.invalidate(['library'])
+    Cache->>Hook1: refetch trigger
+    Hook1->>Cache: cache.get(['library', userId])
+    Cache-->>Hook1: 최신 LibraryItem[]
+```
+
+### Key Implementation
+
+**File:** `src/lib/query/queryClient.ts` (SPEC-LIBRARY-001 TASK-001)
+
+```typescript
+const QUERY_CLIENT_KEY = '__SAGAK_QUERY_CLIENT__'
+
+export function getQueryClient(): QueryClient {
+  const holder = globalThis as QueryClientHolder
+  if (!holder[QUERY_CLIENT_KEY]) {
+    holder[QUERY_CLIENT_KEY] = createQueryClient()
+  }
+  return holder[QUERY_CLIENT_KEY]
+}
+
+function createQueryClient(): QueryClient {
+  return new QueryClient({
+    defaultOptions: {
+      queries: {
+        staleTime: 0, // 즉시 stale (네트워크 우선 전략)
+        retry: 1,
+        refetchOnWindowFocus: false,
+      },
+      mutations: {
+        retry: 0,
+      },
+    },
+  })
+}
+```
+
+**특이사항:**
+- `globalThis` 캐시로 HMR 중 인스턴스 중복 생성 방지 (TanStack 공식 패턴)
+- `staleTime: 0` 설정으로 서재/진행률 데이터는 네트워크 우선 (최신성 중요)
+- 테스트용 `resetQueryClient()`로 싱글톤 초기화 지원
+
+---
+
+## 8. gen-types Pipeline Flow (Supabase 타입 자동생성)
+
+**목적:** Supabase DB 스키마 → TypeScript 타입 자동생성 (816행 supabase.ts)
+
+**진입점:** `scripts/gen-types-with-header.js` → `src/types/supabase.ts`
+
+```mermaid
+sequenceDiagram
+    participant Script as gen-types-with-header.js
+    participant CLI as npx supabase gen types
+    participant DB as Supabase DB (psql)
+    participant Types as src/types/supabase.ts
+    participant Client as client.ts
+
+    Script->>CLI: npx supabase gen types typescript
+    CLI->>DB: SELECT * FROM information_schema.columns
+    DB-->>CLI: 스키마 정보 (tables, columns, types, RLS)
+    CLI->>CLI: 타입 생성 (Database, Tables, RLS)
+    CLI-->>Script: typescript 코드
+
+    Script->>Script: 헤더 추가 (gen-types 경고 메시지)
+    Script->>Types: writeFileSync('src/types/supabase.ts', generated)
+    Types-->>Script: 쓰기 완료 (816행)
+
+    Client->>Types: import type { Database }
+    Client->>Client: createClient<Database>(url, key)
+    Client->>DB: PostgREST 호출 (타입화됨)
+```
+
+### Key Implementation
+
+**File:** `scripts/gen-types-with-header.js`
+
+```javascript
+const { execSync } = require('child_process')
+const fs = require('fs')
+
+const header = `/**
+ * Supabase 타입 정의 (자동생성됨)
+ *
+ * 생성 명령어: npx supabase gen types typescript --linked
+ * 수정 금지: DB 스키마 변경 시 gen-types-with-header.js 재실행
+ */
+
+const generated = execSync('npx supabase gen types typescript --linked').toString()
+
+fs.writeFileSync('src/types/supabase.ts', header + generated)
+```
+
+**File:** `src/lib/supabase/client.ts`
+
+```typescript
+import type { Database } from '../../types/supabase'
+import { createClient } from '@supabase/supabase-js'
+
+export function getSupabaseClient() {
+  return createClient<Database>(
+    process.env.SUPABASE_URL!,
+    process.env.SUPABASE_ANON_KEY!
+  )
+}
+```
+
+**특이사항:**
+- `Database` 제네릭으로 PostgREST 쿼리 타입화
+- `books.select('id')` → 반환 타입 `{ id: string }[]` 자동 추론
+- RLS 정책 타입 포함 (RLS_DENIED 등)
+
+---
+
+## Data Flow Summary
+
+| Flow | Entry | Key Modules | External APIs | Cache Strategy |
+|------|-------|-------------|----------------|----------------|
+| Auth Guard | `app/index.tsx` | useSession, AuthContext | Supabase Auth | Session (SecureStore) |
+| OAuth Deep-link | `app/(auth)/auth/callback.tsx` | AuthContext.onAuthStateChange | Supabase Auth | Session (SecureStore) |
+| Book Search | `app/(tabs)/search.tsx` | BookSearchScreen, searchApi | Kakao Book API (Edge) | React Query |
+| Barcode Scan | `app/(tabs)/scan.tsx` | BarcodeScanner, resolveBookId | Supabase (books) | - |
+| Book Detail | `app/(tabs)/[bookId].tsx` | BookDetailScreen, useLibrary | Supabase (PostgREST) | React Query |
+| Library Mutation | `BookDetailScreen` | useLibraryItem, libraryApi | Supabase (PostgREST + Trigger) | React Query (optimistic) |
+| Query Infrastructure | `app/_layout.tsx` | getQueryClient | - | globalThis 싱글톤 |
+| gen-types Pipeline | `scripts/gen-types-with-header.js` | CLI, client.ts | Supabase DB | - |

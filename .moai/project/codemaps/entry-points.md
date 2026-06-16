@@ -11,11 +11,13 @@
 **렌더 트리:**
 ```tsx
 <ThemeProvider>
-  <AuthProvider>
-    <Stack screenOptions={{ headerShown: false }}>
-      {/* Stack screens */}
-    </Stack>
-  </AuthProvider>
+  <QueryClientProvider>
+    <AuthProvider>
+      <Stack screenOptions={{ headerShown: false }}>
+        {/* Stack screens */}
+      </Stack>
+    </AuthProvider>
+  </QueryClientProvider>
 </ThemeProvider>
 ```
 
@@ -25,18 +27,24 @@
    - `useTheme` 훅 노출
    - 라이트/다크 모드 전환
 
-2. `AuthProvider` (`src/auth/AuthContext.tsx`)
+2. `QueryClientProvider` (`src/lib/query/queryClient.ts`)
+   - React Query v5 캐시 공유 (SPEC-LIBRARY-001 TASK-001)
+   - `getQueryClient()` 싱글톤 (globalThis 캐시)
+   - staleTime: 0 (네트워크 우선 전략)
+
+3. `AuthProvider` (`src/auth/AuthContext.tsx`)
    - 전역 인증 상태 제공
    - `useSession` 훅 노출
    - OAuth 토큰 교환 (`onAuthStateChange`)
 
-3. `Stack` (Expo Router)
+4. `Stack` (Expo Router)
    - 파일 기반 라우팅
    - 헤더 숨김 (`headerShown: false`)
 
 **의존성:**
 ```typescript
 import { ThemeProvider } from '@/theme/theme'
+import { getQueryClient } from '@/lib/query/queryClient'
 import { AuthProvider } from '@/auth/AuthContext'
 ```
 
@@ -143,14 +151,14 @@ return <AuthStack />
 ```
 app/(tabs)/_layout.tsx
   ↓
-4 Visible Tabs + 3 Hidden Routes:
+5 Visible Tabs + 3 Hidden Routes:
   ├── index.tsx (Home)
   ├── library.tsx (Library) — 검색 진입 CTA: router.push('/search')
   ├── clubs.tsx (Clubs)
   ├── my.tsx (My Page)
   ├── search.tsx (href:null — BookSearchScreen 위임, BOOK-001 M4)
   ├── scan.tsx (href:null — BarcodeScanner 위임, 풀스크린, BOOK-001 M3)
-  └── [bookId].tsx (동적 — BookDetailScreen 통합, BOOK-001 M4)
+  └── [bookId].tsx (동적 — BookDetailScreen 통합, BOOK-001 M4, LIBRARY-001 서재 통합)
 ```
 
 ### Auth Flow (인증 필요 시)
@@ -171,7 +179,8 @@ app/(tabs)/[bookId].tsx
   ├── Pattern: /tabs/{bookId}
   ├── Example: /tabs/123 (Book detail for ID 123)
   ├── 통합: SPEC-NAV-001 stub → BookDetailScreen 교체 (BOOK-001 M4)
-  └── 가드: BookDetailScreen 내 useSession (S22 RLS 거부 처리)
+  ├── 가드: BookDetailScreen 내 useSession (S22 RLS 거부 처리)
+  └── 서재 통합: useLibrary 훅으로 서재 진행률 + mutations (LIBRARY-001)
 
 app/(tabs)/clubs/[clubId].tsx
   ├── Pattern: /tabs/clubs/{clubId}
@@ -286,8 +295,8 @@ if (__DEV__) {
 | `_dev.tsx` | 개발자 접근 | `__DEV__` true | 데모 화면 |
 | `POST /functions/v1/kakao-book-search` | Edge Function 호출 | Supabase Edge Function | handleSearchRequest → Kakao API/캐시 → 응답 |
 | `/search` | library CTA `router.push('/search')` | href:null (탭 비노출) | BookSearchScreen → searchBooks → 결과/빈 안내 (BOOK-001 M4) |
-| `/scan` | library CTA 또는 검색 화면 | href:null (풀스크린) | BarcodeScanner → 권한 게이트 → ISBN 검증 → 디바운스 → `/search` (BOOK-001 M3) |
-| `/book/{bookId}` | 검색 결과 선택 / 딥링크 | 동적 라우트 | BookDetailScreen → useSession 가드 → getBookDetail → BookRow/NOT_FOUND(S20)/RLS_DENIED(S22) (BOOK-001 M4) |
+| `/scan` | library CTA 또는 검색 화면 | href:null (풀스크린) | BarcodeScanner → 권한 게이트 → ISBN 검증 → 디바운스 → resolveBookId → `/book/{UUID}` (BOOK-001 M3, LIBRARY-001) |
+| `/book/{bookId}` | 검색 결과 선택 / 딥링크 / resolveBookId | 동적 라우트 | BookDetailScreen → useSession 가드 → getBookDetail → useLibrary 서재 통합(BookRow/NOT_FOUND(S20)/RLS_DENIED(S22)/LibraryItem|null) (BOOK-001 M4, LIBRARY-001) |
 
 ---
 
@@ -328,4 +337,4 @@ graph TD
 ---
 
 **Last Updated:** 2026-06-16  
-**Branch:** develop (852f0ac → a293e8d SPEC-BOOK-001 M3+M4 merged)
+**Branch:** develop (20e2574 SPEC-LIBRARY-001 merged + sync)

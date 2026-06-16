@@ -7,468 +7,236 @@
 ```mermaid
 graph TB
     subgraph "Presentation Layer (app/)"
-        A1[app/_layout.tsx]
-        A2[app/index.tsx]
-        A3[app/(tabs)/_layout.tsx]
-        A4[app/(auth)/_layout.tsx]
-        A5[app/(auth)/auth/callback.tsx]
-        A6[app/(auth)/login.tsx]
-        A7[app/(auth)/onboarding.tsx]
+        A1[app/_layout.tsx<br/>ThemeProvider+QueryClient+Auth]
+        A2[app/index.tsx<br/>Entry Branching]
+        A3[app/(tabs)/_layout.tsx<br/>Tabs Guard]
+        A4[app/(auth)/_layout.tsx<br/>Auth Guard]
+        A5[app/(tabs)/search.tsx<br/>BookSearchScreen]
+        A6[app/(tabs)/scan.tsx<br/>BarcodeScanner]
+        A7[app/(tabs)/[bookId].tsx<br/>BookDetailScreen]
     end
 
-    subgraph "Business Logic (src/)"
+    subgraph "Authentication (src/auth/)"
         B1[src/auth/useSession.ts<br/>@MX:ANCHOR]
         B2[src/auth/AuthContext.tsx]
         B3[src/auth/login.tsx]
         B4[src/auth/onboarding.tsx]
-        B5[src/theme/theme.tsx<br/>@MX:ANCHOR]
-        B6[src/theme/tokens.ts<br/>@MX:ANCHOR]
-        B7[src/lib/api/index.ts]
-        B8[src/lib/api/edgeFunctions.ts]
-        B9[src/features/book/searchApi.ts<br/>@MX:ANCHOR]
-        B10[src/features/book/bookDetailApi.ts<br/>@MX:ANCHOR]
-        B11[src/features/book/isbn.ts<br/>@MX:ANCHOR]
-        B12[src/features/book/debounce.ts<br/>@MX:ANCHOR]
-        B13[src/features/book/format.ts<br/>@MX:ANCHOR]
-        B14[src/features/book/BarcodeScanner.tsx<br/>@MX:ANCHOR]
-        B15[src/features/book/BookSearchScreen.tsx<br/>@MX:ANCHOR]
-        B16[src/features/book/BookDetailScreen.tsx<br/>@MX:ANCHOR]
-        B17[src/features/book/resolveBookId.ts<br/>@MX:ANCHOR]
-        B18[src/features/library/libraryApi.ts<br/>@MX:ANCHOR]
-        B19[src/features/library/useLibrary.ts]
-        B20[src/features/library/useLibraryItem.ts]
-        B21[src/features/library/progressValidation.ts]
-        B22[src/features/library/progressRate.ts]
-        B23[src/components/SearchResultCard.tsx]
     end
 
-    subgraph "Infrastructure (src/lib/)"
-        I1[src/lib/supabase/client.ts<br/>@MX:ANCHOR]
-        I2[src/lib/supabase/storageAdapter.ts]
-        I3[src/config/env.ts]
-        I4[src/lib/query/queryClient.ts<br/>@MX:ANCHOR]
+    subgraph "Theming (src/theme/)"
+        T1[src/theme/theme.tsx<br/>@MX:ANCHOR]
+        T2[src/theme/tokens.ts<br/>@MX:ANCHOR]
     end
 
-    subgraph "Edge Functions"
-        E1[supabase/functions/<br/>kakao-book-search/index.ts]
-        E2[cacheManager.ts]
-        E3[kakaoClient.ts]
+    subgraph "Book Domain (src/features/book/)"
+        BK1[src/features/book/searchApi.ts<br/>@MX:ANCHOR]
+        BK2[src/features/book/bookDetailApi.ts<br/>@MX:ANCHOR]
+        BK3[src/features/book/BarcodeScanner.tsx<br/>@MX:ANCHOR]
+        BK4[src/features/book/BookSearchScreen.tsx<br/>@MX:ANCHOR]
+        BK5[src/features/book/BookDetailScreen.tsx<br/>@MX:ANCHOR]
+        BK6[src/features/book/isbn.ts<br/>@MX:ANCHOR]
+        BK7[src/features/book/debounce.ts<br/>@MX:ANCHOR]
+        BK8[src/features/book/format.ts<br/>@MX:ANCHOR]
+        BK9[src/features/book/resolveBookId.ts<br/>@MX:ANCHOR]
+    end
+
+    subgraph "Library Domain (src/features/library/)"
+        LIB1[src/features/library/libraryApi.ts<br/>@MX:ANCHOR]
+        LIB2[src/features/library/useLibrary.ts<br/>@MX:ANCHOR]
+        LIB3[src/features/library/useLibraryItem.ts<br/>@MX:ANCHOR]
+        LIB4[src/features/library/progressValidation.ts]
+        LIB5[src/features/library/progressRate.ts]
+    end
+
+    subgraph "Query Infrastructure (src/lib/query/)"
+        Q1[src/lib/query/queryClient.ts<br/>@MX:ANCHOR]
+    end
+
+    subgraph "API Layer (src/lib/api/)"
+        API1[src/lib/api/edgeFunctions.ts]
+        API2[src/lib/api/errors.ts]
+        API3[src/lib/api/retry.ts]
+    end
+
+    subgraph "Supabase Client (src/lib/supabase/)"
+        SB1[src/lib/supabase/client.ts<br/>@MX:ANCHOR]
+        SB2[src/lib/supabase/storageAdapter.ts]
+    end
+
+    subgraph "Types (src/types/)"
+        TP1[src/types/supabase.ts<br/>Database 816 lines]
+        TP2[src/types/book.ts]
+    end
+
+    subgraph "Components (src/components/)"
+        C1[src/components/BookCard.tsx]
+        C2[src/components/SearchResultCard.tsx]
+        C3[src/components/ProgressBar.tsx]
     end
 
     subgraph "External Services"
-        X1[Kakao Book Search API]
-        X2[expo-camera<br/>CameraView + useCameraPermissions]
+        X1[@tanstack/react-query v5]
+        X2[@supabase/supabase-js]
+        X3[expo-camera]
+        X4[Kakao Book API]
     end
 
-    A1 --> B5
+    %% Layout Dependencies
+    A1 --> T1
+    A1 --> Q1
     A1 --> B2
     A2 --> B1
     A3 --> B1
-    A3 --> B5
     A4 --> B1
-    A5 --> B1
-    A6 --> B3
-    A7 --> B4
+
+    %% Auth Dependencies
     B1 --> B2
-    B2 --> I1
-    B5 --> B6
-    B7 --> B8
-    B8 --> I1
-    B9 --> B7
-    B9 --> I1
-    B10 --> I1
-    B14 --> B11
-    B14 --> B12
-    B14 --> X2
-    B14 --> B6
-    B15 --> B9
-    B15 --> B17
-    B15 --> B6
-    B16 --> B10
-    B16 --> B1
-    B16 --> B13
-    B16 --> B6
-    B17 --> B13
-    B17 --> B6
-    I1 --> I2
-    I1 --> I3
-    E1 --> E2
-    E1 --> E3
-    E3 --> X1
+    B2 --> SB1
+    B3 --> B2
+    B4 --> B2
+
+    %% Theme Dependencies
+    T1 --> T2
+
+    %% Book Domain Dependencies
+    BK1 --> API1
+    BK1 --> SB1
+    BK2 --> SB1
+    BK3 --> BK6
+    BK3 --> BK7
+    BK3 --> X3
+    BK3 --> T1
+    BK4 --> BK1
+    BK4 --> BK9
+    BK4 --> T1
+    BK5 --> BK2
+    BK5 --> B1
+    BK5 --> BK8
+    BK5 --> BK9
+    BK5 --> T1
+    BK5 --> C3
+    BK5 --> LIB2
+    BK9 --> SB1
+
+    %% Library Domain Dependencies
+    LIB1 --> SB1
+    LIB1 --> API2
+    LIB1 --> LIB4
+    LIB2 --> Q1
+    LIB2 --> LIB1
+    LIB3 --> Q1
+    LIB3 --> LIB1
+    LIB4 --> TP2
+    LIB5 --> TP2
+
+    %% Query Infrastructure
+    Q1 --> X1
+
+    %% API Layer
+    API1 --> SB1
+    API2 --> SB1
+    API3 --> API2
+
+    %% Supabase Client
+    SB1 --> X2
+    SB1 --> TP1
+
+    %% Types
+    TP2 --> TP1
+
+    %% Components
+    C1 --> T1
+    C2 --> T1
+    C3 --> T1
 ```
 
 ## Import Matrix
 
-### From `app/` to `src/auth/`
-
-| 호출자 (app/) | 대상 (src/auth/) | 임포트 | 용도 |
-|--------------|------------------|--------|------|
-| `app/_layout.tsx` | `src/auth/AuthContext.tsx` | `AuthProvider` | 루트 인증 제공자 |
-| `app/index.tsx` | `src/auth/useSession.ts` | `useSession` | 진입점 분기 로직 |
-| `app/(tabs)/_layout.tsx` | `src/auth/useSession.ts` | `useSession` | 탭 가드 |
-| `app/(auth)/_layout.tsx` | `src/auth/useSession.ts` | `useSession` | 인증 그룹 가드 |
-| `app/(auth)/auth/callback.tsx` | `src/auth/useSession.ts` | `useSession` | 콜백 후 리다이렉트 |
-| `app/(auth)/login.tsx` | `src/auth/login.tsx` | re-export | 로그인 화면 구현 |
-| `app/(auth)/onboarding.tsx` | `src/auth/onboarding.tsx` | re-export | 온보딩 화면 구현 |
-
-### From `app/` to `src/theme/`
-
-| 호출자 (app/) | 대상 (src/theme/) | 임포트 | 용도 |
-|--------------|------------------|--------|------|
-| `app/_layout.tsx` | `src/theme/theme.tsx` | `ThemeProvider` | 루트 테마 제공자 |
-| `app/(tabs)/_layout.tsx` | `src/theme/theme.tsx` | `useTheme` | 탭 내비게이터 스타일링 |
-| `app/(auth)/_layout.tsx` | `src/theme/theme.tsx` | `useTheme` | 인증 화면 스타일링 |
-
-### From `src/auth/` to `src/lib/supabase/`
-
-| 호출자 (src/auth/) | 대상 (src/lib/supabase/) | 임포트 | 용도 |
-|-------------------|------------------------|--------|------|
-| `src/auth/AuthContext.tsx` | `src/lib/supabase/client.ts` | `getSupabaseClient` | 인증 상태 관리, OAuth 토큰 교환 |
-
-### From `src/lib/api/` to `src/lib/supabase/`
-
-| 호출자 (src/lib/api/) | 대상 (src/lib/supabase/) | 임포트 | 용도 |
-|---------------------|------------------------|--------|------|
-| `src/lib/api/edgeFunctions.ts` | `src/lib/supabase/client.ts` | `getSupabaseClient` | Edge Function 호출 |
-
-### From `src/features/book/` to `src/lib/api/`
-
-| 호출자 (src/features/book/) | 대상 (src/lib/api/) | 임포트 | 용도 |
-|---------------------------|-------------------|--------|------|
-| `src/features/book/searchApi.ts` | `src/lib/api/edgeFunctions.ts` | `invokeEdgeFunction` | kakao-book-search Edge Function 호출 |
-
-### From `src/features/book/` to `src/lib/supabase/`
-
-| 호출자 (src/features/book/) | 대상 (src/lib/supabase/) | 임포트 | 용도 |
-|---------------------------|------------------------|--------|------|
-| `src/features/book/bookDetailApi.ts` | `src/lib/supabase/client.ts` | `getSupabaseClient` | PostgREST 직접 조회 (books 테이블) |
-
-### From `src/features/book/` to `src/features/book/` (내부 도메인)
-
-| 호출자 | 대상 | 임포트 | 용도 |
-|--------|------|--------|------|
-| `BarcodeScanner.tsx` | `isbn.ts` | `isValidIsbn` | 스캔된 ISBN 체크디짓 검증 (REQ-BOOK-007) |
-| `BarcodeScanner.tsx` | `debounce.ts` | `shouldSuppressDuplicate` | 중복 스캔 디바운스 (REQ-BOOK-009) |
-| `BookSearchScreen.tsx` | `searchApi.ts` | `searchBooks` | 도서 검색 (빈 쿼리 차단) |
-| `BookDetailScreen.tsx` | `bookDetailApi.ts` | `getBookDetail` | 도서 상세 조회 |
-| `BookDetailScreen.tsx` | `format.ts` | `formatPublishedMonth` | 출판월 포맷 |
-| `SearchResultCard.tsx` | `format.ts` | `formatPublishedMonth` | 검색 결과 출판월 포맷 (REQ-BOOK-014) |
-
-### From `app/(tabs)/` to `src/features/book/` (숨김 라우트)
-
-| 호출자 (app/) | 대상 (src/features/book/) | 임포트 | 용도 |
-|--------------|---------------------------|--------|------|
-| `app/(tabs)/search.tsx` | `BookSearchScreen.tsx` | default | 검색 라우트(href:null) |
-| `app/(tabs)/scan.tsx` | `BarcodeScanner.tsx` | default | 스캔 라우트(href:null, 풀스크린) |
-| `app/(tabs)/[bookId].tsx` | `BookDetailScreen.tsx` | default | 상세 동적 라우트 (SPEC-NAV-001 stub → 통합 교체) |
-
-### From `src/features/book/` to `src/auth/`
-
-| 호출자 (src/features/book/) | 대상 (src/auth/) | 임포트 | 용도 |
-|---------------------------|------------------|--------|------|
-| `BookDetailScreen.tsx` | `useSession.ts` | `useSession` | RLS 거부 시 가드(S22) — 인증 상태 확인 |
-
-### From `src/features/book/` to `src/theme/`
-
-| 호출자 (src/features/book/) | 대상 (src/theme/) | 임포트 | 용도 |
-|---------------------------|------------------|--------|------|
-| `BarcodeScanner.tsx` | `tokens.ts` / `theme.tsx` | `useTheme` | 스캔 UI 스타일링 |
-| `BookSearchScreen.tsx` | `tokens.ts` / `theme.tsx` | `useTheme` | 검색 화면 스타일링 |
-| `BookDetailScreen.tsx` | `tokens.ts` / `theme.tsx` | `useTheme` | 상세 화면 스타일링 |
-| `SearchResultCard.tsx` | `tokens.ts` / `theme.tsx` | `useTheme` | 결과 카드 스타일링 |
-
-### From `app/(tabs)/library.tsx` to expo-router
-
-| 호출자 | 대상 | 임포트 | 용도 |
-|--------|------|--------|------|
-| `app/(tabs)/library.tsx` | `expo-router` | `useRouter` | 검색 진입 CTA: `router.push('/search')` |
-
-### From `src/features/book/` to external (expo-camera)
-
-| 호출자 | 대상 | 임포트 | 용도 |
-|--------|------|--------|------|
-| `BarcodeScanner.tsx` | `expo-camera` | `CameraView`, `useCameraPermissions`, `barcodeScannerSettings` | 바코드 스캔 카메라 + 권한 게이트 (REQ-BOOK-006~009) |
-
-### From `src/lib/supabase/` to `src/config/`
-
-| 호출자 (src/lib/supabase/) | 대상 (src/config/) | 임포트 | 용도 |
-|---------------------------|-------------------|--------|------|
-| `src/lib/supabase/client.ts` | `src/config/env.ts` | `getEnvVar` | Supabase URL/키 초기화 |
-
-## High Fan-in Analysis (@MX:ANCHOR Candidates)
-
-### 1. `useSession` (Fan-in: 4+)
-
-**호출자:**
-- `app/index.tsx` - 진입점 분기
-- `app/(tabs)/_layout.tsx` - 탭 가드
-- `app/(auth)/_layout.tsx` - 인증 그룹 가드
-- `app/(auth)/auth/callback.tsx` - 콜백 리다이렉트
-
-**의존성:**
-```typescript
-import { useSession } from '@/auth/useSession'
-```
-
-**중요도:** HIGH - 모든 라우팅 분기 로직의 핵심
-
-**@MX:ANCHOR 권장:** ✅ - 4개 라우트에서 사용, 인터페이스 변경 영향도 높음
-
----
-
-### 2. `useTheme` (Fan-in: 6+)
-
-**호출자:**
-- `app/_layout.tsx` - 루트 테마 제공자
-- `app/(tabs)/_layout.tsx` - 탭 스타일링
-- `app/(auth)/_layout.tsx` - 인증 화면 스타일링
-- 모든 컴포넌트 (Button, Card, 등)
-
-**의존성:**
-```typescript
-import { useTheme, ThemeProvider } from '@/theme/theme'
-import tokens from '@/theme/tokens'
-```
-
-**중요도:** HIGH - 전역 스타일링 인터페이스
-
-**@MX:ANCHOR 권장:** ✅ - 반환값 구조(theme, colorScheme, etc.) 변경 시 영향도 광범위
-
----
-
-### 3. `tokens` (Fan-in: 3+)
-
-**호출자:**
-- `src/theme/theme.tsx` - ThemeProvider
-- 다수 컴포넌트 (Button, Card, etc.)
-
-**의존성:**
-```typescript
-import tokens from '@/theme/tokens'
-```
-
-**중요도:** MEDIUM - 디자인 토큰 참조
-
-**@MX:ANCHOR 권장:** ⚠️ - 토큰 구조 변경 시 컴포넌트 스타일링 영향
-
----
-
-### 4. `getSupabaseClient` (Fan-in: CRITICAL)
-
-**호출자:**
-- `src/auth/AuthContext.tsx` - 인증 상태 관리
-- `src/lib/api/edgeFunctions.ts` - Edge Function 호출
-- 모든 Supabase 직접 호출 (추후 추가될 API 계층)
-
-**의존성:**
-```typescript
-import { getSupabaseClient } from '@/lib/supabase/client'
-```
-
-**중요도:** **CRITICAL** - Supabase 클라이언트 싱글톤
-
-**@MX:ANCHOR 권장:** ✅ 필수 - 클라이언트 초기화 로직 변경 시 모든 데이터 접근 영향
-
----
-
-### 5. `supabaseStorageAdapter` (Fan-in: 1)
-
-**호출자:**
-- `src/lib/supabase/client.ts` - 클라이언트 초기화 시 주입
-
-**의존성:**
-```typescript
-import { supabaseStorageAdapter } from '@/lib/supabase/storageAdapter'
-```
-
-**중요도:** MEDIUM - 세션 지속성 어댑터
-
-**@MX:ANCHOR 권장:** ⚠️ - 저장소 인터페이스 변경 시 클라이언트 초기화 영향
-
----
-
-### 6. `searchBooks` (Fan-in: 1 현재 → 3+ 예상)
-
-**호출자:**
-- `BookSearchScreen` (현재, M4) - 도서 검색 화면
-- `BarcodeScanner` (예상, M3 확장) - 바코드 스캔 ISBN 자동 전환
-- `BookDetailScreen` (예상, M4 확장) - 도서 상세에서 재검색
-
-**의존성:**
-```typescript
-import { searchBooks } from '@/features/book'
-```
-
-**중요도:** HIGH - 도서 검색 공개 API
-
-**@MX:ANCHOR 권장:** ✅ 적용됨 - 빈 쿼리 차단/응답 계약 위반 시 전체 검색 플로우 고장
-
----
-
-### 7. `getBookDetail` (Fan-in: 1 현재 → 3+ 예상)
-
-**호출자:**
-- `BookDetailScreen` (현재, M4) - 도서 상세 조회
-- 검색 결과 선택 시 (예상, REQ-BOOK-014) - 검색→상세 이동
-- 서재 플로우 (예상, SPEC-LIBRARY-001) - 내 서재 도서 상세
-
-**의존성:**
-```typescript
-import { getBookDetail } from '@/features/book'
-```
-
-**중요도:** HIGH - 도서 상세 조회 공개 API
-
-**@MX:ANCHOR 권장:** ✅ 적용됨 - PGRST116→NOT_FOUND 분류, RLS_DENIED 처리 핵심
-
----
-
-### 8. `formatPublishedMonth` (Fan-in: 2) — M4 신규
-
-**호출자:**
-- `SearchResultCard` - 검색 결과 출판월 포맷
-- `BookDetailScreen` - 상세 화면 출판월 포맷
-
-**의존성:**
-```typescript
-import { formatPublishedMonth } from '@/features/book/format'
-```
-
-**중요도:** MEDIUM - 날짜 포맷 공유 유틸 (YYYY.MM)
-
-**@MX:ANCHOR 권장:** ✅ 적용됨 - 포맷 변경 시 두 화면 동시 영향
-
----
-
-### 9. `isValidIsbn` (Fan-in: 1) — M3 신규
-
-**호출자:**
-- `BarcodeScanner` - 스캔된 ISBN 체크디짓 검증
-
-**의존성:**
-```typescript
-import { isValidIsbn } from '@/features/book/isbn'
-```
-
-**중요도:** MEDIUM - ISBN 검증 순수함수
-
-**@MX:ANCHOR 권장:** ⚠️ 후보 - 체크디짓 알고리즘 변경 시 스캔 플로우 영향
-
----
-
-### 10. `shouldSuppressDuplicate` (Fan-in: 1) — M3 신규
-
-**호출자:**
-- `BarcodeScanner` - 중복 스캔 디바운스 (DUPLICATE_DEBOUNCE_MS=2000)
-
-**의존성:**
-```typescript
-import { shouldSuppressDuplicate } from '@/features/book/debounce'
-```
-
-**중요도:** MEDIUM - 디바운스 계약 순수함수
-
-**@MX:ANCHOR 권장:** ⚠️ 후보 - 디바운스 윈도우 변경 시 UX 영향
+### app/ → src/ Imports
+
+| From | To | Module | Purpose |
+|------|----|----|---------|
+| `app/_layout.tsx` | `src/theme/theme.tsx` | ThemeProvider | 테마 제공 |
+| `app/_layout.tsx` | `src/lib/query/queryClient.ts` | getQueryClient | QueryClient 주입 |
+| `app/_layout.tsx` | `src/auth/AuthContext.tsx` | AuthProvider | 인증 상태 |
+| `app/index.tsx` | `src/auth/useSession.ts` | useSession | 진입 분기 |
+| `app/(tabs)/_layout.tsx` | `src/auth/useSession.ts` | useSession | 탭 가드 |
+| `app/(tabs)/search.tsx` | `src/features/book/BookSearchScreen.tsx` | BookSearchScreen | 검색 화면 |
+| `app/(tabs)/scan.tsx` | `src/features/book/BarcodeScanner.tsx` | BarcodeScanner | 스캔 화면 |
+| `app/(tabs)/[bookId].tsx` | `src/features/book/BookDetailScreen.tsx` | BookDetailScreen | 상세 화면 |
+
+### src/ Internal Imports
+
+| From | To | Module | Purpose |
+|------|----|----|---------|
+| `src/auth/useSession.ts` | `src/auth/AuthContext.tsx` | useContext | 세션 접근 |
+| `src/auth/AuthContext.tsx` | `src/lib/supabase/client.ts` | getSupabaseClient | Supabase 클라이언트 |
+| `src/features/book/searchApi.ts` | `src/lib/api/edgeFunctions.ts` | invokeEdgeFunction | 카카오 검색 |
+| `src/features/book/searchApi.ts` | `src/lib/supabase/client.ts` | getSupabaseClient | Edge Function 호출 |
+| `src/features/book/bookDetailApi.ts` | `src/lib/supabase/client.ts` | getSupabaseClient | PostgREST 조회 |
+| `src/features/book/BookSearchScreen.tsx` | `src/features/book/searchApi.ts` | searchBooks | 검색 API |
+| `src/features/book/BookSearchScreen.tsx` | `src/features/book/resolveBookId.ts` | resolveBookId | ISBN→UUID |
+| `src/features/book/BookDetailScreen.tsx` | `src/features/book/bookDetailApi.ts` | getBookDetail | 상세 조회 |
+| `src/features/book/BookDetailScreen.tsx` | `src/features/book/resolveBookId.ts` | resolveBookId | ISBN→UUID |
+| `src/features/book/BookDetailScreen.tsx` | `src/features/library/useLibrary.ts` | useLibrary | 서재 통합 |
+| `src/features/library/libraryApi.ts` | `src/lib/supabase/client.ts` | getSupabaseClient | PostgREST CRUD |
+| `src/features/library/libraryApi.ts` | `src/lib/api/errors.ts` | normalizeError | 에러 정규화 |
+| `src/features/library/useLibrary.ts` | `src/lib/query/queryClient.ts` | useQuery | React Query |
+| `src/features/library/useLibrary.ts` | `src/features/library/libraryApi.ts` | getLibrary | API 호출 |
+| `src/features/library/useLibraryItem.ts` | `src/lib/query/queryClient.ts` | useMutation | React Query |
+| `src/features/library/useLibraryItem.ts` | `src/features/library/libraryApi.ts` | * mutations | API 호출 |
+| `src/features/library/progressValidation.ts` | `src/types/book.ts` | BookRow | 타입 참조 |
+| `src/features/library/progressRate.ts` | `src/types/book.ts` | BookRow | 타입 참조 |
+
+### @MX:ANCHOR Candidates (fan_in ≥ 3)
+
+| Module | fan_in | Callers | Why Anchor |
+|--------|---------|---------|-----------|
+| `src/auth/useSession.ts` | 7+ | app/index.tsx, app/(tabs)/_layout.tsx, app/(auth)/_layout.tsx, src/auth/login.tsx, src/auth/onboarding.tsx, src/features/book/BookDetailScreen.tsx, ... | 인증 상태 조회의 공통 진입점 |
+| `src/lib/supabase/client.ts` | 10+ | src/auth/AuthContext.tsx, src/features/book/searchApi.ts, src/features/book/bookDetailApi.ts, src/features/library/libraryApi.ts, src/features/book/resolveBookId.ts, ... | Supabase 클라이언트 싱글톤 |
+| `src/lib/query/queryClient.ts` | 5+ | app/_layout.tsx, src/features/library/useLibrary.ts, src/features/library/useLibraryItem.ts, src/features/library/useLibraryItem.ts (mutations) | React Query 캐시 공유 |
+| `src/theme/theme.tsx` | 8+ | app/_layout.tsx, src/features/book/BarcodeScanner.tsx, src/features/book/BookSearchScreen.tsx, src/features/book/BookDetailScreen.tsx, src/components/* | 테마 접근 공통 인터페이스 |
+| `src/features/book/searchApi.ts` | 3+ | src/features/book/BookSearchScreen.tsx, tests | 검색 API의 공통 진입점 |
+| `src/features/book/bookDetailApi.ts` | 3+ | src/features/book/BookDetailScreen.tsx, tests | 상세 조회 API의 공통 진입점 |
+| `src/features/book/resolveBookId.ts` | 3+ | src/features/book/BookSearchScreen.tsx, src/features/book/BookDetailScreen.tsx, src/features/library/libraryApi.ts (addBook), tests | ISBN→UUID 매핑의 불변 계약 (books.isbn UNIQUE) |
+| `src/features/library/libraryApi.ts` | 4+ | src/features/library/useLibrary.ts, src/features/library/useLibraryItem.ts (4 mutations), tests | 서재 CRUD의 공용 진입점 |
+| `src/features/library/useLibrary.ts` | 3+ | src/features/book/BookDetailScreen.tsx, tests | 서재 목록 훅 |
+| `src/lib/api/errors.ts` | 5+ | src/lib/api/retry.ts, src/features/book/bookDetailApi.ts, src/features/library/libraryApi.ts, src/lib/supabase/client.ts, tests | 에러 정규화의 공통 계약 |
 
 ## Circular Dependency Check
 
-**검증 결과:** ✅ **순환 의존성 없음 (BOOK M3/M4 추가 후에도 정상)**
+**Status:** ✅ NO CIRCULAR DEPENDENCIES DETECTED
 
-**검증 방법:**
-1. `app/` → `src/` 의존성 (단방향)
-2. `src/auth/` → `src/lib/supabase/` 의존성 (단방향)
-3. `src/lib/api/` → `src/lib/supabase/` 의존성 (단방향)
-4. `src/features/book/` → `src/lib/api/` → `src/lib/supabase/` 의존성 (단방향)
-5. `src/features/book/` → `src/lib/supabase/` 의존성 (단방향)
-6. `src/lib/supabase/` → `src/config/` 의존성 (단방향)
-7. `src/features/book/BarcodeScanner` → `isbn` / `debounce` / `expo-camera` (단방향, 순수함수)
-8. `src/features/book/BookDetailScreen` → `src/auth/useSession` (단방향 — 가드 목적)
+의존성 방향은 단방향입니다:
+- `app/` → `src/` (프레젠테이션 → 비즈니스 로직)
+- `src/features/` → `src/lib/` (도메인 → 인프라)
+- `src/features/` → `src/types/` (도메인 → 타입)
 
-**의존성 방향:**
+순환 의존성이 없으므로 모듈 그래프는 DAG (Directed Acyclic Graph)입니다.
+
+## Layer Separation
+
 ```
-app/ (Presentation)
-  ↓ imports
-src/ (Business Logic)
-  ├── src/features/book/ → src/lib/api/ → src/lib/supabase/
-  ├── src/features/book/ → src/lib/supabase/
-  ├── src/features/book/ → src/auth/ (BookDetailScreen → useSession, 가드 전용)
-  ├── src/features/book/ → src/theme/ (UI 컴포넌트 토큰)
-  └── src/features/book/ 내부: BarcodeScanner → isbn/debounce (순수함수)
-  ↓ imports
-src/lib/ (Infrastructure)
+┌─────────────────────────────────────────┐
+│         Presentation Layer               │
+│              (app/)                      │
+│  - Layouts, Routes, Screens              │
+└─────────────────┬───────────────────────┘
+                  │ imports
+┌─────────────────▼───────────────────────┐
+│       Business Logic Layer              │
+│   (src/features/, src/auth/, src/theme/) │
+│  - Domain logic, hooks, screens         │
+└─────────────────┬───────────────────────┘
+                  │ imports
+┌─────────────────▼───────────────────────┐
+│      Infrastructure Layer               │
+│   (src/lib/api/, src/lib/supabase/,     │
+│    src/lib/query/, src/types/)          │
+│  - API clients, type definitions        │
+└─────────────────────────────────────────┘
 ```
 
-**BOOK M3/M4 모듈 의존성 분석:**
-- ✅ `src/features/book/` → `src/lib/api/` (invokeEdgeFunction)
-- ✅ `src/features/book/` → `src/lib/supabase/` (getSupabaseClient)
-- ✅ `src/features/book/` → `src/types/book.ts` (타입)
-- ✅ `src/features/book/` 내부 순수함수 계층: `isbn.ts`, `debounce.ts`, `format.ts` (외부 의존성 없음)
-- ✅ `BookDetailScreen` → `useSession`은 가드 전용 (인증 상태 읽기, 역방향 아님)
-- ✅ Edge Function(kakao-book-search)은 Deno 환경으로 완전히 분리
-- ✅ `expo-camera`는 외부 의존성 (BarcodeScanner만 사용)
-
-**역방향 의존성 없음:**
-- `src/`는 `app/`를 임포트하지 않음
-- `src/lib/`는 `src/`를 임포트하지 않음
-- `src/auth/`는 `src/features/book/`를 임포트하지 않음 (BookDetailScreen → useSession은 정방향)
-- `src/theme/`는 `src/features/book/`를 임포트하지 않음
-
-## Bidirectional Consistency
-
-**검증 항목:**
-
-1. **인증 흐름 일관성**
-   - ✅ `useSession` → `AuthContext` → `getSupabaseClient` 체인 일관됨
-   - ✅ 모든 라우트에서 동일한 `useSession` 인터페이스 사용
-
-2. **테마 적용 일관성**
-   - ✅ `ThemeProvider` → `tokens` → `darkTokens` 체인 일관됨
-   - ✅ 모든 컴포넌트에서 `useTheme` 통해 토큰 접근
-
-3. **API 호출 일관성**
-   - ✅ `invokeEdgeFunction` → `getSupabaseClient` 체인 일관됨
-   - ✅ 에러 처리 → `retryWithBackoff` 통합 일관됨
-
-## Dependency Health Score
-
-| 항목 | 점수 | 비고 |
-|------|------|------|
-| 순환 의존성 | ✅ 10/10 | 없음 |
-| 계층 분리 | ✅ 10/10 | 명확한 Presentation → Business → Infrastructure |
-| @MX:ANCHOR 식별 | ✅ 9/10 | 10개 후보 식별 (M3/M4로 5개 추가) |
-| 얇은 래퍼 준수 | ✅ 10/10 | app/는 src/를 재내보내거나 호출만 |
-| 인터페이스 안정성 | ✅ 8/10 | 고 fan-in 모듈 안정적 |
-
-**총점:** 47/50 (94%)
-
-## Recommendations
-
-1. **@MX:ANCHOR 적용 상태 (M3/M4 반영):**
-   - `useSession.ts` - @MX:ANCHOR 적용됨 (HIGH)
-   - `useTheme.tsx` - @MX:ANCHOR 적용됨 (HIGH)
-   - `getSupabaseClient.ts` - @MX:ANCHOR 적용됨 (CRITICAL)
-   - `searchBooks` - @MX:ANCHOR 적용됨 (HIGH, M4 완료)
-   - `getBookDetail` - @MX:ANCHOR 적용됨 (HIGH, M4 완료)
-   - `formatPublishedMonth` - @MX:ANCHOR 적용됨 (MEDIUM, M4 신규)
-   - `BarcodeScanner.tsx` - @MX:ANCHOR 적용됨 (M3)
-   - `BookSearchScreen.tsx` - @MX:ANCHOR 적용됨 (M4)
-   - `BookDetailScreen.tsx` - @MX:ANCHOR 적용됨 (M4)
-   - `debounce.ts` - @MX:ANCHOR 적용됨 (M3)
-
-2. **모듈 경계 강화:**
-   - `app/`는 라우팅만 담당, 비즈니스 로직은 `src/`에 위임 (현재 잘 준수됨)
-   - `src/lib/`는 인프라만 담당, 도메인 로직은 상위 계층에 (현재 잘 준수됨)
-   - `src/features/book/`는 순수함수(isbn/debounce/format)와 UI 컴포넌트의 계층 분리 유지 (M3/M4 패턴)
-
-3. **의존성 모니터링:**
-   - 향후 `src/` → `app/` 역방향 임포트 방지 (린트 규칙 권장)
-   - `src/lib/` → `src/` 역방향 임포트 방지 (린트 규칙 권장)
-   - `src/auth/` → `src/features/book/` 역방향 임포트 방지 (BookDetailScreen → useSession은 정방향 허용)
-
-4. **known-issue:**
-   - ISBN→bookId 매핑: `search.tsx`는 `/book/${isbn}`으로 이동하지만 `[bookId].tsx`는 UUID 기대. SPEC-LIBRARY-001에서 해결 예정.
-
----
-
-**Last Updated:** 2026-06-16  
-**Branch:** develop (852f0ac → a293e8d SPEC-BOOK-001 M3+M4 merged)
+**특이사항:**
+- `resolveBookId.ts`는 `src/features/book/`에 위치하지만, library 도메인에서도 호출되는 공용 API입니다 (SPEC-LIBRARY-001 TASK-002).
+- `queryClient.ts`는 `src/lib/query/`에 위치하며, 앱 전역의 React Query 캐시를 관리하는 싱글톤입니다 (SPEC-LIBRARY-001 TASK-001).
