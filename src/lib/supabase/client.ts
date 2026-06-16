@@ -8,10 +8,10 @@
 import { createClient } from '@supabase/supabase-js';
 import { getEnvVar } from '../../config/env';
 import { supabaseStorageAdapter } from './storageAdapter';
-// import type { Database } from '../../types/supabase'; // Uncomment after running: npm run gen-types
+import type { Database } from '../../types/supabase';
 
-// Singleton instance
-let clientInstance: ReturnType<typeof createClient> | null = null;
+// Singleton instance — Database 제네릭이 적용된 typed client
+let clientInstance: ReturnType<typeof createClient<Database>> | null = null;
 
 // @MX:ANCHOR: [AUTO] Supabase 클라이언트 팩토리 — 앱 전역 유일 진입점
 // @MX:REASON: 모든 도메인 SPEC(Books/Library/Clubs/Feed 등)이 이 클라이언트를 공유하며, auth.storage 설정이 누락되면 세션 영속화/자동 갱신/JWT 주입이 전역적으로 고장난다.
@@ -34,9 +34,8 @@ export function getSupabaseClient() {
   const supabaseAnonKey = getEnvVar('EXPO_PUBLIC_SUPABASE_ANON_KEY');
 
   // Create typed Supabase client (REQ-API-007)
-  // NOTE: Generic types will be applied after running: npm run gen-types
-  // Currently using basic client until database schema is available
-  clientInstance = createClient(supabaseUrl, supabaseAnonKey, {
+  // Database 제네릭 적용 — gen-types 로 생성된 스키마 타입으로 PostgREST 체인이 타입 안전해진다.
+  clientInstance = createClient<Database>(supabaseUrl, supabaseAnonKey, {
     auth: {
       // REQ-API-002: 세션 영속화 — SecureStore(우선) / AsyncStorage(폴백) 어댑터
       persistSession: true,

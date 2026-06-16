@@ -22,14 +22,51 @@ jest.mock('expo-router', () => ({
   useRouter: () => ({ push: jest.fn(), replace: jest.fn(), back: jest.fn(), canGoBack: () => false }),
 }));
 
+// SPEC-LIBRARY-001 TASK-009: library 탭이 useSession + useLibrary 사용.
+// 탭 셸 렌더링 테스트이므로 빈 결과로 고정.
+jest.mock('../../../src/auth/useSession', () => ({
+  useSession: jest.fn(() => ({
+    session: { access_token: 'tok', user: { id: 'u-1' } },
+    user: { id: 'u-1' },
+    profile: { id: 'u-1', nickname: '독자' },
+    loading: false,
+    isAuthenticated: true,
+    isOnboarded: true,
+    signInWithProvider: jest.fn(),
+    signOut: jest.fn(),
+    refreshProfile: jest.fn(),
+  })),
+}));
+jest.mock('../../../src/features/library/libraryApi', () => ({
+  __esModule: true,
+  getLibrary: jest.fn(async () => []),
+  getLibraryItem: jest.fn(),
+  addBook: jest.fn(),
+  deleteBook: jest.fn(),
+  updateProgress: jest.fn(),
+  updateStatus: jest.fn(),
+  updateVisibility: jest.fn(),
+}));
+
 import HomeTab from '../index';
 import LibraryTab from '../library';
 import ClubsTab from '../clubs';
 import MyTab from '../my';
 import { ThemeProvider } from '../../../src/theme/theme';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 function withTheme(ui: React.ReactElement) {
-  return render(<ThemeProvider>{ui}</ThemeProvider>);
+  const client = new QueryClient({
+    defaultOptions: {
+      queries: { retry: false, gcTime: 0, staleTime: 0 },
+      mutations: { retry: false },
+    },
+  });
+  return render(
+    <QueryClientProvider client={client}>
+      <ThemeProvider>{ui}</ThemeProvider>
+    </QueryClientProvider>
+  );
 }
 
 describe('T6: 탭 헤더/placeholder 렌더링', () => {
@@ -38,11 +75,13 @@ describe('T6: 탭 헤더/placeholder 렌더링', () => {
     expect(screen.getByText('홈 화면')).toBeTruthy();
   });
 
-  it('서재 탭이 "서재" 헤더와 빈 상태 CTA "책 검색하기"를 렌더링한다', () => {
+  it('서재 탭이 "서재" 헤더와 빈 상태 CTA "책 검색하기"를 렌더링한다', async () => {
     // SPEC-BOOK-001 M4-7: placeholder → 검색 진입 빈 상태로 교체
-    withTheme(<LibraryTab />);
-    expect(screen.getByText('서재')).toBeTruthy();
-    expect(screen.getByText('책 검색하기')).toBeTruthy();
+    // SPEC-LIBRARY-001 TASK-009: useLibrary 빈 결과 후 빈 상태 CTA 렌더링
+    const { findByText, getByText } = withTheme(<LibraryTab />);
+    expect(getByText('서재')).toBeTruthy();
+    // 빈 상태 CTA 는 getLibrary resolve 후 표시 — waitFor
+    expect(await findByText('책 검색하기')).toBeTruthy();
   });
 
   it('모임 탭이 "모임 화면" placeholder를 렌더링한다', () => {

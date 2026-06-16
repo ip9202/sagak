@@ -17,10 +17,13 @@
 import React, { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
+  Alert,
   Image,
+  Pressable,
   ScrollView,
   StyleSheet,
   Text,
+  TextInput,
   View,
 } from 'react-native';
 import { useTheme } from '../../theme/theme';
@@ -28,12 +31,26 @@ import { useSession } from '../../auth/useSession';
 import { getBookDetail } from './bookDetailApi';
 import { formatPublishedMonth } from './format';
 import type { BookRow } from '../../types/book';
+import { useLibraryItem } from '../library/useLibraryItem';
+import {
+  useUpdateProgress,
+  useUpdateStatus,
+  useUpdateVisibility,
+  useDeleteBook,
+} from '../library/useLibrary';
+import { ProgressBar } from '../../components/ProgressBar';
+import { calcProgressRate } from '../library/progressRate';
+import { validatePage } from '../library/progressValidation';
+import { getUserFriendlyMessage } from '../../lib/api/errors';
+import type { ReadingStatus } from '../library/types';
 
 export interface BookDetailScreenProps {
   /** books.id (UUID) — 라우팅 param */
   bookId: string;
   /** 미인증 시 호출 (인증 플로우로 이동) */
   onRequireAuth: () => void;
+  /** 삭제 성공 후 호출 (호출부에서 뒤로 가기 등 처리). 미전달 시 무시. */
+  onDeleted?: () => void;
 }
 
 type DetailStatus = 'idle' | 'loading' | 'success' | 'error';
@@ -76,6 +93,7 @@ function mapErrorMessage(category: string | undefined, fallback: string): string
 export const BookDetailScreen: React.FC<BookDetailScreenProps> = ({
   bookId,
   onRequireAuth,
+  onDeleted,
 }) => {
   const theme = useTheme();
   const tc = theme.colors;
@@ -87,6 +105,106 @@ export const BookDetailScreen: React.FC<BookDetailScreenProps> = ({
   // @MX:NOTE: [AUTO] sessionLoading 스칼라 분해 — useSession 이 매 렌더 신규 객체를 반환해도
   // 의존성 배열에서 객체 참조 변경으로 인한 불필요한 getBookDetail 재호출을 방지
   const sessionLoading = session === null;
+  const userId = session?.user?.id ?? '';
+
+  // --- SPEC-LIBRARY-001 TASK-010: 서재 데이터 + mutation hooks ---
+  const libraryItemQuery = useLibraryItem({ bookId, userId });
+  const libraryItem = libraryItemQuery.data ?? null;
+  const updateProgressMutation = useUpdateProgress({ userId });
+  const updateStatusMutation = useUpdateStatus({ userId });
+  const updateVisibilityMutation = useUpdateVisibility({ userId });
+  const deleteBookMutation = useDeleteBook({ userId });
+
+  // 진행률 입력 로컬 상태 (검증 메시지 표시용)
+  const [progressDraft, setProgressDraft] = useState<string>('');
+  const [progressMessage, setProgressMessage] = useState<string | null>(null);
+  const [statusMessage, setStatusMessage] = useState<string | null>(null);
+  // @MX:NOTE: [AUTO] book 참조를 상위로 끌어올려 mutation 핸들러가 total_pages 에 접근.
+  const book = state.book;
+  // libraryItem 이 로드되면 입력란 초기값 세팅
+  useEffect(() => {
+    if (libraryItem) {
+      setProgressDraft(String(libraryItem.current_page ?? 0));
+    }
+  }, [libraryItem?.id, libraryItem?.current_page]);
+
+  // 진행률 제출: 검증 후 mutation
+  const handleSubmitProgress = () => {
+    if (!libraryItem) return;
+    const parsed = Number(progressDraft);
+    if (Number.isNaN(parsed)) {
+      setProgressMessage('숫자를 입력해 주세요.');
+      return;
+    }
+    const totalPages = book?.total_pages ?? null;
+    const validationError = validatePage(parsed, totalPages);
+    if (validationError) {
+      // @MX:NOTE: [AUTO] validatePage 메시지(한국어) 를 그대로 노출 — 음수/초과 케이스
+      setProgressMessage(validationError.message);
+      return;
+    }
+    setProgressMessage(null);
+    updateProgressMutation.mutate({
+      id: libraryItem.id,
+      currentPage: parsed,
+      totalPages: totalPages ?? undefined,
+    });
+  };
+
+  // status 변경
+  const handleStatusChange = (next: ReadingStatus) => {
+    if (!libraryItem) return;
+    // 정책 5.1-A: completed → reading 역전환 경고
+    if (libraryItem.status === 'completed' && next === 'reading') {
+      setStatusMessage('완독한 책을 다시 읽는중으로 변경합니다.');
+    } else {
+      setStatusMessage(null);
+    }
+    updateStatusMutation.mutate({ id: libraryItem.id, status: next });
+  };
+
+  // 완독 처리
+  const handleComplete = () => {
+    if (!libraryItem) return;
+    // @MX:NOTE: [AUTO] 완독 처리: status='completed' 만 UPDATE. completed_at/completion_reports
+    //           는 DB 트리거가 관리(AC-TRIG-002/003)하므로 payload 에 포함하지 않는다.
+    updateStatusMutation.mutate({ id: libraryItem.id, status: 'completed' });
+    setStatusMessage('완독을 축하합니다!');
+  };
+
+  // 공개 토글
+  const handleVisibilityToggle = () => {
+    if (!libraryItem) return;
+    updateVisibilityMutation.mutate({
+      id: libraryItem.id,
+      isPublic: !libraryItem.is_public,
+    });
+  };
+
+  // 삭제: 확인 다이얼로그
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const handleDeletePress = () => setConfirmDelete(true);
+  const handleDeleteConfirm = () => {
+    if (!libraryItem) return;
+    setConfirmDelete(false);
+    deleteBookMutation.mutate(
+      { id: libraryItem.id },
+      {
+        onSuccess: () => {
+          onDeleted?.();
+        },
+        onError: (err) => {
+          // @MX:NOTE: [AUTO] FK RESTRICT 차단 시 보관함 이동 제안 (정책 5.3).
+          //           사용자 친화적 메시지로 안내.
+          const friendly = getUserFriendlyMessage(err as never);
+          Alert.alert(
+            '삭제할 수 없어요',
+            `${friendly}\n기록이 있는 책은 보관함(shelved)으로 이동해 보세요.`,
+          );
+        },
+      },
+    );
+  };
 
   useEffect(() => {
     // useSession 이 null(loading) 인 경우 — 대기 (API 호출 없음)
@@ -153,7 +271,6 @@ export const BookDetailScreen: React.FC<BookDetailScreenProps> = ({
   }
 
   // 성공 — 상세 렌더링
-  const book = state.book;
   if (!book) return null;
 
   const formattedDate = formatPublishedMonth(book.published_at);
@@ -165,6 +282,11 @@ export const BookDetailScreen: React.FC<BookDetailScreenProps> = ({
   } else if (formattedDate) {
     metaText = formattedDate;
   }
+
+  // 진행률 계산 — calcProgressRate(null 처리 포함)
+  const totalPages = book.total_pages ?? null;
+  const currentPage = libraryItem?.current_page ?? null;
+  const progressRate = calcProgressRate(currentPage, totalPages);
 
   return (
     <ScrollView
@@ -201,6 +323,254 @@ export const BookDetailScreen: React.FC<BookDetailScreenProps> = ({
         <Text style={[styles.meta, { color: tc.text.tertiary }]}>
           {metaText}
         </Text>
+      )}
+
+      {/* --- SPEC-LIBRARY-001 TASK-010: 서재 섹션 --- */}
+      {libraryItem && (
+        <View
+          testID="book-detail-library-section"
+          style={[
+            styles.librarySection,
+            {
+              backgroundColor: tc.bg.surface,
+              borderRadius: theme.radius.lg,
+              marginTop: theme.spacing[5],
+            },
+          ]}
+        >
+          {/* 진행률 표시 (ProgressBar) */}
+          {progressRate !== null && totalPages !== null && (
+            <ProgressBar
+              testID="progress-bar"
+              current={currentPage ?? 0}
+              total={totalPages}
+            />
+          )}
+
+          {/* 진행률 입력 */}
+          <View style={styles.progressInputRow}>
+            <TextInput
+              testID="progress-input"
+              value={progressDraft}
+              onChangeText={setProgressDraft}
+              onSubmitEditing={handleSubmitProgress}
+              keyboardType="numeric"
+              accessibilityLabel="현재 페이지"
+              style={[
+                styles.progressInput,
+                {
+                  color: tc.text.primary,
+                  borderColor: tc.border.default,
+                  borderRadius: theme.radius.md,
+                },
+              ]}
+            />
+            <Pressable
+              testID="progress-submit"
+              onPress={handleSubmitProgress}
+              style={[
+                styles.progressSubmitBtn,
+                {
+                  backgroundColor: tc.brand[500],
+                  borderRadius: theme.radius.md,
+                },
+              ]}
+              accessibilityRole="button"
+              accessibilityLabel="진행률 저장"
+            >
+              <Text style={[styles.progressSubmitText, { color: tc.text.inverse }]}>
+                저장
+              </Text>
+            </Pressable>
+          </View>
+          {progressMessage && (
+            <Text
+              style={[styles.progressMessage, { color: tc.semantic.warning }]}
+            >
+              {progressMessage}
+            </Text>
+          )}
+
+          {/* status 선택 */}
+          <View style={styles.statusRow}>
+            <Text style={[styles.sectionLabel, { color: tc.text.secondary }]}>
+              상태
+            </Text>
+            <View
+              testID="status-select"
+              style={[
+                styles.statusChips,
+                {
+                  backgroundColor: tc.bg.muted,
+                  borderRadius: theme.radius.full,
+                },
+              ]}
+            >
+              {(['reading', 'completed', 'shelved'] as ReadingStatus[]).map(
+                (s) => {
+                  const active = libraryItem.status === s;
+                  const label =
+                    s === 'reading'
+                      ? '읽는중'
+                      : s === 'completed'
+                        ? '완독'
+                        : '보관함';
+                  return (
+                    <Pressable
+                      key={s}
+                      testID={`status-chip-${s}`}
+                      onPress={() => handleStatusChange(s)}
+                      style={[
+                        styles.statusChip,
+                        active && {
+                          backgroundColor: tc.brand[500],
+                          borderRadius: theme.radius.full,
+                        },
+                      ]}
+                      accessibilityRole="button"
+                      accessibilityLabel={`상태: ${label}`}
+                    >
+                      <Text
+                        style={[
+                          styles.statusChipText,
+                          {
+                            color: active
+                              ? tc.text.inverse
+                              : tc.text.secondary,
+                          },
+                        ]}
+                      >
+                        {label}
+                      </Text>
+                    </Pressable>
+                  );
+                },
+              )}
+            </View>
+          </View>
+          {statusMessage && (
+            <Text
+              style={[styles.statusMessage, { color: tc.semantic.info }]}
+            >
+              {statusMessage}
+            </Text>
+          )}
+
+          {/* 완독 처리 버튼 */}
+          <Pressable
+            testID="complete-button"
+            onPress={handleComplete}
+            style={[
+              styles.completeButton,
+              {
+                backgroundColor: tc.brand[500],
+                borderRadius: theme.radius.md,
+              },
+            ]}
+            accessibilityRole="button"
+            accessibilityLabel="완독 처리"
+          >
+            <Text style={[styles.completeButtonText, { color: tc.text.inverse }]}>
+              완독 처리
+            </Text>
+          </Pressable>
+
+          {/* 공개 토글 + 기본값 안내 (REQ-LIB-032) */}
+          <View style={styles.visibilityRow}>
+            <Pressable
+              testID="visibility-toggle"
+              onPress={handleVisibilityToggle}
+              accessibilityRole="switch"
+              accessibilityLabel={
+                libraryItem.is_public ? '공개 중' : '비공개'
+              }
+              style={[
+                styles.toggle,
+                {
+                  backgroundColor: libraryItem.is_public
+                    ? tc.brand[500]
+                    : tc.bg.muted,
+                  borderRadius: theme.radius.full,
+                },
+              ]}
+            >
+              <Text
+                style={{ color: libraryItem.is_public ? tc.text.inverse : tc.text.tertiary }}
+              >
+                {libraryItem.is_public ? 'ON' : 'OFF'}
+              </Text>
+            </Pressable>
+            <View style={styles.visibilityMeta}>
+              <Text style={[styles.visibilityLabel, { color: tc.text.primary }]}>
+                {libraryItem.is_public ? '공개' : '비공개'}
+              </Text>
+              <Text
+                style={[styles.visibilityHint, { color: tc.text.tertiary }]}
+              >
+                {libraryItem.is_public
+                  ? '누구나 볼 수 있어요'
+                  : '기본 비공개 — 나만 볼 수 있어요'}
+              </Text>
+            </View>
+          </View>
+
+          {/* 삭제 */}
+          <Pressable
+            testID="delete-button"
+            onPress={handleDeletePress}
+            style={[
+              styles.deleteButton,
+              {
+                borderColor: tc.semantic.error,
+                borderRadius: theme.radius.md,
+              },
+            ]}
+            accessibilityRole="button"
+            accessibilityLabel="삭제"
+          >
+            <Text style={[styles.deleteButtonText, { color: tc.semantic.error }]}>
+              삭제
+            </Text>
+          </Pressable>
+
+          {/* 삭제 확인 다이얼로그 (인라인) */}
+          {confirmDelete && (
+            <View
+              testID="delete-confirm"
+              style={[
+                styles.confirmBox,
+                {
+                  backgroundColor: tc.bg.muted,
+                  borderRadius: theme.radius.md,
+                },
+              ]}
+            >
+              <Text style={[styles.confirmText, { color: tc.text.primary }]}>
+                정말 삭제하시겠어요?
+              </Text>
+              <View style={styles.confirmActions}>
+                <Pressable
+                  testID="delete-cancel"
+                  onPress={() => setConfirmDelete(false)}
+                  style={styles.confirmBtn}
+                  accessibilityRole="button"
+                  accessibilityLabel="삭제 취소"
+                >
+                  <Text style={{ color: tc.text.secondary }}>취소</Text>
+                </Pressable>
+                <Pressable
+                  testID="delete-confirm-action"
+                  onPress={handleDeleteConfirm}
+                  style={styles.confirmBtn}
+                  accessibilityRole="button"
+                  accessibilityLabel="삭제 확인"
+                >
+                  <Text style={{ color: tc.semantic.error }}>삭제</Text>
+                </Pressable>
+              </View>
+            </View>
+          )}
+        </View>
       )}
     </ScrollView>
   );
@@ -246,5 +616,117 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     textAlign: 'center',
     paddingHorizontal: 32,
+  },
+  // --- SPEC-LIBRARY-001 TASK-010: 서재 섹션 스타일 ---
+  librarySection: {
+    width: '100%',
+    padding: 16,
+    gap: 16,
+    alignItems: 'stretch',
+  },
+  progressInputRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  progressInput: {
+    flex: 1,
+    borderWidth: 1,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    fontSize: 14,
+  },
+  progressSubmitBtn: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+  },
+  progressSubmitText: {
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  progressMessage: {
+    fontSize: 12,
+    fontWeight: '500',
+  },
+  statusRow: {
+    gap: 8,
+  },
+  sectionLabel: {
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  statusChips: {
+    flexDirection: 'row',
+    padding: 4,
+  },
+  statusChip: {
+    flex: 1,
+    paddingVertical: 8,
+    alignItems: 'center',
+  },
+  statusChipText: {
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  statusMessage: {
+    fontSize: 12,
+    fontWeight: '500',
+  },
+  completeButton: {
+    paddingVertical: 12,
+    alignItems: 'center',
+  },
+  completeButtonText: {
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  visibilityRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  toggle: {
+    width: 48,
+    height: 28,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  visibilityMeta: {
+    flex: 1,
+    gap: 2,
+  },
+  visibilityLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  visibilityHint: {
+    fontSize: 12,
+  },
+  deleteButton: {
+    paddingVertical: 12,
+    alignItems: 'center',
+    borderWidth: 1,
+  },
+  deleteButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  confirmBox: {
+    padding: 16,
+    gap: 12,
+  },
+  confirmText: {
+    fontSize: 14,
+    fontWeight: '600',
+    textAlign: 'center',
+  },
+  confirmActions: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 24,
+  },
+  confirmBtn: {
+    paddingVertical: 8,
+    paddingHorizontal: 16,
   },
 });
