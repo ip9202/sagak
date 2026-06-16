@@ -5,6 +5,7 @@
  * 본 모듈은 Deno 글로벌에 의존하지 않으며, index.ts 가 service_role 클라이언트를 주입한다.
  *
  * @MX:NOTE: [AUTO] service_role 클라이언트는 RLS 를 우회한다 — 캐시 쓰기 권한 확보.
+ * @MX:NOTE: [AUTO] 업서트는 단일 배치 호출(PostgREST .upsert(rows[]))로 N+1 쿼리를 방지한다.
  */
 import type { BookUpsertRow } from './mapper';
 
@@ -12,9 +13,9 @@ import type { BookUpsertRow } from './mapper';
 interface SelectBuilder {
   eq(column: string, value: string): SingleBuilder;
 }
-/** upsert 빌더 체인(upsert → select → single) */
+/** upsert 빌더 체인(upsert → select → 결과 배열) */
 interface UpsertBuilder {
-  select(columns?: string): SingleBuilder;
+  select(columns?: string): Promise<{ data: BookCacheRow[] | null; error: unknown }>;
 }
 /** 단일 행 결과(single) 호출 가능한 빌더 */
 interface SingleBuilder {
@@ -29,7 +30,10 @@ interface SingleBuilder {
 export interface SupabaseClientLike {
   from(table: string): {
     select(columns?: string): SelectBuilder;
-    upsert(row: BookUpsertRow, opts?: { onConflict?: string }): UpsertBuilder;
+    upsert(
+      rows: BookUpsertRow | BookUpsertRow[],
+      opts?: { onConflict?: string }
+    ): UpsertBuilder;
   };
 }
 
@@ -75,27 +79,30 @@ export async function findCachedBook(
 }
 
 /**
- * REQ-BOOK-011: books 테이블에 upsert 한다 (시나리오 S14, S18).
+ * REQ-BOOK-011: books 테이블에 다수 행을 단일 배치 upsert 한다 (시나리오 S14, S18).
  *
  * ON CONFLICT (isbn) DO UPDATE — UNIQUE isbn 제약으로 동일 도서 중복 등록을 방지한다.
+ * PostgREST .upsert(rows[]) 단일 호출로 N+1 순차 쿼리를 방지한다.
  *
  * @MX:WARN: [AUTO] service_role 클라이언트로 RLS 우회 후 쓰기 수행
  * @MX:REASON: Edge Function 만 service_role 키를 가져야 하며, 클라이언트는 anon + SELECT 만 허용된다 (REQ-BOOK-002).
  *
  * @param client - service_role Supabase 클라이언트
- * @param row - upsert 입력 행
- * @returns upsert 된 books 행
+ * @param rows - upsert 입력 행 배열 (빈 배열이면 no-op)
+ * @returns upsert 된 books 행 배열
  * @throws 업서트 에러 시
  */
-export async function upsertBook(
+export async function upsertBooks(
   client: SupabaseClientLike,
-  row: BookUpsertRow
-): Promise<BookCacheRow> {
+  rows: BookUpsertRow[]
+): Promise<BookCacheRow[]> {
+  if (rows.length === 0) {
+    return [];
+  }
   const result = await client
     .from('books')
-    .upsert(row, { onConflict: 'isbn' })
-    .select()
-    .single();
+    .upsert(rows, { onConflict: 'isbn' })
+    .select();
 
   if (result.error || !result.data) {
     const err = result.error as { message?: string } | undefined;

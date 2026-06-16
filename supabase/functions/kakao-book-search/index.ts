@@ -14,7 +14,7 @@ import { normalizeKakaoDocuments, type NormalizedBook } from './normalizer';
 import { mapToBookRow } from './mapper';
 import {
   findCachedBook,
-  upsertBook,
+  upsertBooks,
   type SupabaseClientLike,
   type BookCacheRow,
 } from './cacheManager';
@@ -36,10 +36,10 @@ export interface SearchDeps {
     client: SupabaseClientLike,
     isbn: string
   ): Promise<BookCacheRow | null>;
-  upsertBook(
+  upsertBooks(
     client: SupabaseClientLike,
-    row: ReturnType<typeof mapToBookRow>
-  ): Promise<BookCacheRow>;
+    rows: ReturnType<typeof mapToBookRow>[]
+  ): Promise<BookCacheRow[]>;
 }
 
 /** 성공 응답 형태 (REQ-BOOK-003 계약) */
@@ -159,12 +159,10 @@ export async function handleSearchRequest(
     return { ok: true, body: { data: [] } };
   }
 
-  // 캐시 미스 시 업서트 (REQ-BOOK-011) — service_role, ON CONFLICT (isbn)
+  // 캐시 미스 시 업서트 (REQ-BOOK-011) — service_role, 단일 배치, ON CONFLICT (isbn)
   try {
-    for (const book of normalized) {
-      const row = mapToBookRow(book);
-      await deps.upsertBook(client, row);
-    }
+    const rows = normalized.map(mapToBookRow);
+    await deps.upsertBooks(client, rows);
   } catch {
     // 업서트 실패는 검색 결과 반환에 영향을 주지 않는다 (캐시 쓰기는 베스트에포트).
     // 사용자에게는 정규화된 검색 결과를 그대로 반환한다.
@@ -210,7 +208,7 @@ if (isDenoEnvironment()) {
       },
       searchKakao: searchKakaoBooks,
       findCachedBook,
-      upsertBook,
+      upsertBooks,
     };
 
     let body: SearchRequestBody;

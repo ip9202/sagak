@@ -22,7 +22,7 @@ describe('handleSearchRequest (REQ-BOOK-001~005, 010~012)', () => {
       >),
       searchKakao: jest.fn(),
       findCachedBook: jest.fn(),
-      upsertBook: jest.fn(),
+      upsertBooks: jest.fn(),
     } as unknown as jest.Mocked<SearchDeps>;
   });
 
@@ -78,7 +78,7 @@ describe('handleSearchRequest (REQ-BOOK-001~005, 010~012)', () => {
     expect(deps.searchKakao).not.toHaveBeenCalled();
   });
 
-  it('캐시 미스 시 Kakao API 호출 후 upsert 하고 결과를 반환한다 (REQ-BOOK-011, 시나리오 S14)', async () => {
+  it('캐시 미스 시 Kakao API 호출 후 단일 배치 upsert 하고 결과를 반환한다 (REQ-BOOK-011, 시나리오 S14)', async () => {
     deps.findCachedBook.mockResolvedValue(null);
     deps.searchKakao.mockResolvedValue({
       documents: [
@@ -93,18 +93,20 @@ describe('handleSearchRequest (REQ-BOOK-001~005, 010~012)', () => {
       ],
       meta: { total_count: 1 },
     });
-    deps.upsertBook.mockResolvedValue({
-      id: 'uuid-new',
-      isbn: '9791186565873',
-      title: '호모 데우스',
-      author: '유발 하라리',
-      publisher: '김영사',
-      published_at: '2017-01-20',
-      cover_url: 'https://example.com/cover.jpg',
-      total_pages: null,
-      kakao_id: null,
-      created_at: '2024-06-14T00:00:00Z',
-    });
+    deps.upsertBooks.mockResolvedValue([
+      {
+        id: 'uuid-new',
+        isbn: '9791186565873',
+        title: '호모 데우스',
+        author: '유발 하라리',
+        publisher: '김영사',
+        published_at: '2017-01-20',
+        cover_url: 'https://example.com/cover.jpg',
+        total_pages: null,
+        kakao_id: null,
+        created_at: '2024-06-14T00:00:00Z',
+      },
+    ]);
 
     const res = await handleSearchRequest(
       { query: '호모 데우스', target: 'title' },
@@ -113,8 +115,12 @@ describe('handleSearchRequest (REQ-BOOK-001~005, 010~012)', () => {
 
     expect(res.ok).toBe(true);
     expect(deps.searchKakao).toHaveBeenCalled();
-    // @MX:NOTE: [AUTO] 캐시 미스 시 업서트 수행 — ON CONFLICT (isbn)
-    expect(deps.upsertBook).toHaveBeenCalledTimes(1);
+    // @MX:NOTE: [AUTO] 캐시 미스 시 단일 배치 upsert — N+1 방지 (시나리오 S14, REQ-BOOK-011)
+    expect(deps.upsertBooks).toHaveBeenCalledTimes(1);
+    expect(deps.upsertBooks).toHaveBeenCalledWith(
+      expect.any(Object),
+      expect.any(Array)
+    );
     if (res.ok) {
       expect(res.body.data[0].title).toBe('호모 데우스');
     }
@@ -136,6 +142,8 @@ describe('handleSearchRequest (REQ-BOOK-001~005, 010~012)', () => {
     if (res.ok) {
       expect(res.body.data).toEqual([]);
     }
+    // 빈 결과 시 upsert 미호출
+    expect(deps.upsertBooks).not.toHaveBeenCalled();
   });
 
   it('Kakao API 에러 시 { error, code } 구조화 에러를 반환한다 (REQ-BOOK-004, 시나리오 S4)', async () => {
