@@ -59,7 +59,7 @@ iOS/Android 모바일 앱 (React Native + Expo SDK 55 + React 19.2)
 ### 핵심 구조
 
 - **`app/`** (Expo Router 라우팅): `_layout.tsx` (AuthProvider + ThemeProvider로 전체 앱 감싸기, `(tabs)`/`(auth)` 그룹 라우트 포함 — SPEC-NAV-001), `index.tsx` (인증 상태 기반 진입 분기: `(tabs)` 또는 `(auth)` 리다이렉트 — SPEC-NAV-001), `_dev.tsx` (컴포넌트 데모 및 dark 토글 기능, `__DEV__` 게이트)
-- **`app/(tabs)/`** (4개 탭 네비게이션 — SPEC-NAV-001): `_layout.tsx` (Tabs 네비게이터, Feather 아이콘, 디자인 토큰 스타일링, 인증 가드), `index.tsx` (홈 탭 placeholder), `library.tsx` (서재 탭 placeholder), `clubs.tsx` (모임 탭 placeholder), `my.tsx` (마이 탭 placeholder), `[bookId].tsx` (도서 상세 스택 라우트), `clubs/[clubId].tsx` (모임 상세 스택 라우트)
+- **`app/(tabs)/`** (4개 탭 네비게이션 — SPEC-NAV-001): `_layout.tsx` (Tabs 네비게이터, Feather 아이콘, 디자인 토큰 스타일링, 인증 가드, SPEC-BOOK-001 M4 search/scan href:null 등록), `index.tsx` (홈 탭 placeholder), `library.tsx` (서재 탭 — SPEC-BOOK-001 M4 검색 진입 CTA "책 검색하기" + 헤더 검색 아이콘), `clubs.tsx` (모임 탭 placeholder), `my.tsx` (마이 탭 placeholder), `[bookId].tsx` (도서 상세 스택 라우트 — SPEC-BOOK-001 M4 BookDetailScreen 통합), `search.tsx` (SPEC-BOOK-001 M4 검색 화면 라우트, href:null, ISBN 자동 전환 param 지원), `scan.tsx` (SPEC-BOOK-001 M4 바코드 스캔 화면 라우트, href:null), `clubs/[clubId].tsx` (모임 상세 스택 라우트)
 - **`app/(auth)/`** (인증 라우트 그룹): `_layout.tsx` (인증 가드 — 인증 사용자의 접근 시 `(tabs)` 리다이렉트 — SPEC-NAV-001), `login.tsx` (로그인 화면 — `src/auth/login.tsx` 리익스포트), `onboarding.tsx` (온보딩 화면 — `src/auth/onboarding.tsx` 리익스포트), `auth/callback.tsx` (OAuth 콜백 라우트 — SPEC-NAV-001), `__tests__/` (인증 화면 테스트)
 - **`src/auth/`** (인증 모듈 — SPEC-AUTH-001):
   - `AuthContext.tsx` (AuthProvider + 인증 상태 관리: session, user, profile, loading, onAuthStateChange, getSession, signInWithProvider, signOut, refreshProfile, fetchProfile 캐싱)
@@ -68,11 +68,11 @@ iOS/Android 모바일 앱 (React Native + Expo SDK 55 + React 19.2)
   - `oauth.ts` (OAuth 딥링크 처리: getOAuthRedirectUri — expo-linking 래퍼)
   - `login.tsx` (LoginScreen — 카카오/애플/구글 OAuth 버튼)
   - `onboarding.tsx` (OnboardingScreen — 닉네임 검증(1~20자), avatar 선택, UPDATE 요청, refreshProfile 호출)
-- **`src/components/`** (6가지 커스텀 컴포넌트): `Button.tsx`, `Card.tsx`, `ProgressBar.tsx`, `BookCard.tsx`, `EmotionRecordCard.tsx`, `StickerReaction.tsx`
+- **`src/components/`** (7가지 커스텀 컴포넌트): `Button.tsx`, `Card.tsx`, `ProgressBar.tsx`, `BookCard.tsx` (서재용, 진행률 표시), `SearchResultCard.tsx` (SPEC-BOOK-001 M4 검색 결과용, Pencil x8zuOu 기반, BookCard와 분리), `EmotionRecordCard.tsx`, `StickerReaction.tsx`
 - **`src/theme/`** (디자인 시스템): `tokens.ts` (light 모드 토큰), `darkTokens.ts` (dark 모드 토큰), `theme.tsx` (ThemeProvider + useTheme + useManualMode 패턴)
 - **`src/types/`** (타입 정의): `book.ts` (BookRow, SearchResult, SearchTarget + type guards, M2 완료), `EmotionRecord.ts`, `StickerType.ts` 도메인 타입 정의
 - **`src/config/`** (환경 변수 검증 및 접근): `env.ts` (getEnvVar/getOptionalEnvVar — 환경 변수 런타임 검증 및 타입 안전한 접근)
-- **`src/features/book/`** (도서 검색 API, M1+M2 완료): `searchApi.ts` (searchBooks, 빈 쿼리 차단), `bookDetailApi.ts` (getBookDetail, PGRST116→NOT_FOUND), `index.ts` (통합 진입점)
+- **`src/features/book/`** (도서 검색·스캔·화면, M1~M4 완료): `searchApi.ts` (searchBooks, 빈 쿼리 차단), `bookDetailApi.ts` (getBookDetail, PGRST116→NOT_FOUND), `isbn.ts` (M3 — isValidIsbn/isValidIsbn13/isValidIsbn10, ISBN 체크디지트 검증), `debounce.ts` (M3 — shouldSuppressDuplicate 순수 함수, DUPLICATE_DEBOUNCE_MS=2000), `format.ts` (M4 — formatPublishedMonth 공유 유틸), `BarcodeScanner.tsx` (M3 — CameraView/useCameraPermissions, 권한 게이트 3상태, ISBN 바코드 타입 필터), `BookSearchScreen.tsx` (M4 — 검색 메인 화면, Pencil F06-Search), `BookDetailScreen.tsx` (M4 — 도서 상세 화면, useSession 세션 가드), `index.ts` (통합 진입점 — searchBooks, getBookDetail, BarcodeScanner, isValidIsbn* barrel)
 - **`src/lib/supabase/`** (Supabase 클라이언트): `client.ts` (getSupabiceClient 싱글톤), `storageAdapter.ts` (SecureStore/AsyncStorage 폴백 세션 저장소 어댑터)
 - **`src/lib/api/`** (API 레이어): `errors.ts` (AppError 계층 구조 + normalizeError/classifyError), `retry.ts` (retryWithBackoff), `edgeFunctions.ts` (invokeEdgeFunction), `index.ts` (통합 진입점)
 - **`src/errors/`** (공통 에러 처리): `AppError.ts` (AppError 기본 클래스 + 7개 서브클래스 + ErrorCategory 타입)
@@ -95,7 +95,7 @@ iOS/Android 모바일 앱 (React Native + Expo SDK 55 + React 19.2)
   - OAuth 플로우: signInWithOAuth(provider, { redirectTo: getOAuthRedirectUri() })로 카카오/애플/구글 로그인 처리
 - ThemeProvider와 useTheme 훅을 통한 테마 관리 시스템 (수동 dark 모드 전환)
 - React Context API 기반 상태 관리
-- 6가지 재사용 가능 UI 컴포넌트 라이브러리
+- 7가지 재사용 가능 UI 컴포넌트 라이브러리 (SearchResultCard 추가 — SPEC-BOOK-001 M4)
 - TypeScript strict 모드를 통한 타입 안정성
 - Supabase 백엔드와의 분리된 프론트엔드 아키텍처
 - **API 파운데이션 (SPEC-API-001)**: 환경 변수 검증 → app.config.ts extra → Constants.expoConfig.extra → env.ts 검증 → createClient 파이프라인
@@ -130,10 +130,13 @@ iOS/Android 모바일 앱 (React Native + Expo SDK 55 + React 19.2)
 - `POST /auth/logout` - 로그아웃
 - `GET /auth/me` - 현재 사용자 정보
 
-**Books (검색/스캔/상세) — M1+M2 구현 완료 (2026-06-16)**
+**Books (검색/스캔/상세) — M1~M4 구현 완료 (2026-06-16)**
 - `searchBooks(query, target)` - 도서 검색 (내부적으로 Edge Function `kakao-book-search` 프록시 호출, `src/features/book/searchApi.ts`)
 - `getBookDetail(bookId)` - 책 상세 정보 (`src/features/book/bookDetailApi.ts`)
-- `POST /books/scan` - 바코드 스캔으로 책 등록 (M3, 미구현)
+- `BarcodeScanner` 컴포넌트 - 카메라 ISBN 바코드 스캔 (M3 완료, `src/features/book/BarcodeScanner.tsx`, expo-camera ~55.0.19)
+- `isValidIsbn(value)` / `isValidIsbn13` / `isValidIsbn10` - ISBN 체크디지트 검증 (M3 완료, `src/features/book/isbn.ts`)
+- `SearchResultCard` 컴포넌트 - 검색 결과 카드 (M4 완료, `src/components/SearchResultCard.tsx`, BookCard와 분리)
+- `BookSearchScreen` / `BookDetailScreen` 컴포넌트 - 검색·상세 화면 (M4 완료, Pencil F06-Search/F07 기반)
 - `GET /books/{id}/cover` - 책 표지 이미지 (직접 렌더링, Storage 업로드 없음)
 
 **Library CRUD (서재 관리)**
