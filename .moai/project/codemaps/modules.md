@@ -75,6 +75,25 @@
 | **Book Search Screen** | `src/features/book/BookSearchScreen.tsx` | Presentation | 도서 검색 메인 화면(M4) | searchBooks 연동, 빈 쿼리 차단, 빈 결과 안내 | BOOK-001 REQ-BOOK-005/016 |
 | **Book Detail Screen** | `src/features/book/BookDetailScreen.tsx` | Presentation | 도서 상세 화면(M4) | getBookDetail + useSession 가드(S22 RLS 거부 처리) | BOOK-001 REQ-BOOK-015 |
 | **Camera Mock (Test)** | `src/features/book/__tests__/__mocks__/expo-camera.tsx` | Infrastructure (Test) | Jest용 expo-camera 목 | simulateBarcodeScan 헬퍼 | BOOK-001 REQ-BOOK-006 |
+| **ISBN Resolver** | `src/features/book/resolveBookId.ts` | Business (순수함수) | ISBN→UUID 변환 — books.isbn UNIQUE lookup | resolveBookId(isbn) → UUID, @MX:ANCHOR | LIBRARY-001 REQ-LIB-001 |
+
+### Library Domain (`src/features/library/`)
+
+| 모듈 | 경로 | 계층 | 목적 | 주요 익스포트 | SPEC 참조 |
+|------|------|------|------|-------------|-----------|
+| Library Barrel | `src/features/library/index.ts` | Business | Library 도메인 barrel | useLibrary, useLibraryItem, progressRate, LibraryItem | LIBRARY-001 |
+| Library API | `src/features/library/libraryApi.ts` | Business | 서재 CRUD API 레이어 | getLibrary, addLibraryItem, updateProgress, updateStatus, deleteItem (PostgREST 직접 호출) | LIBRARY-001 REQ-LIB-CRUD |
+| Library Hook | `src/features/library/useLibrary.ts` | Business | 서재 목록 훅 (React Query) | useLibrary(filters, sort) → LibraryItem[], useQuery + invalidateQueries | LIBRARY-001 REQ-LIB-003 |
+| Library Item Hook | `src/features/library/useLibraryItem.ts` | Business | 단일 항목 훅 (useMutation) | useLibraryItem optimistic update, rollback on error, getUserFriendlyMessage | LIBRARY-001 REQ-LIB-010/020/030 |
+| Library Types | `src/features/library/types.ts` | Business | Library 도메인 타입 | LibraryItem, ProgressInput, StatusInput, QueryFilters, SortOption | LIBRARY-001 |
+| Progress Validation | `src/features/library/progressValidation.ts` | Business (순수함수) | 진도 검증 — 페이지 상한, 음수 차단 | validateProgress(current_page, total_pages) → ValidationError | LIBRARY-001 REQ-LIB-011 |
+| Progress Rate | `src/features/library/progressRate.ts` | Business (순수함수) | 진도률 계산 | calcProgressRate(current_page, total_pages) → number | LIBRARY-001 REQ-LIB-012 |
+
+### Query Infrastructure (`src/lib/query/`)
+
+| 모듈 | 경로 | 계층 | 목적 | 주요 익스포트 | SPEC 참조 |
+|------|------|------|------|-------------|-----------|
+| Query Client | `src/lib/query/queryClient.ts` | Infrastructure | React Query v5 싱글톤 | QueryClient defaultOptions (staleTime 3min, retry 1회, mutations retry 없음) | LIBRARY-001 |
 
 ### Components (`src/components/`)
 

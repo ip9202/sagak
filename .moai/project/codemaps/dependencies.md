@@ -33,13 +33,20 @@ graph TB
         B14[src/features/book/BarcodeScanner.tsx<br/>@MX:ANCHOR]
         B15[src/features/book/BookSearchScreen.tsx<br/>@MX:ANCHOR]
         B16[src/features/book/BookDetailScreen.tsx<br/>@MX:ANCHOR]
-        B17[src/components/SearchResultCard.tsx]
+        B17[src/features/book/resolveBookId.ts<br/>@MX:ANCHOR]
+        B18[src/features/library/libraryApi.ts<br/>@MX:ANCHOR]
+        B19[src/features/library/useLibrary.ts]
+        B20[src/features/library/useLibraryItem.ts]
+        B21[src/features/library/progressValidation.ts]
+        B22[src/features/library/progressRate.ts]
+        B23[src/components/SearchResultCard.tsx]
     end
 
     subgraph "Infrastructure (src/lib/)"
         I1[src/lib/supabase/client.ts<br/>@MX:ANCHOR]
         I2[src/lib/supabase/storageAdapter.ts]
         I3[src/config/env.ts]
+        I4[src/lib/query/queryClient.ts<br/>@MX:ANCHOR]
     end
 
     subgraph "Edge Functions"

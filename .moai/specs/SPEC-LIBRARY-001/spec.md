@@ -3,9 +3,10 @@
 id: SPEC-LIBRARY-001
 title: "Personal Library Management"
 version: "1.0.0"
-status: draft
+status: completed
 created: 2026-06-14
-updated: 2026-06-14
+updated: 2026-06-16
+completed: 2026-06-16
 author: "강력쇠주먹"
 priority: high
 issue_number: 0

@@ -15,9 +15,22 @@
 
 - **M0 (QueryClientProvider + resolveBookId + search 통합)**: 완료 (0198dc5) — 검증: tsc 0, jest PASS
 - **M1 (libraryApi CRUD + mutation + 진도률)**: 완료 (d154997) — 검증: tsc 0, jest 498/498 PASS, library/ 커버리지 86.66%
-- M2 (useLibrary 훅): 위임 진행 중
-- M3 (LibraryScreen): 대기
-- M4-6 (BookDetail 확장): 대기
+- **M2 (useLibrary 훅)**: 완료 — 검증: tsc 0, jest 545/545 PASS
+- **M3 (LibraryScreen)**: 완료
+- **M4-6 (BookDetail 확장)**: 완료
+
+## Phase 2 완료 (2026-06-16)
+
+- **최종 검증**: jest 545/545 PASS, 59 suites, library coverage 85.92%
+- **Evaluator fix cycle**: 1회 iteration (MX 태그 정리, JSDoc 추가)
+- **Merge**: b3a5043 (PR #10 squash merge)
+- **구현 파일**: 38 files (+4794/-118)
+- **주요 산출물**:
+  - `src/features/library/` — libraryApi, useLibrary, useLibraryItem, types, progressValidation, progressRate
+  - `src/lib/query/queryClient.ts` — QueryClient 싱글톤
+  - `src/features/book/resolveBookId.ts` — ISBN→UUID 변환 (books.isbn UNIQUE lookup)
+  - gen-types workflow: `npm run gen-types` = `node scripts/gen-types-with-header.js`, local Supabase
+  - Supabase client: `createClient<Database>` 제네릭 (REQ-API-007 타입 안전)
 
 ## 게이트 결과 (직접 검증 — 교훈 #1)
 
