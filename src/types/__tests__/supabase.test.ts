@@ -48,16 +48,14 @@ describe('Supabase Types Infrastructure (REQ-API-006)', () => {
   });
 
   describe('Type safety readiness', () => {
-    it('client.ts should be ready for type application', () => {
+    it('client.ts applies Database generic for type-safe PostgREST', () => {
       const clientPath = path.join(process.cwd(), 'src/lib/supabase/client.ts');
       const content = fs.readFileSync(clientPath, 'utf8');
 
-      // Verify that Database import is commented (ready for future use)
+      // REQ-API-007: Database 타입이 활성화되어 createClient<Database> 형태로 적용됨
       expect(content).toContain('REQ-API-007');
-      expect(content).toContain('// import type { Database }');
-
-      // Verify comment about gen-types
-      expect(content).toContain('npm run gen-types');
+      expect(content).toContain('import type { Database }');
+      expect(content).toContain('createClient<Database>');
     });
   });
 });
