@@ -197,7 +197,7 @@ const styles = StyleSheet.create({
     gap: 16,
   },
   camera: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
   },
   // Pencil F07-Scan eG0uf: 280x170, cornerRadius $radius-lg(16), stroke $brand-300, strokeWidth 3
   scanGuide: {
