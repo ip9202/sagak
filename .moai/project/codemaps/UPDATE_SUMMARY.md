@@ -2,7 +2,15 @@
 
 ## 개요
 
-SPEC-BOOK-001 M1+M2(852f0ac) 머지 반영하여 5개 코드맵 파일을 BOOK 모듈 추가 사항으로 업데이트함.
+본 문서는 두 단계의 업데이트를 누적 기록:
+
+- **1차 (M1+M2):** SPEC-BOOK-001 M1+M2(852f0ac) 머지 반영 — Edge Function + 클라이언트 API
+- **2차 (M3+M4):** SPEC-BOOK-001 M3+M4(a293e8d) 머지 반영 — 바코드 스캔 + 검색/상세 UI
+
+> 기존 M1/M2 항목은 보존됨. 2차(M3/M4) 항목은 하단에 추가됨.
+
+---
+
 
 ## 변경사항 요약
 
@@ -225,5 +233,272 @@ SPEC-BOOK-001 M3/M4는 아직 구현되지 않음 (코드맵에만 반영):
 
 ---
 
-**검증 완료:** 2026-06-16
+**검증 완료:** 2026-06-16 (M1/M2)
+**업데이트 담당:** MoAI Documentation System
+
+---
+---
+
+# 2차 업데이트: SPEC-BOOK-001 M3+M4 반영 (2026-06-16)
+
+## 개요 (2차)
+
+SPEC-BOOK-001 M3+M4(a293e8d) 머지 반영하여 6개 코드맵 파일을 증분 갱신함. M1/M2(API 계층) 위에 M3(바코드 스캔)과 M4(검색·상세 UI) delta를 추가 — 기존 내용 보존.
+
+## 변경사항 요약 (2차)
+
+### 1. overview.md
+**변경 내용:**
+- ✅ Architecture Layers 다이어그램에 BOOK 도메인 노드 확장: `BarcodeScanner · ISBN · Debounce`, `format 유틸`
+- ✅ External Services에 `expo-camera` 추가 (Barcode Scanning)
+- ✅ SPEC Coverage: SPEC-BOOK-001 상태 "M1+M2" → "M1~M4" (M3 바코드 스캔, M4 검색/상세 UI 포함)
+- ✅ Foundation Complete에 바코드 스캔(M3), 검색/상세 UI(M4) 항목 추가
+- ✅ High Fan-in Modules 테이블 확장: searchBooks/getBookDetail fan_in "3+ 예상" → "1 현재 → 3+ 예상", 신규 4개 항목 추가(formatPublishedMonth, isValidIsbn, shouldSuppressDuplicate, useSession 호출자 +1)
+- ✅ Next Steps 재구성: M3/M4 완료로 제거, SPEC-LIBRARY-001(known-issue 해결)을 1순위로 이동
+- ✅ 브랜치 정보: 852f0ac → a293e8d
+
+**영향 범위:**
+- Mermaid 다이어그램 (노드 3개 추가)
+- SPEC Coverage (1행 갱신)
+- Foundation Complete (2항목 추가)
+- High Fan-in (4개 항목 추가/갱신)
+- Next Steps (재구성)
+
+---
+
+### 2. modules.md
+**변경 내용:**
+- ✅ Presentation Layer: Library Tab 설명 갱신(검색 진입 CTA), 신규 라우트 2개 추가(Search Route href:null, Scan Route href:null)
+- ✅ Book Detail 라우트 설명 갱신: SPEC-NAV-001 stub → BookDetailScreen 통합 교체
+- ✅ Tabs Layout 설명 갱신: 숨김 라우트 등록
+- ✅ Book Domain 섹션에 M3/M4 모듈 7개 추가:
+  - `BarcodeScanner.tsx` (Presentation, REQ-BOOK-006~009)
+  - `isbn.ts` (Business 순수함수, REQ-BOOK-007)
+  - `debounce.ts` (Business 순수함수, REQ-BOOK-009)
+  - `format.ts` (Business 순수함수, REQ-BOOK-014/015)
+  - `BookSearchScreen.tsx` (Presentation, REQ-BOOK-005/016)
+  - `BookDetailScreen.tsx` (Presentation, REQ-BOOK-015)
+  - `__tests__/__mocks__/expo-camera.tsx` (Infrastructure Test)
+- ✅ Components 섹션에 `SearchResultCard.tsx` 추가 (M4, BookCard와 분리)
+- ✅ High Fan-in Modules: searchBooks/getBookDetail 상태 "예상" → "현재 1, 적용됨", 신규 3개 항목 추가(formatPublishedMonth, isValidIsbn, shouldSuppressDuplicate)
+- ✅ 계층별 모듈 분포 업데이트:
+  - Presentation: 13개 → 15개 (+2 숨김 라우트)
+  - Business: 24개 → 33개 (+7 Book 도메인 M3/M4, +1 SearchResultCard, +1 테스트 인프라)
+
+**영향 범위:**
+- 모듈 카탈로그: 29+ → 38+ (Book 도메인 +7, 컴포넌트 +1, 라우트 +2)
+- @MX:ANCHOR 적용 상태: 7개 후보 → 10개 (5개 M3/M4 신규 ANCHOR 적용)
+
+---
+
+### 3. dependencies.md
+**변경 내용:**
+- ✅ Dependency Graph 다이어그램에 M3/M4 노드 7개 추가:
+  - B11(isbn), B12(debounce), B13(format), B14(BarcodeScanner), B15(BookSearchScreen), B16(BookDetailScreen), B17(SearchResultCard)
+- ✅ External Services에 `expo-camera` 노드 추가
+- ✅ 신규 엣지 9개 추가 (BarcodeScanner→isbn/debounce/expo-camera, BookSearchScreen→searchApi/SearchResultCard, BookDetailScreen→bookDetailApi/useSession/format, SearchResultCard→format)
+- ✅ Import Matrix에 6개 새로운 섹션 추가:
+  - `src/features/book/` 내부 (BarcodeScanner→isbn/debounce 등)
+  - `app/(tabs)/` → `src/features/book/` (숨김 라우트 위임)
+  - `src/features/book/` → `src/auth/` (BookDetailScreen→useSession 가드)
+  - `src/features/book/` → `src/theme/` (4개 UI 컴포넌트)
+  - `app/(tabs)/library.tsx` → expo-router (검색 CTA)
+  - `src/features/book/` → expo-camera (외부)
+- ✅ High Fan-in Analysis 재구성: #6/#7 상태 "예상"→"현재 1, 적용됨", #8~#10 신규(formatPublishedMonth, isValidIsbn, shouldSuppressDuplicate)
+- ✅ Circular Dependency Check: BOOK M3/M4 의존성 분석 추가(순수함수 계층, BookDetailScreen→useSession 정방향)
+- ✅ Recommendations: @MX:ANCHOR 적용 상태 10개로 갱신, known-issue(ISBN→bookId 매핑) 추가
+
+**순환 의존성 검증 결과:** ✅ **없음 (M3/M4 추가 후에도 정상)**
+
+**영향 범위:**
+- Mermaid 다이어그램 (노드 8개, 엣지 9개 추가)
+- Import Matrix (6개 새로운 섹션)
+- @MX:ANCHOR: 7개 → 10개 (5개 신규 적용)
+
+---
+
+### 4. entry-points.md
+**변경 내용:**
+- ✅ Main Tabs 설명 갱신: "4 Tabs" → "4 Visible Tabs + 3 Hidden Routes"
+- ✅ Library Tab: 검색 진입 CTA(router.push('/search')) 명시
+- ✅ Dynamic Routes: [bookId] 설명 갱신(통합/가드), 신규 Hidden Routes 섹션 추가(/search, /scan)
+- ✅ Entry Point Invocation Summary에 3행 추가: /search, /scan, /book/{bookId}
+- ✅ Entry Point Dependency Graph에 Library→/search→/scan→/book 플로우 추가
+
+**영향 범위:**
+- Main Tabs (재구성)
+- Dynamic Routes (갱신 + Hidden Routes 섹션 추가)
+- Invocation Summary (3행 추가)
+- Dependency Graph (Library 분기 추가)
+
+---
+
+### 5. data-flow.md
+**변경 내용:**
+- ✅ 헤더 갱신: M1/M2 API + M3/M4 UI 명시
+- ✅ Data Flow Health Check에 3행 추가: Manual Search (M4), Barcode Scan (M3), Book Detail UI (M4)
+- ✅ **신규 섹션 7:** Manual Search Flow (M4) — BookSearchScreen → searchBooks → SearchResultCard → onSelectBook → /book/{isbn} 시퀀스 다이어그램
+- ✅ **신규 섹션 8:** Barcode Scan Flow (M3) — BarcodeScanner 권한 게이트 3상태 → ISBN 검증 → 디바운스(2000ms) → 자동 검색 전환 시퀀스 다이어그램
+- ✅ **신규 섹션 9:** Book Detail UI Flow (M4) — BookDetailScreen → useSession 가드 → getBookDetail → BookRow/NOT_FOUND(S20)/RLS_DENIED(S22) 3상태 분기 시퀀스 다이어그램
+- ✅ 각 섹션에 Permission States 표, Key Implementation, known-issue(ISBN→bookId 매핑) 참조 포함
+
+**영향 범위:**
+- Mermaid 시퀀스 다이어그램 3개 추가
+- 데이터 흐름 섹션 3개 추가 (각 60-90 라인)
+- Health Check 테이블 (3행 추가)
+
+---
+
+## 순환 의존성 검증 결과 (2차)
+
+**결론:** ✅ **순환 의존성 없음 (M3/M4 추가 후에도 정상)**
+
+**검증 항목:**
+1. ✅ `app/` → `src/` (단방향)
+2. ✅ `src/features/book/` → `src/lib/api/` → `src/lib/supabase/` (단방향)
+3. ✅ `src/features/book/` 내부 순수함수 계층 (isbn/debounce/format, 외부 의존성 없음)
+4. ✅ `BookDetailScreen` → `useSession` (정방향 가드, 역방향 아님)
+5. ✅ `expo-camera`는 외부 의존성 (BarcodeScanner만 사용)
+6. ✅ `src/auth/`는 `src/features/book/`를 임포트하지 않음
+
+---
+
+## 모듈 수 변화 (2차)
+
+| 계층 | 1차 후 (M1/M2) | 2차 후 (M3/M4) | 증가 |
+|------|---------------|---------------|------|
+| **Presentation (app/)** | 13개 | 15개 | +2 (search, scan 숨김 라우트) |
+| **Business (src/)** | 29+개 | 38+개 | +9 |
+| ├── AUTH | 6개 | 6개 | 0 |
+| ├── Theme | 3개 | 3개 | 0 |
+| ├── API | 4개 | 4개 | 0 |
+| ├── Types | 3개 | 3개 | 0 |
+| ├── **Book Domain** | 3개 | **9개** | **+6 (M3/M4)** |
+| ├── Components | 6개 | 7개 | +1 (SearchResultCard) |
+| └── Test Infra | 0개 | 1개 | +1 (expo-camera mock) |
+| **Infrastructure (src/lib/)** | 5개 | 5개 | 0 |
+| **Edge Functions** | 5개 | 5개 | 0 |
+| **총계** | **52+개** | **63+개** | **+11** |
+
+---
+
+## @MX:ANCHOR 적용 변화 (2차)
+
+| 모듈 | Fan-in | 우선순위 | 1차 상태 | 2차 상태 |
+|------|--------|----------|---------|---------|
+| `useSession` | 5+ | HIGH | 후보 | 적용됨 (BookDetailScreen 호출자 추가) |
+| `useTheme` | 6+ | HIGH | 후보 | 적용됨 |
+| `tokens` | 4+ | MEDIUM | 후보 | 적용됨 (BarcodeScanner/BookSearchScreen 호출자 추가) |
+| `getSupabaseClient` | 임계적 | CRITICAL | 후보 | 적용됨 |
+| `searchBooks` | 1 → 3+ 예상 | HIGH | 후보(M3 구현 시) | **적용됨 (M4 완료)** |
+| `getBookDetail` | 1 → 3+ 예상 | HIGH | 후보(M4 구현 시) | **적용됨 (M4 완료)** |
+| **`formatPublishedMonth`** | 2 | MEDIUM | - | **신규 적용 (M4)** |
+| **`isValidIsbn`** | 1 | MEDIUM | - | **신규 후보 (M3)** |
+| **`shouldSuppressDuplicate`** | 1 | MEDIUM | - | **신규 후보 (M3)** |
+| **`BarcodeScanner.tsx`** | - | - | - | **신규 적용 (M3)** |
+| **`BookSearchScreen.tsx`** | - | - | - | **신규 적용 (M4)** |
+| **`BookDetailScreen.tsx`** | - | - | - | **신규 적용 (M4)** |
+| **`debounce.ts`** | - | - | - | **신규 적용 (M3)** |
+
+**총계:** 7개 후보 → 10개 적용 + 2개 후보 (M3/M4로 5개 신규 적용)
+
+---
+
+## BOOK M3/M4 주요 구성 요소
+
+### M3: 바코드 스캔 계층 (`src/features/book/`)
+
+1. **BarcodeScanner.tsx** (Presentation)
+   - `useCameraPermissions` 권한 게이트 3상태 (null/granted/denied)
+   - `CameraView` + `barcodeScannerSettings` (expo-camera)
+   - `onBarcodeScanned` → ISBN 검증 → 디바운스 → 라우팅
+
+2. **isbn.ts** (Business 순수함수)
+   - `isValidIsbn`, `isValidIsbn13`, `isValidIsbn10` 체크디짓 검증 (REQ-BOOK-007)
+
+3. **debounce.ts** (Business 순수함수)
+   - `shouldSuppressDuplicate`, `DUPLICATE_DEBOUNCE_MS=2000` (REQ-BOOK-009)
+
+4. **__tests__/__mocks__/expo-camera.tsx** (Test Infra)
+   - Jest용 expo-camera 목, `simulateBarcodeScan` 헬퍼
+
+### M4: 검색·상세 UI 계층 (`src/features/book/` + `src/components/`)
+
+1. **BookSearchScreen.tsx** (Presentation)
+   - `searchBooks` 연동, 빈 쿼리 차단, 빈 결과 안내 (REQ-BOOK-005/016)
+
+2. **BookDetailScreen.tsx** (Presentation)
+   - `getBookDetail` + `useSession` 가드 (S22 RLS 거부 사전 차단) (REQ-BOOK-015)
+
+3. **SearchResultCard.tsx** (Presentation, `src/components/`)
+   - 검색 결과 카드 (BookCard와 분리), `formatPublishedMonth` 사용 (REQ-BOOK-014)
+
+4. **format.ts** (Business 순수함수)
+   - `formatPublishedMonth` (YYYY.MM) — SearchResultCard, BookDetailScreen 공유
+
+### 라우트 통합 (`app/(tabs)/`)
+
+- `search.tsx` (href:null) → BookSearchScreen 위임
+- `scan.tsx` (href:null, 풀스크린) → BarcodeScanner 위임
+- `[bookId].tsx` (동적) → SPEC-NAV-001 stub → BookDetailScreen 통합 교체
+- `library.tsx` (수정) → 검색 진입 CTA(`router.push('/search')`) 추가
+- `_layout.tsx` (수정) → search/scan/[bookId] 스크린 등록
+
+---
+
+## 신규 아키텍처 하이라이트 (M3/M4)
+
+### 1. 분리된 UI 계층
+
+M3/M4는 기존 API 계층(M1/M2) 위에 UI 계층을 분리하여 추가:
+
+```
+API 계층 (M1/M2):          UI 계층 (M3/M4):
+├── searchApi.ts     ←──── BookSearchScreen.tsx
+├── bookDetailApi.ts ←──── BookDetailScreen.tsx
+└── (Edge Function)        ├── BarcodeScanner.tsx
+                           └── SearchResultCard.tsx
+```
+
+UI 컴포넌트는 API를 호출하지만, API는 UI를 모름 — 단방향 의존성 유지.
+
+### 2. 순수함수 모듈화 패턴
+
+검증/포맷/디바운스 로직을 외부 의존성 없는 순수함수로 분리:
+
+```
+src/features/book/
+├── isbn.ts       (체크디짓 알고리즘 — 테스트 용이)
+├── debounce.ts   (중복 스캔 방지 — 시간 기반)
+└── format.ts     (날짜 포맷 — 공유 유틸)
+```
+
+특징:
+- 외부 상태/의존성 없음 (테스트确定性)
+- 재사용성 (format은 SearchResultCard, BookDetailScreen 공유)
+- @MX:ANCHOR 적용으로 계약 명시
+
+### 3. 권한 게이트 + 가드 패턴
+
+- **카메라 권한:** `useCameraPermissions` 3상태(null/granted/denied) 게이트
+- **인증 가드:** `BookDetailScreen` → `useSession` (RLS 거부 S22 사전 차단)
+- **디바운스:** `shouldSuppressDuplicate` (2000ms 윈도우 중복 스캔 차단)
+
+---
+
+## known-issue (참고)
+
+- **ISBN→bookId 매핑:** `search.tsx`는 `/book/${isbn}`으로 이동하지만 `[bookId].tsx`는 UUID 기대. 현재 BookDetailScreen 통합 후에도 매항 불일치 잠재. **SPEC-LIBRARY-001**에서 해결 예정.
+
+---
+
+## 브랜치 정보 (2차)
+
+- **1차 기준:** develop (4424251 - AUTH+NAV → 852f0ac - BOOK M1+M2)
+- **2차 기준:** develop (852f0ac - BOOK M1+M2 → a293e8d - BOOK M3+M4)
+- **추가된 커밋:** a293e8d (SPEC-BOOK-001 M3+M4 머지)
+
+---
+
+**검증 완료:** 2026-06-16 (M3/M4)
 **업데이트 담당:** MoAI Documentation System

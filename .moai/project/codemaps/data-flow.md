@@ -1,6 +1,6 @@
 # Sa-gak Data Flow Paths
 
-주요 데이터 흐름 — 인증 가드, OAuth 딥링크, 테마, 세션 지속성, 도서 검색 및 상세 조회 (BOOK 모듈 추가)
+주요 데이터 흐름 — 인증 가드, OAuth 딥링크, 테마, 세션 지속성, 도서 검색/상세 조회 API(M1/M2) + 수동 검색/바코드 스캔/상세 UI(M3/M4)
 
 ## 1. Auth Guard Flow
 
@@ -620,10 +620,199 @@ export async function getBookDetail(bookId: string): Promise<BookRow> {
 | OAuth Deep-link | ✅ 정상 | 딥링크 파라미터 폐기, Supabase listener 의존 |
 | Theme | ✅ 정상 | 시스템/수동 모드 전환, 토큰 병합 작동 |
 | Session Persistence | ✅ 정상 | SecureStore/AsyncStorage 폴백, 플랫폼 감지 |
-| Book Search | ✅ 정상 (M1+M2) | Edge Function 경유, 캐시 히트/미스 분기, Kakao API 폴백 |
-| Book Detail | ✅ 정상 (M1+M2) | PostgREST 직접 조회, PGRST116→NOT_FOUND 분류 |
+| Book Search (API) | ✅ 정상 (M1+M2) | Edge Function 경유, 캐시 히트/미스 분기, Kakao API 폴백 |
+| Book Detail (API) | ✅ 정상 (M1+M2) | PostgREST 직접 조회, PGRST116→NOT_FOUND 분류 |
+| Manual Search (UI) | ✅ 정상 (M4) | BookSearchScreen → searchBooks, 빈 쿼리 차단/빈 결과 안내 |
+| Barcode Scan (UI) | ✅ 정상 (M3) | BarcodeScanner → 권한 게이트 → ISBN 검증 → 디바운스 → 자동 검색 |
+| Book Detail (UI) | ✅ 정상 (M4) | BookDetailScreen → useSession 가드 → getBookDetail → 3상태 분기 |
+
+---
+
+## 7. Manual Search Flow (SPEC-BOOK-001 M4)
+
+**목적:** 사용자가 키워드로 도서를 검색하고 결과에서 선택하여 상세로 이동
+
+**진입점:** `app/(tabs)/search.tsx` (href:null) → `src/features/book/BookSearchScreen.tsx`
+
+```mermaid
+sequenceDiagram
+    participant User as 사용자
+    participant Lib as library.tsx
+    participant Route as /search (href:null)
+    participant UI as BookSearchScreen
+    participant API as searchBooks()
+    participant Card as SearchResultCard
+    participant Nav as router
+
+    User->>Lib: 검색 진입 CTA 탭
+    Lib->>Route: router.push('/search')
+    Route->>UI: BookSearchScreen 렌더링
+
+    User->>UI: 검색어 입력 + 검색 버튼
+    UI->>UI: 빈 쿼리 검증 (REQ-BOOK-005)
+    
+    alt 빈/공백 쿼리
+        UI->>User: "검색어를 입력해 주세요" (인라인 안내)
+    else 유효한 쿼리
+        UI->>API: searchBooks(query, target)
+        Note over API: Edge Function 플로우 (섹션 5 참조)
+        API-->>UI: SearchResult[]
+        
+        alt 0건 결과
+            UI->>User: 빈 결과 안내 ("검색 결과가 없습니다")
+        else 1건 이상
+            UI->>Card: SearchResult[] 렌더링
+            Card->>User: 카드 목록 표시 (formatPublishedMonth)
+            User->>Card: 결과 선택
+            Card->>Nav: onSelectBook → /book/{isbn}
+            Note over Nav: known-issue: ISBN→bookId 매핑<br/>(SPEC-LIBRARY-001 후속)
+        end
+    end
+```
+
+### Key Implementation
+
+**File:** `src/features/book/BookSearchScreen.tsx`
+
+- `searchBooks` 연동 (빈 쿼리 차단은 API 계층에서 1차, UI에서 2차 안내)
+- 빈 결과 안내 표시
+- `SearchResultCard`로 결과 렌더링
+
+**File:** `src/components/SearchResultCard.tsx`
+
+- `formatPublishedMonth`로 출판월 포맷 (YYYY.MM)
+- `useTheme` 토큰 적용
+
+---
+
+## 8. Barcode Scan Flow (SPEC-BOOK-001 M3)
+
+**목적:** 카메라로 도서 바코드를 스캔하여 ISBN을 추출하고 자동 검색으로 전환
+
+**진입점:** `app/(tabs)/scan.tsx` (href:null, 풀스크린) → `src/features/book/BarcodeScanner.tsx`
+
+```mermaid
+sequenceDiagram
+    participant User as 사용자
+    participant Lib as library.tsx
+    participant Route as /scan (href:null)
+    participant Scanner as BarcodeScanner
+    participant Perm as useCameraPermissions
+    participant Cam as CameraView (expo-camera)
+    participant ISBN as isValidIsbn()
+    participant Debounce as shouldSuppressDuplicate()
+    participant Nav as router
+
+    User->>Lib: 스캔 진입 CTA 탭
+    Lib->>Route: router.push('/scan')
+    Route->>Scanner: BarcodeScanner 렌더링
+    Scanner->>Perm: useCameraPermissions()
+    Perm-->>Scanner: status (null/granted/denied)
+    
+    alt null (로딩)
+        Scanner->>User: 권한 요청 대기
+    else denied
+        Scanner->>User: 권한 거부 안내 + 설정 이동 CTA
+    else granted
+        Scanner->>Cam: CameraView + barcodeScannerSettings
+        Cam->>Scanner: onBarcodeScanned({rawValue})
+        Scanner->>ISBN: isValidIsbn(rawValue)
+        
+        alt 유효하지 않은 ISBN
+            Scanner->>User: 무시 (체크디짓 실패)
+        else 유효한 ISBN
+            Scanner->>Debounce: shouldSuppressDuplicate(isbn, now)
+            
+            alt 중복 (2000ms 이내)
+                Scanner->>Scanner: 무시 (REQ-BOOK-009)
+            else 신규
+                Scanner->>Nav: router.replace('/search', {isbn})
+                Note over Nav: 자동 검색 트리거 → 섹션 7 플로우
+            end
+        end
+    end
+```
+
+### Key Implementation
+
+**File:** `src/features/book/BarcodeScanner.tsx`
+
+- `useCameraPermissions` 권한 게이트 3상태 (null/granted/denied)
+- `CameraView` + `barcodeScannerSettings` (expo-camera)
+- `onBarcodeScanned` 핸들러 → ISBN 검증 → 디바운스 → 라우팅
+
+**File:** `src/features/book/isbn.ts` (순수함수)
+
+- `isValidIsbn` → `isValidIsbn13` / `isValidIsbn10` 체크디짓 검증 (REQ-BOOK-007)
+
+**File:** `src/features/book/debounce.ts` (순수함수)
+
+- `shouldSuppressDuplicate(isbn, now)` → `DUPLICATE_DEBOUNCE_MS=2000` 이내 중복 차단 (REQ-BOOK-009)
+
+### Permission States
+
+| 상태 | 조건 | 액션 |
+|------|------|------|
+| `null` | 권한 요청 로딩 중 | 대기 |
+| `granted` | 카메라 권한 승인 | CameraView 렌더링 |
+| `denied` | 권한 거부 | 안내 + 설정 이동 CTA |
+
+---
+
+## 9. Book Detail UI Flow (SPEC-BOOK-001 M4)
+
+**목적:** bookId로 도서 상세를 조회하고 인증 가드(RLS)를 처리하여 표시
+
+**진입점:** `app/(tabs)/[bookId].tsx` (동적 라우트) → `src/features/book/BookDetailScreen.tsx`
+
+```mermaid
+sequenceDiagram
+    participant Nav as router
+    participant Route as /book/{bookId}
+    participant UI as BookDetailScreen
+    participant Session as useSession()
+    participant API as getBookDetail()
+    participant Format as formatPublishedMonth()
+    participant User as 사용자
+
+    Nav->>Route: router.push('/book/123')
+    Route->>UI: BookDetailScreen 렌더링
+    UI->>Session: useSession() (가드)
+    
+    alt session === null
+        UI->>User: ActivityIndicator
+    else !isAuthenticated
+        UI->>Nav: router.replace('/auth/login') (S22 RLS 거부 사전 차단)
+    else authenticated
+        UI->>API: getBookDetail(bookId)
+        Note over API: PostgREST 플로우 (섹션 6 참조)
+        
+        alt 성공 (BookRow)
+            API-->>UI: BookRow
+            UI->>Format: formatPublishedMonth(publishedDate)
+            UI->>User: 상세 정보 표시 (제목/저자/출판월/표지)
+        else NOT_FOUND (S20)
+            API-->>UI: throw AppError(NOT_FOUND)
+            UI->>User: "도서를 찾을 수 없습니다"
+        else RLS_DENIED (S22)
+            API-->>UI: throw AppError(RLS_DENIED)
+            UI->>User: "권한이 없습니다" / 로그인 유도
+        end
+    end
+```
+
+### Key Implementation
+
+**File:** `src/features/book/BookDetailScreen.tsx`
+
+- `useSession` 가드 (인증 상태 확인 — RLS 거부 사전 차단)
+- `getBookDetail(bookId)` 호출
+- 3상태 분기: BookRow / NOT_FOUND(S20) / RLS_DENIED(S22)
+- `formatPublishedMonth`로 출판월 포맷
+
+**SPEC-NAV-001 통합:** 기존 `[bookId].tsx` stub을 BookDetailScreen으로 교체 (M4).
 
 ---
 
 **Last Updated:** 2026-06-16  
-**Branch:** develop (4424251 → 852f0ac SPEC-BOOK-001 M1+M2 merged)
+**Branch:** develop (852f0ac → a293e8d SPEC-BOOK-001 M3+M4 merged)

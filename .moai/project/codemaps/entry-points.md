@@ -143,11 +143,14 @@ return <AuthStack />
 ```
 app/(tabs)/_layout.tsx
   ↓
-4 Tabs available:
+4 Visible Tabs + 3 Hidden Routes:
   ├── index.tsx (Home)
-  ├── library.tsx (Library)
+  ├── library.tsx (Library) — 검색 진입 CTA: router.push('/search')
   ├── clubs.tsx (Clubs)
-  └── my.tsx (My Page)
+  ├── my.tsx (My Page)
+  ├── search.tsx (href:null — BookSearchScreen 위임, BOOK-001 M4)
+  ├── scan.tsx (href:null — BarcodeScanner 위임, 풀스크린, BOOK-001 M3)
+  └── [bookId].tsx (동적 — BookDetailScreen 통합, BOOK-001 M4)
 ```
 
 ### Auth Flow (인증 필요 시)
@@ -166,11 +169,30 @@ Auth Stack:
 ```
 app/(tabs)/[bookId].tsx
   ├── Pattern: /tabs/{bookId}
-  └── Example: /tabs/123 (Book detail for ID 123)
+  ├── Example: /tabs/123 (Book detail for ID 123)
+  ├── 통합: SPEC-NAV-001 stub → BookDetailScreen 교체 (BOOK-001 M4)
+  └── 가드: BookDetailScreen 내 useSession (S22 RLS 거부 처리)
 
 app/(tabs)/clubs/[clubId].tsx
   ├── Pattern: /tabs/clubs/{clubId}
   └── Example: /tabs/clubs/456 (Club detail for ID 456)
+```
+
+### Hidden Routes (BOOK-001 M3/M4 — 탭 비노출, href:null)
+
+```
+app/(tabs)/search.tsx
+  ├── Pattern: /search (프로그래밍 진입 전용)
+  ├── 진입: library.tsx CTA (router.push('/search'))
+  ├── 목적: BookSearchScreen 위임 (빈 쿼리 차단/빈 결과 안내)
+  └── 쿼리 파라미터: {isbn} (바코드 스캔 → 자동 검색)
+
+app/(tabs)/scan.tsx
+  ├── Pattern: /scan (프로그래밍 진입 전용)
+  ├── 진입: library.tsx CTA 또는 검색 화면 스캔 버튼
+  ├── 목적: BarcodeScanner 위임 (풀스크린 카메라)
+  ├── 권한 게이트: useCameraPermissions 3상태 (null/granted/denied)
+  └── 출력: ISBN 감지 → router.replace('/search', {isbn})
 ```
 
 ---
@@ -263,6 +285,9 @@ if (__DEV__) {
 | `sagak://auth/callback` | OAuth 리다이렉트 | 딥링크 | 콜백 → useSession → 리다이렉트 |
 | `_dev.tsx` | 개발자 접근 | `__DEV__` true | 데모 화면 |
 | `POST /functions/v1/kakao-book-search` | Edge Function 호출 | Supabase Edge Function | handleSearchRequest → Kakao API/캐시 → 응답 |
+| `/search` | library CTA `router.push('/search')` | href:null (탭 비노출) | BookSearchScreen → searchBooks → 결과/빈 안내 (BOOK-001 M4) |
+| `/scan` | library CTA 또는 검색 화면 | href:null (풀스크린) | BarcodeScanner → 권한 게이트 → ISBN 검증 → 디바운스 → `/search` (BOOK-001 M3) |
+| `/book/{bookId}` | 검색 결과 선택 / 딥링크 | 동적 라우트 | BookDetailScreen → useSession 가드 → getBookDetail → BookRow/NOT_FOUND(S20)/RLS_DENIED(S22) (BOOK-001 M4) |
 
 ---
 
@@ -281,7 +306,16 @@ graph TD
     H -->|!auth| J[app/(auth)/login.tsx]
     H -->|auth&&!onboarded| K[app/(auth)/onboarding.tsx]
     H -->|auth&&onboarded| L[app/(tabs)/_layout.tsx]
-    L --> M[4 Tabs Render]
+    L --> M[4 Visible Tabs + 3 Hidden Routes]
+    L --> LIB[app/(tabs)/library.tsx]
+    LIB -->|CTA| SRCH[/search]
+    LIB -->|CTA| SCN[/scan]
+    SRCH --> BSS[BookSearchScreen]
+    SCN --> BSC[BarcodeScanner]
+    BSC -->|ISBN detected| SRCH
+    SRCH -->|onSelectBook| BOOKD[/book/bookId]
+    BOOKD --> BDS[BookDetailScreen]
+    BDS -->|useSession guard| F
     J --> N[User Signs In]
     N --> O[OAuth Provider]
     O --> P[sagak://auth/callback]
@@ -294,4 +328,4 @@ graph TD
 ---
 
 **Last Updated:** 2026-06-16  
-**Branch:** develop (4424251 → 852f0ac SPEC-BOOK-001 M1+M2 merged)
+**Branch:** develop (852f0ac → a293e8d SPEC-BOOK-001 M3+M4 merged)

@@ -29,7 +29,9 @@ graph TB
         F[src/theme/<br/>Theming]
         G[src/lib/api/<br/>API Layer]
         H[src/types/<br/>Domain Types]
-        Y[src/features/book/<br/>Book Domain]
+        Y[src/features/book/<br/>Book Domain M1-M4]
+        YY[src/features/book/<br/>BarcodeScanner · ISBN · Debounce]
+        YF[src/features/book/<br/>format 유틸]
     end
 
     subgraph "Infrastructure Layer (src/lib/)"
@@ -48,6 +50,7 @@ graph TB
         N[Supabase<br/>Storage]
         O[OAuth<br/>Providers]
         AA[Kakao<br/>Book Search API]
+        AB[expo-camera<br/>Barcode Scanning]
     end
 
     A --> E
@@ -66,6 +69,8 @@ graph TB
     G --> K
     Y --> G
     Y --> I
+    YY --> YF
+    YY --> AB
     Z --> AA
     Z --> L
 ```
@@ -95,7 +100,7 @@ graph TB
 | **SPEC-API-001** | API Layer | ✅ Complete | Edge Functions, 에러 처리, 재시도 로직 |
 | **SPEC-AUTH-001** | Authentication | ✅ Complete | OAuth(Kakao/Apple/Google), Session, Onboarding |
 | **SPEC-NAV-001** | Navigation System | ✅ Complete | 4-tab navigator, 가드 로직, 딥링크 |
-| **SPEC-BOOK-001** | Book Search & Detail | ✅ Complete M1+M2 | Kakao Book Search API, Edge Function(kakao-book-search), 캐시 관리, 정규화, 매퍼 (M3/M4 UI/바코드 스캔 deferred) |
+| **SPEC-BOOK-001** | Book Search & Detail | ✅ Complete M1~M4 | M1 Edge function(kakao-book-search) + M2 클라이언트 API + M3 바코드 스캔(BarcodeScanner/ISBN/Debounce) + M4 검색·상세 화면(BookSearchScreen/BookDetailScreen/SearchResultCard/format) |
 
 ## Current State
 
@@ -107,6 +112,8 @@ graph TB
 - ✅ 테마 시스템: 라이트/다크 모드, 디자인 토큰
 - ✅ 타입 안전성: TypeScript strict mode, Zod 스키마
 - ✅ 도서 검색: Kakao Book Search API 통합, Edge Function 캐싱, 정규화/매퍼 (M1+M2 완료)
+- ✅ 바코드 스캔: BarcodeScanner(expo-camera), ISBN 체크디짓 검증, 중복 스캔 디바운스 (M3 완료)
+- ✅ 검색/상세 UI: BookSearchScreen(빈 쿼리 차단/빈 결과 안내), BookDetailScreen(useSession 가드), SearchResultCard, formatPublishedMonth 공유 유틸 (M4 완료)
 
 ## Key Patterns
 
@@ -138,11 +145,16 @@ useSession() → null(loading) | {isAuthenticated, isOnboarded, ...}
 
 | Module | Fan-in | Callers | Priority |
 |--------|--------|---------|----------|
-| `useSession` | 4+ | index, (tabs)/_layout, (auth)/_layout, callback | HIGH |
+| `useSession` | 5+ | index, (tabs)/_layout, (auth)/_layout, callback, BookDetailScreen | HIGH |
 | `useTheme` | 6+ | All components, layouts | HIGH |
-| `tokens` | 3+ | Theme provider, components | MEDIUM |
-| `getSupabaseClient` | 임계적 | AuthContext, all API calls | CRITICAL |
+| `tokens` | 4+ | Theme provider, components, BarcodeScanner, BookSearchScreen | MEDIUM |
+| `getSupabaseClient` | 임계적 | AuthContext, all API calls, getBookDetail | CRITICAL |
 | `supabaseStorageAdapter` | 1 | Supabase client init | MEDIUM |
+| `searchBooks` | 1 (→3+ 예상) | BookSearchScreen (현재), BarcodeScanner/BookDetailScreen (확장 예상) | HIGH |
+| `getBookDetail` | 1 (→3+ 예상) | BookDetailScreen (현재), 검색 결과 선택/서재 (확장 예상) | HIGH |
+| `formatPublishedMonth` | 2 | SearchResultCard, BookDetailScreen | MEDIUM |
+| `isValidIsbn` | 1 | BarcodeScanner | MEDIUM |
+| `shouldSuppressDuplicate` | 1 | BarcodeScanner | MEDIUM |
 
 ## Tech Stack Details
 
@@ -182,16 +194,14 @@ Prettier (Formatting)
 
 ## Next Steps
 
-1. **SPEC-BOOK-001 M3:** 도서 검색 화면 구현 (BookSearchScreen)
-2. **SPEC-BOOK-001 M4:** 도서 상세 화면 구현 (BookDetailScreen)
-3. **SPEC-BOOK-001 M3:** 바코드 스캔 통합 (ISBN 자동 전환)
-4. **SPEC-RECORD-001:** 감정 기록 기능 구현 (EmotionRecord API + UI)
-5. **SPEC-SOCIAL-001:** 소셜 기능 추가 (팔로우, 댓글, 좋아요)
-6. **SPEC-NOTIF-001:** 알림 시스템 (Push notifications, In-app notifications)
-7. **테스트 커버리지 확대:** 현재 317개 테스트 → 목표 85%+ 커버리지
+1. **SPEC-LIBRARY-001:** 서재 모듈 — ISBN→bookId 매핑 정규화(search.tsx `/book/${isbn}` vs `[bookId]` UUID 기대, 현재 known-issue)
+2. **SPEC-RECORD-001:** 감정 기록 기능 구현 (EmotionRecord API + UI)
+3. **SPEC-SOCIAL-001:** 소셜 기능 추가 (팔로우, 댓글, 좋아요)
+4. **SPEC-NOTIF-001:** 알림 시스템 (Push notifications, In-app notifications)
+5. **테스트 커버리지 확대:** 현재 317+ 테스트 → 목표 85%+ 커버리지
 
 ---
 
 **Last Updated:** 2026-06-16  
-**Branch:** develop (4424251 → 852f0ac SPEC-BOOK-001 M1+M2 merged)  
+**Branch:** develop (852f0ac → a293e8d SPEC-BOOK-001 M3+M4 merged)  
 **Maintainer:** MoAI Documentation System
