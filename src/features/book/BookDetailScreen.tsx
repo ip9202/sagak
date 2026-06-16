@@ -26,6 +26,7 @@ import {
 import { useTheme } from '../../theme/theme';
 import { useSession } from '../../auth/useSession';
 import { getBookDetail } from './bookDetailApi';
+import { formatPublishedMonth } from './format';
 import type { BookRow } from '../../types/book';
 
 export interface BookDetailScreenProps {
@@ -49,13 +50,8 @@ const initialState: DetailState = {
   errorMessage: null,
 };
 
-/**
- * REQ-BOOK-015: 출판일 ISO(YYYY-MM-DD) → "YYYY.MM" 포맷 (SearchResultCard 와 일관성).
- */
-function formatPublishedMonth(iso: string | null): string | null {
-  if (!iso || iso.length < 7) return null;
-  return iso.slice(0, 7).replace('-', '.');
-}
+// @MX:NOTE: [AUTO] formatPublishedMonth 는 공유 유틸로 추출 (DRY, src/features/book/format.ts)
+//           SearchResultCard(M4-1) 과 동일 포맷 공유 — REQ-BOOK-014/REQ-BOOK-015
 
 /**
  * 에러 카테고리별 사용자 메시지 매핑 (S20: NOT_FOUND, S22: RLS_DENIED).

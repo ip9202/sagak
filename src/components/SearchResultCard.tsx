@@ -12,6 +12,7 @@ import React from 'react';
 import { Pressable, Text, View, Image, StyleSheet } from 'react-native';
 import { Card } from './Card';
 import { useTheme } from '../theme/theme';
+import { formatPublishedMonth } from '../features/book/format';
 import type { SearchResult } from '../types/book';
 
 export interface SearchResultCardProps {
@@ -22,15 +23,8 @@ export interface SearchResultCardProps {
   testID?: string;
 }
 
-/**
- * REQ-BOOK-014: 출판일 ISO(YYYY-MM-DD) → "YYYY.MM" 포맷.
- * @MX:NOTE: [AUTO] Kakao datetime → date 변환 결과가 YYYY-MM-DD 형태이므로 앞 7자리(- → .)
- */
-function formatPublishedMonth(iso: string | null): string | null {
-  if (!iso || iso.length < 7) return null;
-  // "2021-06-15" → "2021.06"
-  return iso.slice(0, 7).replace('-', '.');
-}
+// @MX:NOTE: [AUTO] formatPublishedMonth 는 공유 유틸로 추출 (DRY, src/features/book/format.ts)
+//           BookDetailScreen(M4-3) 과 동일 포맷 공유 — REQ-BOOK-014/REQ-BOOK-015
 
 /**
  * @MX:ANCHOR: [AUTO] SearchResultCard — 검색 결과 카드 공개 컴포넌트
