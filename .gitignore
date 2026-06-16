@@ -8,6 +8,8 @@ node_modules/
 dist/
 
 # Native
+ios/
+android/
 *.orig.*
 *.jks
 *.p8
@@ -55,3 +57,4 @@ coverage/
 
 # MoAI logs
 .moai/logs/
+.moai/reports/
