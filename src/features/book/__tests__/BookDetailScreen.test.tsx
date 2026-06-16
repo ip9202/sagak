@@ -171,6 +171,25 @@ describe('BookDetailScreen — S20: NOT_FOUND 에러', () => {
   });
 });
 
+describe('BookDetailScreen — S22 엣지: RLS_DENIED 에러', () => {
+  it('RLS_DENIED 에러 시 "접근 권한이 없습니다" 메시지를 표시한다', async () => {
+    const rlsError = new AppError(
+      '행 수준 보안 정책에 의해 차단되었습니다',
+      'RLS_DENIED',
+      403
+    );
+    rlsError.category = 'RLS_DENIED';
+    mockedGetBookDetail.mockRejectedValueOnce(rlsError);
+    const { getByText } = renderScreen({
+      bookId: 'forbidden-id',
+      onRequireAuth: jest.fn(),
+    });
+    await waitFor(() => {
+      expect(getByText(/접근 권한이 없습니다/)).toBeTruthy();
+    });
+  });
+});
+
 describe('BookDetailScreen — 로딩 상태', () => {
   it('getBookDetail 진행 중 ActivityIndicator 를 표시한다', async () => {
     // 결코 resolve 되지 않음 — 로딩 상태 유지

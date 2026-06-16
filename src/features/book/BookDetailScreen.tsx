@@ -88,10 +88,13 @@ export const BookDetailScreen: React.FC<BookDetailScreenProps> = ({
 
   // S22: 세션 로딩(useSession null) 또는 미인증 가드
   const isAuthenticated = session?.isAuthenticated ?? false;
+  // @MX:NOTE: [AUTO] sessionLoading 스칼라 분해 — useSession 이 매 렌더 신규 객체를 반환해도
+  // 의존성 배열에서 객체 참조 변경으로 인한 불필요한 getBookDetail 재호출을 방지
+  const sessionLoading = session === null;
 
   useEffect(() => {
     // useSession 이 null(loading) 인 경우 — 대기 (API 호출 없음)
-    if (session === null) return;
+    if (sessionLoading) return;
 
     // 미인증 — onRequireAuth 호출, API 호출 없음
     if (!isAuthenticated) {
@@ -123,10 +126,10 @@ export const BookDetailScreen: React.FC<BookDetailScreenProps> = ({
     return () => {
       cancelled = true;
     };
-  }, [session, isAuthenticated, bookId, onRequireAuth]);
+  }, [sessionLoading, isAuthenticated, bookId, onRequireAuth]);
 
   // S22: 세션 로딩 또는 상세 로딩 — ActivityIndicator
-  if (session === null || state.status === 'loading' || state.status === 'idle') {
+  if (sessionLoading || state.status === 'loading' || state.status === 'idle') {
     return (
       <View
         testID="book-detail-loading"
