@@ -9,12 +9,16 @@
  * - authenticated & !isOnboarded → router.replace('/(auth)/onboarding') (G6, EC3)
  * - 그 외                → Tabs 렌더링
  *
+ * React 19 호환: router.replace()는 useEffect 에서만 호출한다(렌더링 중
+ * NavigationContainerInner 상태 갱신 시 런타임 에러). index.tsx 진입 분기와
+ * 동일한 useEffect 패턴을 사용한다.
+ *
  * 탭 구성 (REQ-NAV-001):
  * 홈(home) → 서재(book-open) → 모임(users) → 마이(user)
  * 모든 스타일 값은 useTheme() 토큰에서 임포트 (REQ-NAV-003, 하드코딩 금지).
  */
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { ActivityIndicator, View } from 'react-native';
 import { Tabs, useRouter } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
@@ -28,8 +32,35 @@ export default function TabsLayout() {
   const router = useRouter();
   const theme = useTheme();
 
-  // EC7: loading 시 아무 리다이렉트도 하지 않고 인디케이터만 표시 → 리다이렉트 루프 방지
-  if (s === null) {
+  // 원시값으로 추출 — useEffect 의존성 무한 루프 방지
+  const loading = s === null;
+  const isAuthenticated = s?.isAuthenticated ?? false;
+  const isOnboarded = s?.isOnboarded ?? false;
+
+  // @MX:WARN: [AUTO] replace 호출은 useEffect 내에서만 — 렌더링 중 호출 시 React 19 런타임 에러
+  // @MX:REASON: NavigationContainerInner 의 상태를 렌더링 도중 갱신하면
+  //             "Cannot update a component while rendering a different component" 에러로 앱 부팅이 막힌다.
+  useEffect(() => {
+    // EC7: loading 시 아무 리다이렉트도 하지 않음 → 리다이렉트 루프 방지
+    if (loading) return;
+
+    // G4: 미인증 사용자의 (tabs) 접근 차단 → login
+    // @MX:WARN: [AUTO] replace 사용 필수 — push 사용 시 백스택에 보호 화면이 남아 인증 후 다시 노출됨
+    // @MX:REASON: 사용자가 로그인한 뒤 백버튼으로 보호된 콘텐츠에 접근하는 시나리오를 차단하기 위해 replace 사용.
+    if (!isAuthenticated) {
+      router.replace('/(auth)/login');
+      return;
+    }
+
+    // G6/EC3: 인증됐으나 온보딩 미완료 → onboarding
+    if (!isOnboarded) {
+      router.replace('/(auth)/onboarding');
+      return;
+    }
+  }, [loading, isAuthenticated, isOnboarded, router]);
+
+  // EC7: loading 시 인디케이터만 렌더 → 리다이렉트 루프 방지
+  if (loading) {
     return (
       <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: theme.colors.bg.base }}>
         <ActivityIndicator size="large" color={theme.colors.brand[500]} />
@@ -37,17 +68,8 @@ export default function TabsLayout() {
     );
   }
 
-  // G4: 미인증 사용자의 (tabs) 접근 차단 → login
-  if (!s.isAuthenticated) {
-    // @MX:WARN: [AUTO] replace 사용 필수 — push 사용 시 백스택에 보호 화면이 남아 인증 후 다시 노출됨
-    // @MX:REASON: 사용자가 로그인한 뒤 백버튼으로 보호된 콘텐츠에 접근하는 시나리오를 차단하기 위해 replace 사용.
-    router.replace('/(auth)/login');
-    return null;
-  }
-
-  // G6/EC3: 인증됐으나 온보딩 미완료 → onboarding
-  if (!s.isOnboarded) {
-    router.replace('/(auth)/onboarding');
+  // 미인증/온보딩미완 — useEffect 가 리다이렉트 수행하는 동안 빈 화면
+  if (!isAuthenticated || !isOnboarded) {
     return null;
   }
 

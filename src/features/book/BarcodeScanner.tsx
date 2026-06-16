@@ -32,8 +32,19 @@ export interface BarcodeScannerProps {
 /**
  * REQ-BOOK-007 / S9: ISBN 바코드로 허용하는 타입 (EAN-13, UPC-A)
  * QR/Code128 등은 ISBN 인코딩에 사용되지 않으므로 무시한다.
+ *
+ * iOS expo-camera 가 네이티브 AVMetadataObjectType('org.gs1.EAN-13') 을
+ * 그대로 노출할 수 있어 Android('ean13') 와 통일하기 위해 정규화 매칭을 사용한다.
+ * 실기기 검증: iPhone 12 Pro (SPEC-BOOK-001 QA 항목).
  */
-const ISBN_BARCODE_TYPES = new Set(['ean13', 'upc_a']);
+function isIsbnBarcodeType(type: string): boolean {
+  const t = type.toLowerCase();
+  // EAN-13: 'ean13' (Android) / 'org.gs1.ean-13' (iOS) 모두 수용
+  if (t === 'ean13' || t.includes('ean-13')) return true;
+  // UPC-A: 'upc_a' (Android) / 'org.gs1.upc-a' (iOS)
+  if (t === 'upc_a' || t.includes('upc-a')) return true;
+  return false;
+}
 
 /**
  * @MX:ANCHOR: [AUTO] BarcodeScanner — 카메라 권한·바코드 인식·디바운스 통합 진입점
@@ -71,8 +82,8 @@ export const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
 
       const { type, data } = result;
 
-      // REQ-BOOK-007 / S9: ISBN 바코드 타입만 허용 (QR/Code128 무시)
-      if (!ISBN_BARCODE_TYPES.has(type)) return;
+      // REQ-BOOK-007 / S9: ISBN 바코드 타입만 허용 (정규화 매칭, QR/Code128 무시)
+      if (!isIsbnBarcodeType(type)) return;
 
       // REQ-BOOK-007: 데이터가 유효한 ISBN 인지 검증
       if (!isValidIsbn(data)) return;
