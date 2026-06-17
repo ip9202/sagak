@@ -558,3 +558,198 @@ PR #11 머지 반영하여 OAuth provider 변경을 코드맵에 갱신함. appl
 
 **검증 완료:** 2026-06-17 (PR #11)
 **업데이트 담당:** MoAI Documentation System
+
+---
+
+# 4차 업데이트: SPEC-EMOTION-001 구현 완료 (2026-06-17)
+
+## 개요 (4차)
+
+SPEC-EMOTION-001 구현 완료(a1ce6cf) 반영하여 감정 아카이브 및 스티커 반응 기능을 코드맵에 갱신함. 8개 source 파일 + 10개 test 파일, 1333 LOC source, 10 REQ coverage, 92.47% coverage.
+
+## 변경사항 요약 (4차)
+
+### 1. modules.md
+**변경 내용:**
+- ✅ Components 섹션 갱신: StickerReaction 설명 추가("3종 스티커: empathy/touching/comforted"), EmotionRecordCard 설명 추가("스포일러 블러 12px, 아바타+닉네임+페이지+본문+스티커")
+- ✅ **신규 섹션:** Emotion Domain (`src/features/emotion/`) 추가
+  - `index.ts` (barrel)
+  - `types.ts` (EmotionRecordWithAuthor, StickerAggregate, Visibility, CreateInput, UpdateInput, SortOption)
+  - `emotionApi.ts` (PostgREST 직접, create/list/update/delete, client-side pre-validation, sticker GROUP BY)
+  - `stickerApi.ts` (precheck/create/delete/aggregate, 409 UNIQUE→VALIDATION mapping via normalizeError, no upsert)
+  - `useEmotionRecords.ts` (React Query 훅, queryKey ['emotion',{bookId,userId}], cache invalidation)
+  - `useStickerReaction.ts` (optimistic update + 409 rollback, useReplaceSticker DELETE→POST)
+  - `questionPrompts.ts` (정적 풀 5개, round-robin by currentPage seed)
+  - `EmotionInputScreen.tsx` (입력 화면, page/content/question/visibility toggle, pageNumber validation)
+  - `TimelineScreen.tsx` (EmotionRecordCard list, sort toggle time/page, spoiler blur via isSpoiler prop)
+- ✅ 계층별 모듈 분포 업데이트:
+  - Business: 38+개 → 46+개 (+8 Emotion 도메인)
+
+**영향 범위:**
+- 모듈 카탈로그: 63+ → 71+ (Emotion 도메인 +8)
+- @MX:ANCHOR 후보: 10개 → 12개 (emotionApi, stickerApi 추가 예상)
+
+---
+
+### 2. data-flow.md
+**변경 내용:**
+- ✅ 헤더 갱신: EMOTION-001 추가
+- ✅ **신규 섹션 9:** Emotion Record Flow (감정 기록 CRUD) — EmotionInputScreen → useEmotionRecords → emotionApi → PostgREST → RLS → sticker aggregate 시퀀스 다이어그램
+- ✅ **신규 섹션 10:** Sticker Reaction Flow (스티커 반응 + 409 처리) — useStickerReaction → precheck → DELETE→POST (useReplaceSticker) / 409 UNIQUE→VALIDATION mapping 시퀀스 다이어그램
+- ✅ Data Flow Summary 테이블에 2행 추가: Emotion Record CRUD, Sticker Reaction
+
+**영향 범위:**
+- Mermaid 시퀀스 다이어그램 2개 추가
+- 데이터 흐름 섹션 2개 추가 (각 80-100 라인)
+- Data Flow Summary (2행 추가)
+
+---
+
+### 3. entry-points.md
+**변경 내용:**
+- ✅ Entry Point Invocation Summary에 4행 추가: emotionApi.create, emotionApi.list, stickerApi.create, useStickerReaction.toggle
+- ✅ 각 진입점에 EMOTION-001 REQ 참조 추가
+
+**영향 범위:**
+- Entry Point Invocation Summary (4행 추가)
+
+---
+
+### 4. overview.md
+**변경 내용:**
+- ✅ SPEC Coverage 테이블: SPEC-EMOTION-001 추가 (Status: ✅ Complete, 2026-06-17, Key Components 상세 설명)
+- ✅ Current State: 감정 아카이브 항목 추가 (10 REQ coverage, 627/627 tests pass, 92.47% coverage)
+- ✅ Next Steps 재구성: SPEC-RECORD-001 제거(EMOTION-001으로 완료), SPEC-FEED-001을 1순위로 이동, 테스트 커버리지 85%+ 달성 완료 표시
+- ✅ 브랜치 정보: c6630ae → a1ce6cf
+
+**영향 범위:**
+- SPEC Coverage (1행 추가)
+- Current State (1항목 추가)
+- Next Steps (재구성)
+
+---
+
+## SPEC-EMOTION-001 구현 요약
+
+### Files Created (8 source + 10 tests)
+
+**Source files (1333 LOC):**
+1. `src/features/emotion/types.ts` — DB Row derived types
+2. `src/features/emotion/emotionApi.ts` — create (pre-validate) / list (users join + sticker GROUP BY) / update / delete
+3. `src/features/emotion/stickerApi.ts` — precheck / create (409 UNIQUE→VALIDATION mapping) / delete / aggregate
+4. `src/features/emotion/useEmotionRecords.ts` — React Query hook (queryKey root, mutations, cache invalidation)
+5. `src/features/emotion/useStickerReaction.ts` — optimistic update + 409 rollback + useReplaceSticker (DELETE→POST)
+6. `src/features/emotion/questionPrompts.ts` — static pool (5 prompts, round-robin by currentPage)
+7. `src/features/emotion/EmotionInputScreen.tsx` — input screen (page/content/question/visibility toggle)
+8. `src/features/emotion/TimelineScreen.tsx` — timeline (EmotionRecordCard list, sort toggle, spoiler blur)
+
+**Test files (627 tests pass, 92.47% coverage):**
+- `types.test.ts` — Type validation
+- `emotionApi.create.test.ts` — Create scenarios (EC-1 pre-validate)
+- `emotionApi.list.test.ts` — List scenarios (EC-7, EC-8 client split)
+- `emotionApi.updateDelete.test.ts` — Update/Delete scenarios
+- `stickerApi.test.ts` — Sticker scenarios (EC-11 409 mapping)
+- `useEmotionRecords.test.tsx` — React Query hook (cache invalidation)
+- `useStickerReaction.test.tsx` — Sticker hook (optimistic update, rollback)
+- `questionPrompts.test.ts` — Round-robin logic
+- `EmotionInputScreen.test.tsx` — Input screen UI (EC-12 maxLength 120)
+- `TimelineScreen.test.tsx` — Timeline UI (EC-5, EC-7, EC-8)
+
+### REQ Coverage
+
+- REQ-EMO-001: 감정 기록 생성 ✅
+- REQ-EMO-002: 감정 기록 조회 (스포일러 필터 + 작성자 조인 + 스티커 집계) ✅
+- REQ-EMO-003: 감정 기록 수정 ✅
+- REQ-EMO-004: 감정 기록 삭제 ✅
+- REQ-EMO-005: 단어 질문지 제안 ✅
+- REQ-EMO-006: 스티커 반응 등록 ✅
+- REQ-EMO-007: 스티커 반응 취소 ✅
+- REQ-EMO-008: 스포일러 블러 처리 ✅
+- REQ-EMO-009: 타임라인 뷰 (페이지순/시간순) ✅
+- REQ-EMO-010: 공개 범위 제어 ✅
+
+**Total: 10/10 REQ covered (100%)**
+
+### Key Architecture Decisions
+
+1. **PostgREST 직접 호출**: Edge Function 없이 PostgREST 직접 호출 (단순 CRUD)
+2. **스티커 409 no-upsert**: UNIQUE 위반 시 업서트 대신 DELETE→POST 재등록 유도 패턴
+3. **Sticker GROUP BY realtime**: 클라이언트에서 시뮬레이션 (MVP 단순화)
+4. **Spoiler blur client-side**: list API에서 current_page 기준 split 후 UI에 isSpoiler prop 전달
+5. **Question prompts 정적 풀**: MVP에서 5개 정적 질문 라운드 로빈 (진도 구간 매핑은 v1.1.0 연기)
+
+### Test Results
+
+- 627/627 tests pass
+- 92.47% statements coverage (target 85%+ exceeded)
+- 87.73% branches coverage
+- 96.15% functions coverage
+- 92.34% lines coverage
+
+### Known MINOR Follow-ups
+
+1. **bookTitle 필요성**: listEmotionRecords에서 books 테이블 조인으로 book_title 추가 (deferred, 현재는 book_id만)
+2. **normalizeError 패턴 확인**: 409 UNIQUE→VALIDATION mapping 정상 동작 확인 완료 (no change needed)
+
+---
+
+## 순환 의존성 검증 결과 (4차)
+
+**결론:** ✅ **순환 의존성 없음 (EMOTION 모듈 추가 후에도 정상)**
+
+**검증 항목:**
+1. ✅ `app/` → `src/` (단방향)
+2. ✅ `src/features/emotion/` → `src/lib/api/` → `src/lib/supabase/` (단방향)
+3. ✅ `src/features/emotion/` → `src/lib/query/` (단방향)
+4. ✅ `src/features/emotion/` → `src/components/` (단방향, EmotionRecordCard/StickerReaction 소비)
+5. ✅ `src/components/` 는 `src/features/emotion/`를 임포트하지 않음
+
+---
+
+## 모듈 수 변화 (4차)
+
+| 계층 | 3차 후 (PR #11) | 4차 후 (EMOTION-001) | 증가 |
+|------|---------------|---------------------|------|
+| **Presentation (app/)** | 15개 | 15개 | 0 |
+| **Business (src/)** | 38+개 | 46+개 | +8 |
+| ├── AUTH | 6개 | 6개 | 0 |
+| ├── Theme | 3개 | 3개 | 0 |
+| ├── API | 4개 | 4개 | 0 |
+| ├── Types | 3개 | 3개 | 0 |
+| ├── Book Domain | 9개 | 9개 | 0 |
+| ├── Library Domain | 6개 | 6개 | 0 |
+| ├── **Emotion Domain** | 0개 | **8개** | **+8 (신규)** |
+| └── Components | 7개 | 7개 | 0 |
+| **Infrastructure (src/lib/)** | 5개 | 5개 | 0 |
+| **Edge Functions** | 5개 | 5개 | 0 |
+| **총계** | **63+개** | **71+개** | **+8** |
+
+---
+
+## @MX:ANCHOR 후보 변화 (4차)
+
+| 모듈 | Fan-in | 우선순위 | 3차 상태 | 4차 상태 |
+|------|--------|----------|---------|---------|
+| `useSession` | 5+ | HIGH | 적용됨 | 적용됨 |
+| `useTheme` | 6+ | HIGH | 적용됨 | 적용됨 |
+| `tokens` | 4+ | MEDIUM | 적용됨 | 적용됨 |
+| `getSupabaseClient` | 임계적 | CRITICAL | 적용됨 | 적용됨 |
+| `searchBooks` | 1+ | HIGH | 적용됨 | 적용됨 |
+| `getBookDetail` | 1+ | HIGH | 적용됨 | 적용됨 |
+| **`emotionApi`** | **2+ (예상)** | **HIGH** | **-** | **신규 후보** |
+| **`stickerApi`** | **2+ (예상)** | **HIGH** | **-** | **신규 후보** |
+
+**총계:** 10개 → 12개 (+2 신규 후보)
+
+---
+
+## 브랜치 정보 (4차)
+
+- **3차 기준:** develop (c6630ae - PR #11 OAuth provider 변경)
+- **4차 기준:** develop (a1ce6cf - SPEC-EMOTION-001 구현 완료)
+- **추가된 커밋:** a1ce6cf (PR #12 머지)
+
+---
+
+**검증 완료:** 2026-06-17 (SPEC-EMOTION-001)
+**업데이트 담당:** MoAI Documentation System

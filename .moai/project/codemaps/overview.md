@@ -107,19 +107,18 @@ graph TB
 
 | SPEC ID | Title | Status | Key Components |
 |---------|-------|--------|----------------|
-| **SPEC-UI-001** | Component System | ✅ Complete | Button, Card, ProgressBar, EmotionRecordCard, StickerReaction |
-| **SPEC-DB-001** | Database Schema | ✅ Complete | Book, EmotionRecord, User, Profile, user_books 테이블 (RLS 포함) |
+| **SPEC-UI-001** | Component System | ✅ Complete | Button, Card, ProgressBar, EmotionRecordCard(스포일러 블러 12px, 아바타+닉네임+페이지+본문+스티커), StickerReaction(3종 스티커: empathy/touching/comforted) |
+| **SPEC-DB-001** | Database Schema | ✅ Complete | Book, EmotionRecord, StickerType, User, Profile, user_books 테이블 (RLS 포함, emotion_records/sticker_reactions 포함) |
 | **SPEC-API-001** | API Layer | ✅ Complete | Edge Functions, 에러 처리, 재시도 로직, Supabase 클라이언트(createClient<Database>) |
 | **SPEC-AUTH-001** | Authentication | ✅ Complete | OAuth(Kakao/Naver/Google), Session, Onboarding |
 | **SPEC-NAV-001** | Navigation System | ✅ Complete | 4-tab navigator, 가드 로직, 딥링크 |
 | **SPEC-BOOK-001** | Book Search & Detail | ✅ Complete M1~M4 | M1 Edge function(kakao-book-search) + M2 클라이언트 API + M3 바코드 스캔(BarcodeScanner/ISBN/Debounce) + M4 검색·상세 화면(BookSearchScreen/BookDetailScreen/SearchResultCard/format) |
 | **SPEC-LIBRARY-001** | Library & Progress | ✅ Complete | Library CRUD API, React Query v5 QueryClient 싱글톤, useLibrary/useLibraryItem 훅, resolveBookId(ISBN→UUID, @MX:ANCHOR), progressValidation/progressRate 유틸, BookDetailScreen 서재 통합 |
-| **SPEC-LIBRARY-001** | Library & Progress | ✅ Complete | Library CRUD API, React Query v5 QueryClient 싱글톤, useLibrary/useLibraryItem 훅, resolveBookId(ISBN→UUID, @MX:ANCHOR), progressValidation/progressRate 유틸, BookDetailScreen 서재 통합 |
-| **SPEC-LIBRARY-001** | Library & Progress | ✅ Complete | Library CRUD API(getLibrary/addBook/deleteBook/updateProgress/updateStatus/updateVisibility), React Query QueryClient 싱글톤, useLibrary/useLibraryItem 훅, resolveBookId(ISBN→UUID), progressValidation/progressRate 유틸, BookDetailScreen 서재 통합(진행률 표시 + mutations) |
+| **SPEC-EMOTION-001** | Emotion Archive & Sticker Reactions | ✅ Complete (2026-06-17) | src/features/emotion/ (8 files + 10 tests), emotionApi(PostgREST 직접, create/list/update/delete), stickerApi(precheck/create/delete/aggregate, 409 UNIQUE→VALIDATION mapping, no upsert), useEmotionRecords(React Query 훅, queryKey ['emotion',{bookId,userId}]), useStickerReaction(optimistic update + 409 rollback, useReplaceSticker DELETE→POST), questionPrompts(정적 풀 5개, round-robin by currentPage), EmotionInputScreen(입력 화면, pageNumber validation), TimelineScreen(EmotionRecordCard list, sort toggle time/page, spoiler blur via isSpoiler prop), EmotionRecordCard/StickerReaction 컴포넌트(SPEC-UI-001), 10 REQ coverage (REQ-EMO-001~010), 627/627 tests pass, 92.47% coverage |
 
 ## Current State
 
-**Phase 1: Foundation Complete** (2026-06-16 기준)
+**Phase 1: Foundation Complete** (2026-06-17 기준)
 
 - ✅ 인증 시스템: Supabase OAuth 통합, 세션 관리, 온보딩 플로우
 - ✅ 내비게이션: 4탭 구조, 인증/온보딩 가드, 딥링크 콜백
@@ -130,6 +129,7 @@ graph TB
 - ✅ 바코드 스캔: BarcodeScanner(expo-camera), ISBN 체크디짓 검증, 중복 스캔 디바운스 (M3 완료)
 - ✅ 검색/상세 UI: BookSearchScreen(빈 쿼리 차단/빈 결과 안내), BookDetailScreen(useSession 가드), SearchResultCard, formatPublishedMonth 공유 유틸 (M4 완료)
 - ✅ 서재 모듈: Library CRUD API, React Query QueryClient 싱글톤(globalThis 캐시), useLibrary/useLibraryItem 훅(staleTime 0, optimistic updates), resolveBookId(ISBN→UUID 매핑, @MX:ANCHOR), progressValidation/progressRate 유틸, BookDetailScreen 서재 통합(진행률 표시 + 진도/상태/공개 mutations) (LIBRARY-001 완료)
+- ✅ 감정 아카이브: EmotionInputScreen(페이지별 감정 기록 입력, 질문지 유도), TimelineScreen(EmotionRecordCard list, 페이지순/시간순 토글, 스포일러 블러), emotionApi(PostgREST 직접, create/list/update/delete), stickerApi(precheck/create/delete/aggregate, 409 UNIQUE→VALIDATION mapping), useEmotionRecords(React Query 훅), useStickerReaction(optimistic update + 409 rollback), questionPrompts(정적 풀 5개), 10 REQ coverage (REQ-EMO-001~010), 627/627 tests pass, 92.47% coverage (EMOTION-001 완료)
 
 ## Key Patterns
 
@@ -218,10 +218,10 @@ Prettier (Formatting)
 
 ## Next Steps
 
-1. **SPEC-RECORD-001:** 감정 기록 기능 구현 (EmotionRecord API + UI)
-2. **SPEC-SOCIAL-001:** 소셜 기능 추가 (팔로우, 댓글, 좋아요)
+1. **SPEC-FEED-001:** 모임 피드 기능 구현 (진도별 슬라이딩 피드, Realtime 구독, 스포일러 방지)
+2. **SPEC-SOCIAL-001:** 소셜 기능 추가 (팔로우, 댓글, 좋아요 — 비목표, 스티커만으로 상호작용)
 3. **SPEC-NOTIF-001:** 알림 시스템 (Push notifications, In-app notifications)
-4. **테스트 커버리지 확대:** 현재 462+ 테스트 → 목표 85%+ 커버리지
+4. **테스트 커버리지 확대:** 현재 627+ 테스트, 92.47% coverage (목표 85%+ 달성 완료)
 
 ---
 

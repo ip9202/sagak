@@ -89,6 +89,20 @@
 | Progress Validation | `src/features/library/progressValidation.ts` | Business (순수함수) | 진도 검증 — 페이지 상한, 음수 차단 | validatePage(current_page, total_pages) → ValidationError | LIBRARY-001 REQ-LIB-011 |
 | Progress Rate | `src/features/library/progressRate.ts` | Business (순수함수) | 진도률 계산 | calcProgressRate(current_page, total_pages) → number (0~100, 정수) | LIBRARY-001 REQ-LIB-012 |
 
+### Emotion Domain (`src/features/emotion/`)
+
+| 모듈 | 경로 | 계층 | 목적 | 주요 익스포트 | SPEC 참조 |
+|------|------|------|------|-------------|-----------|
+| Emotion Barrel | `src/features/emotion/index.ts` | Business | Emotion 도메인 barrel | emotionApi, stickerApi, useEmotionRecords, useStickerReaction, types | EMOTION-001 |
+| Emotion Types | `src/features/emotion/types.ts` | Business | Emotion 도메인 타입 (DB Row derived) | EmotionRecordWithAuthor, StickerAggregate, Visibility (ENUM), CreateInput, UpdateInput, SortOption | EMOTION-001 REQ-EMO-001~004 |
+| Emotion API | `src/features/emotion/emotionApi.ts` | Business | 감정 기록 CRUD API (PostgREST 직접) | create(사전 검증), list(users 조인 + sticker GROUP BY + client-side spoiler split), update, delete | EMOTION-001 REQ-EMO-001~004 |
+| Sticker API | `src/features/emotion/stickerApi.ts` | Business | 스티커 반응 API (409 UNIQUE→VALIDATION mapping, no upsert) | precheck, create(409→VALIDATION mapping via normalizeError, no upsert), delete, aggregate | EMOTION-001 REQ-EMO-006~007 |
+| Emotion Hook | `src/features/emotion/useEmotionRecords.ts` | Business | 감정 기록 React Query 훅 | queryKey ['emotion',{bookId,userId}] root, list key with sort, CRUD mutations, cache invalidation | EMOTION-001 REQ-EMO-001~004 |
+| Sticker Hook | `src/features/emotion/useStickerReaction.ts` | Business | 스티커 반응 훅 (optimistic update + 409 rollback) | optimistic update, 409 rollback, useReplaceSticker(DELETE→POST) | EMOTION-001 REQ-EMO-006~007 |
+| Question Prompts | `src/features/emotion/questionPrompts.ts` | Business (순수함수) | 단어 질문지 정적 풀 (round-robin by currentPage seed) | getQuestionPrompt(currentPage) → string, static pool (5개), deterministic round-robin | EMOTION-001 REQ-EMO-005 |
+| Emotion Input Screen | `src/features/emotion/EmotionInputScreen.tsx` | Presentation | 감정 기록 입력 화면 | input screen (page/content/question/visibility toggle, pageNumber validation) | EMOTION-001 REQ-EMO-001/005/010 |
+| Timeline Screen | `src/features/emotion/TimelineScreen.tsx` | Presentation | 타임라인 화면 (EmotionRecordCard list) | EmotionRecordCard list, sort toggle (time/page), spoiler blur via isSpoiler prop | EMOTION-001 REQ-EMO-002/008/009 |
+
 ### Query Infrastructure (`src/lib/query/`)
 
 | 모듈 | 경로 | 계층 | 목적 | 주요 익스포트 | SPEC 참조 |
@@ -110,8 +124,8 @@
 | Book Card | `src/components/BookCard.tsx` | Presentation | 도서 카드 (검색 결과용) | BOOK-001 |
 | Search Result Card | `src/components/SearchResultCard.tsx` | Presentation | 검색 결과 카드 | BOOK-001 |
 | Progress Bar | `src/components/ProgressBar.tsx` | Presentation | 진행률 바 (서재 진도) | LIBRARY-001 |
-| Sticker Reaction | `src/components/StickerReaction.tsx` | Presentation | 스티커 리액션 | EMOTION-001 |
-| Emotion Record Card | `src/components/EmotionRecordCard.tsx` | Presentation | 감상문 카드 | EMOTION-001 |
+| Sticker Reaction | `src/components/StickerReaction.tsx` | Presentation | 스티커 리액션 (3종 스티커: empathy/touching/comforted) | EMOTION-001 |
+| Emotion Record Card | `src/components/EmotionRecordCard.tsx` | Presentation | 감상문 카드 (스포일러 블러 12px, 아바타+닉네임+페이지+본문+스티커) | EMOTION-001 |
 | Button | `src/components/Button.tsx` | Presentation | 공통 버튼 | UI-001 |
 
 ## External Dependencies

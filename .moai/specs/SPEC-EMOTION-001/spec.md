@@ -2,9 +2,9 @@
 id: SPEC-EMOTION-001
 title: "감정 아카이브 및 스티커 반응"
 version: "1.0.0"
-status: draft
+status: completed
 created: 2026-06-14
-updated: 2026-06-14
+updated: 2026-06-17
 author: "강력쇠주먹"
 priority: high
 issue_number: 0
@@ -251,3 +251,89 @@ labels: [emotion, archive, sticker, rls, supabase, phase-2]
 | SPEC-DB-001 | `emotion_records`(REQ-DB-004), `sticker_reactions`(REQ-DB-005), RLS(REQ-DB-016/017), ENUM `sticker_type`, UNIQUE `(record_id, user_id)`, CHECK `visibility='club' → club_id NOT NULL` |
 | SPEC-UI-001 | `EmotionRecordCard`(REQ-FE-024: 스포일러 블러 12px, 아바타+닉네임+페이지+본문+스티커), `StickerReaction`(REQ-FE-025: 3종 스티커) |
 | SPEC-LIBRARY-001 | 책 컨텍스트(`book_id`, `user_books.current_page` — 스포일러 기준), 서재 등록 검증 |
+
+---
+
+## Implementation Notes
+
+**Status:** ✅ Completed (2026-06-17)
+**PR:** #12 (commit a1ce6cf)
+**Phase:** Run (TDD) → Sync
+
+### Files Created
+
+**Source files (8 files, 1333 LOC):**
+1. `src/features/emotion/types.ts` — DB Row derived types (EmotionRecordWithAuthor, StickerAggregate, Visibility, CreateInput, UpdateInput, SortOption)
+2. `src/features/emotion/emotionApi.ts` — PostgREST 직접 호출 (create/list/update/delete), client-side pre-validation, users 조인 + sticker GROUP BY, spoiler split
+3. `src/features/emotion/stickerApi.ts` — precheck/create/delete/aggregate, 409 UNIQUE→VALIDATION mapping via normalizeError, no upsert pattern
+4. `src/features/emotion/useEmotionRecords.ts` — React Query 훅 (queryKey ['emotion',{bookId,userId}], CRUD mutations, cache invalidation)
+5. `src/features/emotion/useStickerReaction.ts` — optimistic update + 409 rollback, useReplaceSticker (DELETE→POST)
+6. `src/features/emotion/questionPrompts.ts` — 정적 풀 (5개 prompts), round-robin by currentPage seed
+7. `src/features/emotion/EmotionInputScreen.tsx` — 입력 화면 (page/content/question/visibility toggle, pageNumber validation)
+8. `src/features/emotion/TimelineScreen.tsx` — 타임라인 화면 (EmotionRecordCard list, sort toggle time/page, spoiler blur via isSpoiler prop)
+
+**Test files (10 files, 627 tests pass):**
+- `types.test.ts` — Type validation
+- `emotionApi.create.test.ts` — Create scenarios (EC-1 client-side pre-validate)
+- `emotionApi.list.test.ts` — List scenarios (EC-7, EC-8 client split safe/spoiler)
+- `emotionApi.updateDelete.test.ts` — Update/Delete scenarios
+- `stickerApi.test.ts` — Sticker scenarios (EC-11 409 UNIQUE→VALIDATION mapping)
+- `useEmotionRecords.test.tsx` — React Query hook (cache invalidation)
+- `useStickerReaction.test.tsx` — Sticker hook (optimistic update, rollback)
+- `questionPrompts.test.ts` — Round-robin logic (deterministic by currentPage)
+- `EmotionInputScreen.test.tsx` — Input screen UI (EC-12 maxLength 120)
+- `TimelineScreen.test.tsx` — Timeline UI (EC-5, EC-7, EC-8, sort toggle, spoiler blur)
+
+### REQ Coverage
+
+| REQ | Description | Status |
+|-----|-------------|--------|
+| REQ-EMO-001 | 감정 기록 생성 | ✅ Implemented (emotionApi.create, client-side pre-validation EC-1) |
+| REQ-EMO-002 | 감정 기록 조회 (스포일러 필터 + 작성자 조인 + 스티커 집계) | ✅ Implemented (emotionApi.list, users join + sticker GROUP BY, client-side spoiler split) |
+| REQ-EMO-003 | 감정 기록 수정 | ✅ Implemented (emotionApi.update) |
+| REQ-EMO-004 | 감정 기록 삭제 | ✅ Implemented (emotionApi.delete) |
+| REQ-EMO-005 | 단어 질문지 제안 | ✅ Implemented (questionPrompts, static pool 5개, round-robin by currentPage) |
+| REQ-EMO-006 | 스티커 반응 등록 | ✅ Implemented (stickerApi.create, 409 UNIQUE→VALIDATION mapping EC-11) |
+| REQ-EMO-007 | 스티커 반응 취소 | ✅ Implemented (stickerApi.delete, useReplaceSticker DELETE→POST) |
+| REQ-EMO-008 | 스포일러 블러 처리 | ✅ Implemented (TimelineScreen, EmotionRecordCard isSpoiler prop) |
+| REQ-EMO-009 | 타임라인 뷰 (페이지순/시간순) | ✅ Implemented (TimelineScreen, sort toggle) |
+| REQ-EMO-010 | 공개 범위 제어 | ✅ Implemented (EmotionInputScreen visibility toggle) |
+
+**Total: 10/10 REQ covered (100%)**
+
+### Test Results
+
+- **627/627 tests pass** (75 suites total)
+- **92.47% statements coverage** (target 85%+ exceeded)
+- 87.73% branches coverage
+- 96.15% functions coverage
+- 92.34% lines coverage
+
+### Key Architecture Decisions
+
+1. **PostgREST 직접 호출**: Edge Function 없이 PostgREST 직접 호출 (단순 CRUD, no complex logic)
+2. **스티커 409 no-upsert**: UNIQUE 위반 시 업서트(on conflict update) 대신 DELETE→POST 재등록 유도 패턴 (SPEC-DB-001 미결정 6.2 해결)
+3. **Sticker GROUP BY realtime**: 클라이언트에서 시뮬레이션 (MVP 단순화, 서버 집계 테이블 미사용)
+4. **Spoiler blur client-side**: list API에서 current_page 기준 split 후 UI에 isSpoiler prop 전달 (서버 필터 미사용)
+5. **Question prompts 정적 풀**: MVP에서 5개 정적 질문 라운드 로빈 (진도 구간 매핑은 미결정 5.1로 v1.1.0 연기)
+
+### Known MINOR Follow-ups
+
+1. **bookTitle 필요성 (DEFERRED)**: listEmotionRecords에서 books 테이블 조인으로 book_title 추가 검토 (현재는 book_id만, UI에서 필요 시 v1.1.0 추가)
+2. **normalizeError 패턴 확인 (VERIFIED)**: 409 UNIQUE→VALIDATION mapping 정상 동작 확인 완료 (no change needed)
+
+### Dependencies Consumed
+
+- **SPEC-DB-001**: emotion_records, sticker_reactions tables, RLS policies (REQ-DB-016/017), ENUM sticker_type, UNIQUE constraint
+- **SPEC-API-001**: PostgREST client, normalizeError (409→VALIDATION mapping)
+- **SPEC-UI-001**: EmotionRecordCard (REQ-FE-024), StickerReaction (REQ-FE-025) components
+- **SPEC-LIBRARY-001**: Book context (book_id, user_books.current_page for spoiler baseline)
+
+### Integration Points
+
+- **EmotionInputScreen**: EmotionRecordCard + StickerReaction 컴포넌트 소비 (SPEC-UI-001)
+- **TimelineScreen**: EmotionRecordCard list, sort toggle, spoiler blur
+- **emotionApi**: PostgREST direct (no Edge Function), client-side pre-validation (EC-1)
+- **stickerApi**: 409 UNIQUE→VALIDATION mapping via normalizeError (EC-11)
+- **useEmotionRecords**: React Query cache invalidation (queryKey ['emotion',{bookId,userId}])
+- **useStickerReaction**: Optimistic update + 409 rollback, useReplaceSticker pattern

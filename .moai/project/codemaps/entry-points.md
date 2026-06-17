@@ -297,6 +297,10 @@ if (__DEV__) {
 | `/search` | library CTA `router.push('/search')` | href:null (탭 비노출) | BookSearchScreen → searchBooks → 결과/빈 안내 (BOOK-001 M4) |
 | `/scan` | library CTA 또는 검색 화면 | href:null (풀스크린) | BarcodeScanner → 권한 게이트 → ISBN 검증 → 디바운스 → resolveBookId → `/book/{UUID}` (BOOK-001 M3, LIBRARY-001) |
 | `/book/{bookId}` | 검색 결과 선택 / 딥링크 / resolveBookId | 동적 라우트 | BookDetailScreen → useSession 가드 → getBookDetail → useLibrary 서재 통합(BookRow/NOT_FOUND(S20)/RLS_DENIED(S22)/LibraryItem|null) (BOOK-001 M4, LIBRARY-001) |
+| `emotionApi.create` | EmotionInputScreen submit | 페이지별 감정 기록 생성 | client-side pre-validation → PostgREST INSERT → RLS CHECK → sticker aggregate | EMOTION-001 REQ-EMO-001 |
+| `emotionApi.list` | TimelineScreen mount | 특정 책의 감정 기록 목록 | PostgREST SELECT (users join + sticker GROUP BY) → client-side spoiler split | EMOTION-001 REQ-EMO-002 |
+| `stickerApi.create` | EmotionRecordCard 스티커 클릭 | 스티커 반응 등록 | precheck → INSERT (409 UNIQUE 위반 시 VALIDATION_ERROR 매핑, no upsert) | EMOTION-001 REQ-EMO-006 |
+| `useStickerReaction.toggle` | EmotionRecordCard 스티커 토글 | optimistic update + 409 rollback | precheck → existingReaction 있으면 DELETE→POST / 없으면 INSERT → invalidateQueries | EMOTION-001 REQ-EMO-006~007 |
 
 ---
 

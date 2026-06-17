@@ -1,6 +1,6 @@
 # Sa-gak Data Flow Paths
 
-주요 데이터 흐름 — 인증 가드, OAuth 딥링크, 테마, 세션 지속성, 도서 검색/상세 조회 API(M1/M2) + 수동 검색/바코드 스캔/상세 UI(M3/M4) + 서재/진행률/ISBN→UUID 매핑(LIBRARY-001)
+주요 데이터 흐름 — 인증 가드, OAuth 딥링크, 테마, 세션 지속성, 도서 검색/상세 조회 API(M1/M2) + 수동 검색/바코드 스캔/상세 UI(M3/M4) + 서재/진행률/ISBN→UUID 매핑(LIBRARY-001) + 감정 아카이브 및 스티커 반응(EMOTION-001)
 
 ## 1. Auth Guard Flow
 
@@ -594,6 +594,259 @@ export function getSupabaseClient() {
 
 ---
 
+## 9. Emotion Record Flow (감정 기록 CRUD)
+
+**목적:** 페이지별 감정 기록 생성/조회/수정/삭제 + 스티커 반응 + 스포일러 필터
+
+**진입점:** `src/features/emotion/EmotionInputScreen.tsx` (입력), `src/features/emotion/TimelineScreen.tsx` (조회)
+
+```mermaid
+sequenceDiagram
+    participant User as User
+    participant Input as EmotionInputScreen
+    participant Hook as useEmotionRecords
+    participant API as emotionApi
+    participant Sticker as useStickerReaction
+    participant StickerAPI as stickerApi
+    participant Supabase as Supabase (PostgREST)
+    participant DB as Database (emotion_records + sticker_reactions)
+    participant Cache as React Query Cache
+
+    User->>Input: 감정 기록 작성 (page, content, visibility)
+    Input->>Hook: createEmotionRecord.mutate({ bookId, pageNumber, content, visibility })
+    Hook->>Cache: Optimistic update (로컬 캐시)
+    Cache-->>Input: 즉시 UI 갱신
+
+    Hook->>API: create(input)
+    API->>API: client-side pre-validation (REQ-EMO-001 EC-1)
+    alt content 빈값
+        API-->>Hook: ValidationError
+        Hook->>Cache: rollback
+    else 유효한 입력
+        API->>Supabase: POST /emotion_records (user_id 자동 주입)
+        Supabase->>DB: INSERT 실행
+        alt visibility='club' && club_id 누락
+            DB-->>Supabase: CHECK 제약 위반 (23514)
+            Supabase-->>API: 400 error
+            API->>API: normalizeError → VALIDATION_ERROR
+            API-->>Hook: AppError
+            Hook->>Cache: rollback
+        else 성공
+            DB-->>Supabase: { id, created_at, ... }
+            Supabase-->>API: emotionRecordRow
+            API-->>Hook: EmotionRecordWithAuthor
+            Hook->>Cache: invalidateQueries(['emotion'])
+            Cache-->>Input: UI 갱신 (실제 데이터)
+        end
+    end
+
+    Note over Input,Cache: 스티커 반응 흐름
+    User->>Input: 스티커 반응 선택
+    Input->>Sticker: toggleSticker.mutate({ recordId, stickerType })
+    Sticker->>StickerAPI: precheck(recordId, userId)
+    StickerAPI->>Supabase: SELECT * FROM sticker_reactions WHERE record_id=$1 AND user_id=$2
+    alt 이미 반응 존재 (409 UNIQUE 위반 예상)
+        StickerAPI-->>Sticker: existingReaction
+        Sticker->>Sticker: deleteSticker(existingReaction.id)
+        Sticker->>StickerAPI: delete(existingReaction.id)
+        StickerAPI->>Supabase: DELETE FROM sticker_reactions WHERE id=$1
+        Supabase-->>StickerAPI: success
+        Sticker->>StickerAPI: create(input) (재등록)
+    else 반응 없음
+        Sticker->>StickerAPI: create(input)
+    end
+    StickerAPI->>Supabase: INSERT INTO sticker_reactions (record_id, user_id, sticker_type)
+    alt UNIQUE 제약 위반 (409)
+        Supabase-->>StickerAPI: 409 Conflict
+        StickerAPI->>StickerAPI: normalizeError → VALIDATION_ERROR (EC-11)
+        StickerAPI-->>Sticker: AppError (VALIDATION_ERROR)
+        Sticker->>Cache: rollback
+    else 성공
+        Supabase-->>StickerAPI: { id, sticker_type, created_at }
+        StickerAPI-->>Sticker: success
+        Sticker->>Cache: invalidateQueries(['emotion'])
+        Cache-->>Input: UI 갱신
+    end
+
+    Note over TimelineScreen,DB: 타임라인 조회 흐름
+    User->>TimelineScreen: 타임라인 조회 (bookId, sort)
+    TimelineScreen->>Hook: useEmotionRecords({ bookId, sort })
+    Hook->>Cache: useQuery(['emotion', { bookId, sort }])
+    alt 캐시 히트
+        Cache-->>Hook: EmotionRecordWithAuthor[]
+    else 캐시 미스
+        Hook->>API: listEmotionRecords({ bookId, sort })
+        API->>Supabase: SELECT e.*, u.nickname, u.avatar_url, COUNT(s.id) GROUP BY sticker_type FROM emotion_records e JOIN user_profiles u ON e.user_id = u.id LEFT JOIN sticker_reactions s ON e.id = s.record_id WHERE e.book_id = $1 ORDER BY $2
+        Supabase-->>API: emotion_records[] + authors[] + sticker_counts[]
+        API->>API: client-side split (safe vs spoiler based on current_page)
+        API-->>Hook: { safe: EmotionRecordWithAuthor[], spoiler: EmotionRecordWithAuthor[] }
+        Hook->>Cache: cache.set(['emotion', { bookId, sort }], data)
+        Cache-->>Hook: data
+    end
+    Hook-->>TimelineScreen: { safe, spoiler }
+    TimelineScreen->>TimelineScreen: EmotionRecordCard list (spoiler blur via isSpoiler prop)
+```
+
+### Key Implementation
+
+**File:** `src/features/emotion/emotionApi.ts`
+
+```typescript
+export async function createEmotionRecord(input: CreateInput): Promise<EmotionRecordWithAuthor> {
+  // Client-side pre-validation (EC-1)
+  if (!input.content.trim()) {
+    throw new ValidationError('content', '내용을 입력해주세요')
+  }
+
+  const client = getSupabaseClient()
+  const { data, error } = await client
+    .from('emotion_records')
+    .insert({
+      book_id: input.bookId,
+      page_number: input.pageNumber,
+      content: input.content,
+      visibility: input.visibility,
+      club_id: input.clubId,
+      // user_id는 auth.uid()에서 자동 주입됨
+    })
+    .select('*, user_profiles(nickname, avatar_url)')
+    .single()
+
+  if (error) throw normalizeError(error)
+  return data
+}
+
+export async function listEmotionRecords(params: ListParams): Promise<{ safe: EmotionRecordWithAuthor[], spoiler: EmotionRecordWithAuthor[] }> {
+  const client = getSupabaseClient()
+  const { data, error } = await client
+    .from('emotion_records')
+    .select('*, user_profiles(nickname, avatar_url), sticker_reactions(id, sticker_type)')
+    .eq('book_id', params.bookId)
+    .order(params.sort === 'page' ? 'page_number' : 'created_at', { ascending: params.sort === 'page' })
+
+  if (error) throw normalizeError(error)
+
+  // Client-side split (EC-7, EC-8)
+  const safe = data.filter(r => r.page_number <= params.currentPage)
+  const spoiler = data.filter(r => r.page_number > params.currentPage)
+
+  // Sticker aggregation (GROUP BY simulation on client)
+  const withAggregates = data.map(record => ({
+    ...record,
+    sticker_counts: {
+      empathy: record.sticker_reactions.filter(s => s.sticker_type === 'empathy').length,
+      touching: record.sticker_reactions.filter(s => s.sticker_type === 'touching').length,
+      comforted: record.sticker_reactions.filter(s => s.sticker_type === 'comforted').length,
+    }
+  }))
+
+  return { safe: withAggregates.filter(r => r.page_number <= params.currentPage), spoiler: withAggregates.filter(r => r.page_number > params.currentPage) }
+}
+```
+
+**특이사항:**
+- `createEmotionRecord`는 클라이언트 사전 검증(EC-1) 후 PostgREST 직접 호출
+- `listEmotionRecords`는 users 조인 + sticker GROUP BY를 클라이언트에서 시뮬레이션 (MVP 단순화)
+- 스티커 반응은 409 UNIQUE 위반 시 `normalizeError`가 VALIDATION_ERROR로 매핑(EC-11)
+
+---
+
+## 10. Sticker Reaction Flow (스티커 반응 + 409 처리)
+
+**목적:** 스티커 반응 등록/취소 + 409 UNIQUE 위반 시 업서트 대신 DELETE→POST 재등록 유도
+
+**진입점:** `src/features/emotion/useStickerReaction.ts`
+
+```mermaid
+sequenceDiagram
+    participant UI as EmotionRecordCard
+    participant Hook as useStickerReaction
+    participant API as stickerApi
+    participant Supabase as Supabase (PostgREST)
+    participant DB as Database (sticker_reactions)
+
+    UI->>Hook: toggleSticker({ recordId, stickerType })
+    Hook->>Hook: Optimistic update (로컬 캐시)
+    Hook->>API: precheck(recordId, userId)
+    API->>Supabase: SELECT * FROM sticker_reactions WHERE record_id=$1 AND user_id=$2 LIMIT 1
+    alt 반응 이미 존재 (existingReaction)
+        Supabase-->>API: { id, sticker_type }
+        API-->>Hook: existingReaction
+        Hook->>Hook: useReplaceSticker 패턴 (DELETE→POST)
+        Hook->>API: delete(existingReaction.id)
+        API->>Supabase: DELETE FROM sticker_reactions WHERE id=$1
+        Supabase-->>API: success
+        Hook->>API: create({ recordId, stickerType })
+        Note over Hook,API: 기존 반응 취소 후 새 반응 등록
+    else 반응 없음
+        Supabase-->>API: null
+        API-->>Hook: null
+        Hook->>API: create({ recordId, stickerType })
+    end
+    API->>Supabase: INSERT INTO sticker_reactions (record_id, user_id, sticker_type) VALUES ($1, auth.uid(), $2)
+    alt UNIQUE 제약 위반 (409)
+        Supabase-->>API: 409 Conflict
+        API->>API: normalizeError(error) → VALIDATION_ERROR (EC-11)
+        API-->>Hook: AppError (VALIDATION_ERROR, message: "이미 반응한 기록입니다")
+        Hook->>Hook: rollback (낙관적 업데이트 취소)
+        Hook->>UI: getUserFriendlyMessage(error) → "이미 반응한 기록입니다. 취소 후 다시 시도해주세요"
+    else 성공
+        Supabase-->>API: { id, sticker_type, created_at }
+        API-->>Hook: success
+        Hook->>Hook: invalidateQueries(['emotion'])
+        Hook-->>UI: UI 갱신
+    end
+```
+
+### Key Implementation
+
+**File:** `src/features/emotion/stickerApi.ts`
+
+```typescript
+export async function precheckSticker(recordId: string, userId: string): Promise<StickerReaction | null> {
+  const client = getSupabaseClient()
+  const { data, error } = await client
+    .from('sticker_reactions')
+    .select('*')
+    .eq('record_id', recordId)
+    .eq('user_id', userId)
+    .maybeSingle()
+
+  if (error) throw normalizeError(error)
+  return data
+}
+
+export async function createStickerReaction(input: CreateInput): Promise<StickerReaction> {
+  const client = getSupabaseClient()
+  const { data, error } = await client
+    .from('sticker_reactions')
+    .insert({
+      record_id: input.recordId,
+      sticker_type: input.stickerType,
+      // user_id는 auth.uid()에서 자동 주입됨
+    })
+    .select()
+    .single()
+
+  if (error) {
+    // 409 UNIQUE 위반 시 VALIDATION_ERROR로 매핑 (EC-11)
+    const normalized = normalizeError(error)
+    if (normalized.code === 'VALIDATION_ERROR') {
+      throw new AppError('이미 반응한 기록입니다', 'VALIDATION_ERROR', 409)
+    }
+    throw normalized
+  }
+  return data
+}
+```
+
+**특이사항:**
+- UNIQUE `(record_id, user_id)` 위반 시 409 Conflict → VALIDATION_ERROR 매핑
+- 업서트(on conflict update) 미사용 — 명시적 DELETE→POST 재등록 유도 패턴
+- `precheckSticker`로 기존 반읩 여부 확인 후 `useReplaceSticker` 훅이 DELETE→POST 순서 실행
+
+---
+
 ## Data Flow Summary
 
 | Flow | Entry | Key Modules | External APIs | Cache Strategy |
@@ -606,3 +859,5 @@ export function getSupabaseClient() {
 | Library Mutation | `BookDetailScreen` | useLibraryItem, libraryApi | Supabase (PostgREST + Trigger) | React Query (optimistic) |
 | Query Infrastructure | `app/_layout.tsx` | getQueryClient | - | globalThis 싱글톤 |
 | gen-types Pipeline | `scripts/gen-types-with-header.js` | CLI, client.ts | Supabase DB | - |
+| Emotion Record CRUD | `EmotionInputScreen` | useEmotionRecords, emotionApi | Supabase (PostgREST) | React Query (optimistic) |
+| Sticker Reaction | `EmotionRecordCard` | useStickerReaction, stickerApi | Supabase (PostgREST) | React Query (optimistic) |

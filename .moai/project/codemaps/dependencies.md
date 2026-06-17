@@ -72,6 +72,19 @@ graph TB
         C1[src/components/BookCard.tsx]
         C2[src/components/SearchResultCard.tsx]
         C3[src/components/ProgressBar.tsx]
+        C4[src/components/EmotionRecordCard.tsx]
+        C5[src/components/StickerReaction.tsx]
+    end
+
+    subgraph "Emotion Domain (src/features/emotion/)"
+        EMO1[src/features/emotion/types.ts]
+        EMO2[src/features/emotion/emotionApi.ts]
+        EMO3[src/features/emotion/stickerApi.ts]
+        EMO4[src/features/emotion/useEmotionRecords.ts]
+        EMO5[src/features/emotion/useStickerReaction.ts]
+        EMO6[src/features/emotion/questionPrompts.ts]
+        EMO7[src/features/emotion/EmotionInputScreen.tsx]
+        EMO8[src/features/emotion/TimelineScreen.tsx]
     end
 
     subgraph "External Services"
@@ -148,6 +161,29 @@ graph TB
     C1 --> T1
     C2 --> T1
     C3 --> T1
+    C4 --> T1
+    C5 --> T1
+
+    %% Emotion Domain Dependencies
+    EMO1 --> TP1
+    EMO2 --> API2
+    EMO2 --> SB1
+    EMO3 --> API2
+    EMO3 --> SB1
+    EMO4 --> Q1
+    EMO4 --> EMO2
+    EMO5 --> Q1
+    EMO5 --> EMO3
+    EMO6 --> EMO1
+    EMO7 --> EMO4
+    EMO7 --> EMO6
+    EMO7 --> T1
+    EMO7 --> C4
+    EMO7 --> C5
+    EMO8 --> EMO4
+    EMO8 --> T1
+    EMO8 --> C4
+    EMO8 --> C5
 ```
 
 ## Import Matrix
@@ -187,6 +223,20 @@ graph TB
 | `src/features/library/useLibraryItem.ts` | `src/features/library/libraryApi.ts` | * mutations | API 호출 |
 | `src/features/library/progressValidation.ts` | `src/types/book.ts` | BookRow | 타입 참조 |
 | `src/features/library/progressRate.ts` | `src/types/book.ts` | BookRow | 타입 참조 |
+| `src/features/emotion/types.ts` | `src/types/supabase.ts` | Database | DB Row derived |
+| `src/features/emotion/emotionApi.ts` | `src/lib/api/errors.ts` | normalizeError | 에러 정규화 |
+| `src/features/emotion/emotionApi.ts` | `src/lib/supabase/client.ts` | getSupabaseClient | PostgREST 직접 호출 |
+| `src/features/emotion/stickerApi.ts` | `src/lib/api/errors.ts` | normalizeError | 409 UNIQUE→VALIDATION mapping |
+| `src/features/emotion/stickerApi.ts` | `src/lib/supabase/client.ts` | getSupabaseClient | PostgREST 직접 호출 |
+| `src/features/emotion/useEmotionRecords.ts` | `src/lib/query/queryClient.ts` | useQuery/useMutation | React Query |
+| `src/features/emotion/useEmotionRecords.ts` | `src/features/emotion/emotionApi.ts` | * API 호출 | CRUD operations |
+| `src/features/emotion/useStickerReaction.ts` | `src/lib/query/queryClient.ts` | useMutation | React Query |
+| `src/features/emotion/useStickerReaction.ts` | `src/features/emotion/stickerApi.ts` | * API 호출 | precheck/create/delete |
+| `src/features/emotion/EmotionInputScreen.tsx` | `src/features/emotion/useEmotionRecords.ts` | useEmotionRecords | CRUD mutations |
+| `src/features/emotion/EmotionInputScreen.tsx` | `src/features/emotion/questionPrompts.ts` | getQuestionPrompt | 질문지 유도 |
+| `src/features/emotion/TimelineScreen.tsx` | `src/features/emotion/useEmotionRecords.ts` | useEmotionRecords | list query |
+| `src/components/EmotionRecordCard.tsx` | `src/theme/tokens.ts` | Design tokens | Styling |
+| `src/components/StickerReaction.tsx` | `src/theme/tokens.ts` | Design tokens | Styling |
 
 ### @MX:ANCHOR Candidates (fan_in ≥ 3)
 
@@ -201,7 +251,9 @@ graph TB
 | `src/features/book/resolveBookId.ts` | 3+ | src/features/book/BookSearchScreen.tsx, src/features/book/BookDetailScreen.tsx, src/features/library/libraryApi.ts (addBook), tests | ISBN→UUID 매핑의 불변 계약 (books.isbn UNIQUE) |
 | `src/features/library/libraryApi.ts` | 4+ | src/features/library/useLibrary.ts, src/features/library/useLibraryItem.ts (4 mutations), tests | 서재 CRUD의 공용 진입점 |
 | `src/features/library/useLibrary.ts` | 3+ | src/features/book/BookDetailScreen.tsx, tests | 서재 목록 훅 |
-| `src/lib/api/errors.ts` | 5+ | src/lib/api/retry.ts, src/features/book/bookDetailApi.ts, src/features/library/libraryApi.ts, src/lib/supabase/client.ts, tests | 에러 정규화의 공통 계약 |
+| **`src/features/emotion/emotionApi.ts`** | **2+ (예상)** | **src/features/emotion/useEmotionRecords.ts, tests** | **감정 기록 CRUD 공용 진입점** |
+| **`src/features/emotion/stickerApi.ts`** | **2+ (예상)** | **src/features/emotion/useStickerReaction.ts, tests** | **스티커 반응 CRUD 공용 진입점** |
+| `src/lib/api/errors.ts` | 5+ | src/lib/api/retry.ts, src/features/book/bookDetailApi.ts, src/features/library/libraryApi.ts, src/lib/supabase/client.ts, src/features/emotion/emotionApi.ts, src/features/emotion/stickerApi.ts, tests | 에러 정규화의 공통 계약 |
 
 ## Circular Dependency Check
 

@@ -132,6 +132,7 @@ Phase 5 (배포)
 
 #### SPEC-EMOTION-001: 감정 아카이브 및 스티커 반응
 - **도메인**: EMOTION
+- **상태**: ✅ 구현 완료 (10/10 REQ, PR #12 머지 a1ce6cf, 2026-06-17, 627 테스트 통과, 커버리지 92.47%)
 - **우선순위**: high
 - **핵심 범위**: 페이지별 감정 기록(단어/한 줄) CRUD, 안전한 글쓰기 울타리(단어 질문지 유도), 공감 스티커 반응(3종: empathy/touching/comforted, 기록당 사용자당 1개), 스포일러 방지 블러(`EmotionRecordCard` 활용), 타임라인 뷰, 공개 범위 제어(visibility: public/club)
 - **DB 엔터티**: `emotion_records`, `sticker_reactions`
@@ -275,7 +276,7 @@ product.md "비목표" + SPEC-DB-001 "제외 범위" 기반:
 | 1 | SPEC-NAV-001 | ✅ | ✅ | ✅ | 구현 완료 (13/13 REQ, PR #7 머지 8fa545b, 317 테스트, 커버리지 82.5%) |
 | 2 | SPEC-BOOK-001 | ✅ | ✅ | ✅ | 구현 완료 (M1~M4 전부, PR #8 852f0ac M1+M2 + PR #9 a293e8d M3+M4, 2026-06-17) |
 | 2 | SPEC-LIBRARY-001 | ✅ | ✅ | ✅ | SPEC 작성 완료 (16 REQ) |
-| 2 | SPEC-EMOTION-001 | ✅ | ✅ | ✅ | SPEC 작성 완료 (10 REQ) |
+| 2 | SPEC-EMOTION-001 | ✅ | ✅ | ✅ | 구현 완료 (10/10 REQ, PR #12 머지 a1ce6cf, 2026-06-17, 커버리지 92.47%) |
 | 2 | SPEC-COMPLETION-001 | ✅ | ✅ | ✅ | SPEC 작성 완료 (10 REQ) |
 | 3 | SPEC-CLUB-001 | ✅ | ✅ | ✅ | SPEC 작성 완료 (12 REQ) |
 | 3 | SPEC-CLUB-002 | ✅ | ✅ | ✅ | SPEC 작성 완료 (17 REQ) |
@@ -307,11 +308,13 @@ product.md "비목표" + SPEC-DB-001 "제외 범위" 기반:
 | Phase | 구현 완료 SPEC | 구현 일자 | PR | 커밋 | REQ 완료율 | 테스트 | 커버리지 |
 |-------|---------------|----------|----|----|-----------|--------|---------|
 | 2 | SPEC-BOOK-001 | 2026-06-17 | #8+#9 | 852f0ac+a293e8d | 16/16 (100%) | 462/462 | 94%+ |
+| 2 | SPEC-EMOTION-001 | 2026-06-17 | #12 | a1ce6cf | 10/10 (100%) | 627/627 | 92.47% |
 
 **Phase 1 완결 상태**: 인프라·인증·네비게이션 파운데이션 100% 완성. 도메인 SPEC(SPEC-BOOK-001, SPEC-LIBRARY-001 등) 구현 준비 완료.
 
 **Phase 2 진행 상태 (2026-06-17 기준)**:
 - **SPEC-BOOK-001**: M1~M4 구현 완료 (Edge Function + Client API + 바코드 스캔 + 화면)
+- **SPEC-EMOTION-001**: 감정 기록 CRUD + 스티커 반응 + 단어 질문지 + 스포일러 블러 + 타임라인 구현 완료 (PostgREST 직접 호출, src/features/emotion/ 8 소스 + 10 테스트)
 
 ---
 
