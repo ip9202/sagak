@@ -14,7 +14,7 @@
  *
  * @MX:SPEC SPEC-EMOTION-001
  */
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -24,6 +24,7 @@ import {
 } from 'react-native';
 import { useTheme } from '../../theme/theme';
 import { EmotionRecordCard } from '../../components/EmotionRecordCard';
+import { getBookDetail } from '../book/bookDetailApi';
 import type {
   EmotionListResult,
   EmotionRecordWithAuthor,
@@ -47,6 +48,7 @@ export interface TimelineScreenProps {
  * @MX:NOTE: [AUTO] 감정 기록 타임라인. safe + spoiler 를 모두 렌더링하되 spoiler 는 isSpoiler=true 로 블러 처리. 부모가 쿼리 상태를 주입해 테스트 격리가 쉽다.
  */
 export const TimelineScreen: React.FC<TimelineScreenProps> = ({
+  bookId,
   data,
   isLoading,
   error,
@@ -54,6 +56,24 @@ export const TimelineScreen: React.FC<TimelineScreenProps> = ({
   onSortChange,
 }) => {
   const theme = useTheme();
+  const [bookTitle, setBookTitle] = useState('');
+
+  // 책 제목 보조 조회 — TimelineScreen 은 단일 bookId 컨텍스트이므로 emotionApi.list 에 books 조인 대신
+  // 한 번만 조회해 모든 카드에 동일 bookTitle 을 전달한다 (bookTitle 빈값 수정).
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const book = await getBookDetail(bookId);
+        if (!cancelled) setBookTitle(book.title ?? '');
+      } catch {
+        // bookTitle 은 보조 표시 — 조회 실패 시 빈값 유지, emotion 데이터는 정상 동작
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [bookId]);
 
   // 로딩 상태
   if (isLoading) {
@@ -155,7 +175,7 @@ export const TimelineScreen: React.FC<TimelineScreenProps> = ({
             page={item.record.page_number ?? 0}
             daysAgo={0}
             content={item.record.content}
-            bookTitle=""
+            bookTitle={bookTitle}
             stickers={item.record.sticker_reactions.map((s) => ({
               type: s.sticker_type,
               count: s.count,
