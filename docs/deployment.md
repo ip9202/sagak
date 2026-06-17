@@ -75,14 +75,16 @@ sagak://auth/callback
 
 1. https://console.cloud.google.com 접속 → 프로젝트 생성/선택
 2. **API 및 서비스 > 사용자 인증 정보 > 사용자 인증 정보 만들기 > OAuth 클라이언트 ID**
-3. 애플리케이션 유형: **Android** / **iOS** 각각 생성
-   - 패키지명: `com.sagak.app`
-   - SHA-1 인증서 지문: release/debug 빌드 인증서 지문 추가 (EAS build 후 획득)
-4. **승인된 리디렉션 URI**(Web 클라이언트 항목)에 다음 등록 (https 스킴만 허용, 커스텀 스킴 거부):
+3. 애플리케이션 유형: **Web application** (Android/iOS 유형이 아님 — Supabase 가 서버 사이드에서 Google 과 통신)
+4. **승인된 리디렉션 URI**에 다음 등록 (https 스킴만 허용, 커스텀 스킴 거부):
    ```
    https://<your-project-ref>.supabase.co/auth/v1/callback
    ```
 5. Client ID / Client Secret 확보 → Supabase Google provider 설정에 사용(아래 2절)
+
+> 참고: Supabase Auth 의 Google 연동은 **Web application** OAuth 클라이언트 하나면 충분합니다.
+> React Native 네이티브 Google Sign-In SDK(`@react-native-google-signin`)는 본 아키텍처에서 사용하지 않습니다 —
+> Supabase `signInWithOAuth({ provider: 'google' })` 경로가 표준입니다.
 
 ---
 
