@@ -11,6 +11,7 @@
  */
 import React, { createContext, useEffect, useState, useCallback, useRef } from 'react';
 import type { Session, User, Provider } from '@supabase/supabase-js';
+import * as WebBrowser from 'expo-web-browser';
 import type { AuthContextValue, AuthProvider, UserProfile } from './types';
 import { getSupabaseClient } from '../lib/supabase/client';
 import { getOAuthRedirectUri } from './oauth';
@@ -149,10 +150,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // 등록하면 동일 signInWithOAuth 경로로 동작. 타입은 Supabase가 모르므로 Provider로 캐스팅.
     // @MX:WARN: [AUTO] provider as Provider 캐스팅 — 런타임 진짜 guard는 DB users.provider CHECK(SPEC-DB-001)
     // @MX:REASON: Supabase Provider 타입과 AuthProvider 불일치를 이 캐스트가 숨김. types.test.ts가 두 타입 동기화를 검증한다.
-    await getSupabaseClient().auth.signInWithOAuth({
+    const redirectTo = getOAuthRedirectUri();
+    const { data, error } = await getSupabaseClient().auth.signInWithOAuth({
       provider: provider as Provider,
-      options: { redirectTo: getOAuthRedirectUri() },
+      options: { redirectTo },
     });
+    if (error) throw error;
+    // @MX:NOTE: [AUTO] RN에서는 signInWithOAuth가 URL만 반환하고 자동으로 열지 않는다.
+    //           웹과 달리 RN 환경에서는 개발자가 expo-web-browser로 반환된 data.url을 직접 열어야 한다.
+    //           열지 않으면 OAuth 제공자 페이지가 표시되지 않아 "버튼 반응 없음" 버그가 발생한다.
+    //           성공 시 sagak://auth/callback 딥링크로 복귀하며 maybeCompleteAuthSession()이 세션을 완성한다.
+    if (data?.url) {
+      await WebBrowser.openAuthSessionAsync(data.url, redirectTo);
+    }
   };
 
   /**

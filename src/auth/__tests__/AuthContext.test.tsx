@@ -23,6 +23,14 @@ jest.mock('../oauth', () => ({
   getOAuthRedirectUri: (...args: unknown[]) => mockGetOAuthRedirectUri(...args),
 }));
 
+// expo-web-browser 모킹 — RN OAuth의 브라우저 오픈 경계를 모킹한다.
+// 실제 네이티브 브라우저 동작 자체는 단위 테스트 범위 밖이다.
+const mockOpenAuthSessionAsync = jest.fn();
+jest.mock('expo-web-browser', () => ({
+  openAuthSessionAsync: (...args: unknown[]) => mockOpenAuthSessionAsync(...args),
+  maybeCompleteAuthSession: jest.fn(),
+}));
+
 // getSupabaseClient 모듈을 먼저 모킹 (AuthProvider가 로드될 때와 동일한 인스턴스 주입)
 const mockSupabaseClient: {
   auth: {
@@ -86,6 +94,8 @@ beforeEach(() => {
     return { data: { subscription: { unsubscribe: unsubscribeMock } } };
   });
   mockSupabaseClient.auth.signInWithOAuth.mockReset();
+  mockOpenAuthSessionAsync.mockReset();
+  mockOpenAuthSessionAsync.mockResolvedValue({ type: 'success' });
   mockSupabaseClient.auth.signOut.mockReset();
   mockSupabaseClient.from.mockReset();
   // from() 기본 스텁 — fetchProfile 호출 시 crash 방지 (profile null 반환)
@@ -215,6 +225,12 @@ describe('AuthContext — M1-2 AC-S1: signInWithProvider OAuth 호출 (A1~A3)', 
       provider: 'kakao',
       options: { redirectTo: 'sagak://auth/callback' },
     });
+    // RN OAuth: 반환된 url을 expo-web-browser로 열어야 브라우저가 표시된다.
+    expect(mockOpenAuthSessionAsync).toHaveBeenCalledTimes(1);
+    expect(mockOpenAuthSessionAsync).toHaveBeenCalledWith(
+      'https://kauth.kakao.com/oauth/authorize',
+      'sagak://auth/callback'
+    );
   });
 
   it('A2 — signInWithProvider("naver")가 signInWithOAuth를 naver provider로 호출한다', async () => {
@@ -228,6 +244,11 @@ describe('AuthContext — M1-2 AC-S1: signInWithProvider OAuth 호출 (A1~A3)', 
       provider: 'naver',
       options: { redirectTo: 'sagak://auth/callback' },
     });
+    expect(mockOpenAuthSessionAsync).toHaveBeenCalledTimes(1);
+    expect(mockOpenAuthSessionAsync).toHaveBeenCalledWith(
+      'https://nid.naver.com/oauth2.0/authorize',
+      'sagak://auth/callback'
+    );
   });
 
   it('A3 — signInWithProvider("google")가 signInWithOAuth를 google provider로 호출한다', async () => {
@@ -241,6 +262,11 @@ describe('AuthContext — M1-2 AC-S1: signInWithProvider OAuth 호출 (A1~A3)', 
       provider: 'google',
       options: { redirectTo: 'sagak://auth/callback' },
     });
+    expect(mockOpenAuthSessionAsync).toHaveBeenCalledTimes(1);
+    expect(mockOpenAuthSessionAsync).toHaveBeenCalledWith(
+      'https://accounts.google.com/o/oauth2/auth',
+      'sagak://auth/callback'
+    );
   });
 
   it('signInWithProvider가 getOAuthRedirectUri() 결과를 redirectTo로 전달한다 (REQ-AUTH-002)', async () => {
@@ -255,6 +281,11 @@ describe('AuthContext — M1-2 AC-S1: signInWithProvider OAuth 호출 (A1~A3)', 
       provider: 'kakao',
       options: { redirectTo: 'sagak://custom-callback' },
     });
+    // 브라우저에도 동일한 redirectTo가 두 번째 인자로 전달되어야 한다.
+    expect(mockOpenAuthSessionAsync).toHaveBeenCalledWith(
+      'https://kauth.kakao.com',
+      'sagak://custom-callback'
+    );
   });
 });
 
