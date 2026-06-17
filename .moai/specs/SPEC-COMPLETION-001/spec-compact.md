@@ -10,7 +10,7 @@ status: draft
 auto_generated: true
 source: spec.md
 created: 2026-06-14
-updated: 2026-06-14
+updated: 2026-06-17
 author: "강력쇠주먹"
 priority: medium
 issue_number: 0
@@ -46,7 +46,7 @@ labels: [completion, diary, archive, visualization, emotion-curve, frontend]
 
 | REQ ID | 요구사항 | 주요 제약 |
 |--------|---------|-----------|
-| REQ-COMP-004 | report_data 스키마 파싱 | ReportData 인터페이스(emotion_curve/highlights/total_records), Zod 런타임 검증, 불일치 시 "데이터 오류" 상태 (빈 상태와 구분) |
+| REQ-COMP-004 | report_data 스키마 파싱 | ReportData 인터페이스(emotion_curve[].{page_number,emotion_count} / highlights[].{page_number,content} / total_records), 순수 타입 가드 `isReportData()` 런타임 검증(의존성 없음), 불일치 시 `AppError(category=VALIDATION)` throw → "데이터 오류" 상태 (빈 상태와 구분). 감정 종류 필드는 존재하지 않음 |
 | REQ-COMP-005 | 감정 기록 0건 케이스 처리 | total_records=0 + 빈 배열 → "기록된 감정이 없어요" 빈 상태 (에러 아님), 1건 이상 → 차트·리스트 시각화 |
 
 **인수 기준 요약**:
@@ -61,8 +61,8 @@ labels: [completion, diary, archive, visualization, emotion-curve, frontend]
 
 | REQ ID | 요구사항 | 주요 제약 |
 |--------|---------|-----------|
-| REQ-COMP-006 | 감정 곡선 차트 시각화 | emotion_curve 포인트 1개 이상 시 선형/바 차트, 감정별 고유 색상 토큰(SPEC-UI-001), 라이브러리 미결정(6.1) |
-| REQ-COMP-007 | 하이라이트 감정 기록 표시 | highlights 카드 리스트(페이지/감정/내용), SPEC-UI-001 EmotionRecordCard 패턴 재사용 |
+| REQ-COMP-006 | 감정 곡선 차트 시각화 | emotion_curve 포인트 1개 이상 시 선형/바 차트, 단일 브랜드 컬러 토큰(`colors.brand[500]`, SPEC-UI-001), 순수 SVG(react-native-svg)로 구현 (6.1 해결됨) |
+| REQ-COMP-007 | 하이라이트 감정 기록 표시 | highlights 카드 리스트(페이지 번호/내용), SPEC-UI-001 EmotionRecordCard 패턴 재사용 |
 | REQ-COMP-008 | 총 감정 기록 수 표시 | total_records "이 책에서 남긴 감정 N개" 헤더 표시 |
 
 **인수 기준 요약**:
@@ -76,7 +76,7 @@ labels: [completion, diary, archive, visualization, emotion-curve, frontend]
 
 | REQ ID | 요구사항 | 주요 제약 |
 |--------|---------|-----------|
-| REQ-COMP-009 | 완독 축하 메시지 표시 | "이 책과의 여정을 완성하셨어요" 다이어리 상단, 에러 상태 시 미표시, 애니메이션 범위 미결정(6.3) |
+| REQ-COMP-009 | 완독 축하 메시지 표시 | "이 책과의 여정을 완성하셨어요" 다이어리 상단, 에러 상태 시 미표시, 정적 텍스트+배지 MVP (6.3 해결됨, 애니메이션 없음) |
 | REQ-COMP-010 | 완독 배지 표시 | 축하 메시지 영역 배지 아이콘, SPEC-UI-001 강조색(amber brown #C17B2F) 적용 |
 
 **인수 기준 요약**:
@@ -97,8 +97,8 @@ labels: [completion, diary, archive, visualization, emotion-curve, frontend]
 | 6 | REQ-COMP-004 | 스키마 불일치 → "데이터 오류" 상태 |
 | 7 | REQ-COMP-005 | total_records=0 → 빈 상태 메시지 |
 | 8 | REQ-COMP-005 | total_records>=1 → 차트·리스트 렌더 |
-| 9 | REQ-COMP-006 | 감정 곡선 차트 + 색상 토큰 |
-| 10 | REQ-COMP-007 | 하이라이트 카드 리스트 + 디자인 일관성 |
+| 9 | REQ-COMP-006 | 감정 곡선 차트 + 단일 브랜드 컬러 토큰(brand-500) |
+| 10 | REQ-COMP-007 | 하이라이트 카드 리스트(page_number + content) + 디자인 일관성 |
 | 11 | REQ-COMP-008 | 총 기록 수 헤더 표시 |
 | 12 | REQ-COMP-009 | 축하 메시지 상단 표시 (에러 시 미표시) |
 | 13 | REQ-COMP-010 | 완독 배지 + 강조색 토큰 |
@@ -116,7 +116,7 @@ labels: [completion, diary, archive, visualization, emotion-curve, frontend]
 | 파일 | 유형 | 내용 |
 |------|------|------|
 | `src/features/completion/completionApi.ts` | 신규 | PostgREST GET 래퍼, 재시도 로직 |
-| `src/features/completion/types.ts` | 신규 | ReportData 인터페이스 + Zod 스키마 |
+| `src/features/completion/types.ts` | 신규 | ReportData 인터페이스 + 순수 타입 가드 `isReportData()` (Zod 미사용) |
 | `src/features/completion/useCompletionReport.ts` | 신규 | 조회 hook, 상태 관리 |
 | `src/features/completion/CompletionDiaryScreen.tsx` | 신규 | 완독 다이어리 메인 화면 |
 | `src/features/completion/EmotionCurveChart.tsx` | 신규 | 감정 곡선 차트 컴포넌트 |
@@ -130,9 +130,11 @@ labels: [completion, diary, archive, visualization, emotion-curve, frontend]
 
 | 파일 | 수정 내용 | 협력 SPEC |
 |------|----------|-----------|
-| `app/(tabs)/library/[bookId]/completion.tsx` (예상) | 완독 다이어리 라우트 | SPEC-NAV-001, SPEC-LIBRARY-001 |
-| `src/features/library/*.tsx` | 완독 상태 시 진입 버튼 | SPEC-LIBRARY-001 |
-| `src/theme/tokens.ts` (필요 시) | 감정별 색상 토큰 확장 | SPEC-UI-001 |
+| `app/(tabs)/library/completion.tsx` (예상 — 현재 library.tsx는 플랫 라우트) | 완독 다이어리 라우트 | SPEC-NAV-001, SPEC-LIBRARY-001 |
+| `src/features/library/*.tsx` | 완독 상태 시 진입 버튼 (본 SPEC은 진입 *계약*만 정의, 버튼 UI는 SPEC-LIBRARY-001) | SPEC-LIBRARY-001 |
+
+> `src/theme/tokens.ts`는 수정하지 않는다. 단일 브랜드 컬러 토큰(`colors.brand[500]` = `#C17B2F`)이
+> 이미 존재하므로 감정별 색상 토큰 확장은 불필요하다 (REQ-COMP-006 시정).
 
 ---
 
@@ -153,6 +155,6 @@ labels: [completion, diary, archive, visualization, emotion-curve, frontend]
 
 ## 미결정 사항 (해결 상태)
 
-1. **감정 곡선 차트 라이브러리** — 미해결 (옵션 A 순수 SVG / B react-native-chart-kit / C victory-native, RUN 단계 프로토타이핑 후 확정)
+1. **감정 곡선 차트 라이브러리** — 해결됨 (옵션 A 순수 SVG, react-native-svg@15.15.3 이미 설치됨)
 2. **하이라이트 선정 알고리즘** — 해결됨 (SPEC-DB-001 트리거 PL/pgSQL에 위임, 본 SPEC은 있는 그대로 렌더링)
-3. **축하 애니메이션 범위** — 미해결 (옵션 A 정적 텍스트+배지 MVP 기본 / B 경량 애니메이션 / C 풀 컨페티)
+3. **축하 애니메이션 범위** — 해결됨 (옵션 A 정적 텍스트+배지 MVP, 애니메이션 라이브러리 미도입)
