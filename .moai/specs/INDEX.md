@@ -227,11 +227,12 @@ Phase 5 (배포)
 #### SPEC-DEPLOY-001: 빌드, 배포 및 CI/CD
 - **도메인**: DEPLOY / DEVOPS
 - **우선순위**: medium
+- **상태**: 🔄 진행 중 (M1+M5 머지됨, PR #15 2514263, 2026-06-17; M2 CI / M3 Sentry SDK / M4 Submit / M6 Edge Function 미완료 — M6은 SPEC-CLUB-001 / SPEC-NOTIF-001 의존으로 블로킹)
 - **핵심 범위**: EAS Build(iOS/Android 크로스 플랫폼 빌드), EAS Submit(TestFlight/Play Console), GitHub Actions CI/CD 파이프라인(코드 푸시 시 빌드·테스트·배포), Sentry 에러 추적 통합, 환경 분리(dev/staging/prod), 버전 관리·태깅 자동화, OAuth 앱 등록·콜백 URL 인프라 설정, Supabase Storage 버킷 정책
 - **DB 엔터티**: 해당 없음 (인프라)
 - **API/Edge Function**: 해당 없음 (인프라 구성)
 - **의존성**: 모든 도메인 SPEC(최종 통합 후 배포)
-- **구현 산출물**: `eas.json`, `.github/workflows/*.yml`, `sentry.config.*`, 환경 변수 문서, 배포 매뉴얼
+- **구현 산출물**: `eas.json`, `.github/workflows/*.yml`, `sentry.properties` / Sentry CLI 통합, 환경 변수 문서, 배포 매뉴얼
 - **제외**: 데스크톱 웹 버전(비목표), A/B 테스트 인프라(확장)
 
 ---
@@ -285,10 +286,12 @@ product.md "비목표" + SPEC-DB-001 "제외 범위" 기반:
 | 4 | SPEC-ROUTINE-001 | ✅ | ✅ | ✅ | SPEC 작성 완료 (10 REQ) |
 | 4 | SPEC-NOTIF-001 | ✅ | ✅ | ✅ | SPEC 작성 완료 (13 REQ) |
 | 4 | SPEC-PROFILE-001 | ✅ | ✅ | ✅ | SPEC 작성 완료 (8 REQ) |
-| 5 | SPEC-DEPLOY-001 | ✅ | ✅ | ✅ | SPEC 작성 완료 (24 REQ) |
+| 5 | SPEC-DEPLOY-001 | ✅ | ✅ | ✅ | 진행 중 (M1+M5 머지, PR #15 2514263, 2026-06-17; M2/M3/M4/M6 미완료 — M6 블로킹: CLUB/NOTIF 의존) |
 | 0 | SPEC-UI-002 | ✅ | ✅ | ✅ | SPEC 작성 완료 (25 REQ) — 화면 패턴, 14개 도메인 SPEC 선행 의존성 |
 
 **총 REQ 수: 219개 / 15개 SPEC 전체 작성 완료 (2026-06-14)**
+
+> **참고 (2026-06-17)**: SPEC-DEPLOY-001은 부분 진행(M1+M5 머지, PR #15 2514263) 상태이므로 **구현 완료 카운트에서 제외**한다. M2(CI)/M3(Sentry SDK)/M4(Submit)/M6(Edge Function)가 남아있으며, M6은 SPEC-CLUB-001 / SPEC-NOTIF-001 머지 전까지 블로킹된다. 완료 카운트는 DEPLOY가 6개 마일스톤 전부 통과한 시점에만 증가한다.
 
 ---
 

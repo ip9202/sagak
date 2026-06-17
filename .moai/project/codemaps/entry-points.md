@@ -50,6 +50,27 @@ import { AuthProvider } from '@/auth/AuthContext'
 
 ---
 
+## Build-Time Entry Point
+
+### File: `app.config.ts`
+
+**역할:** Expo 빌드 시점 설정 진입점 (SPEC-DEPLOY-001 M1 — 2026-06-17)
+
+**목적:**
+- Expo/EAS 빌드 시작 시 가장 먼저 평가되는 설정 파일
+- `validateEnv(process.env, ENV)`를 호출하여 필수 환경 변수 누락 시 빌드를 즉시 중단 (`MissingEnvError`) — REQ-DEPLOY-018 fail-fast 게이트
+- 프로덕션 프로필은 `REQUIRED_PROD` 키 집합에 대해 추가 검증
+- `EXPO_PUBLIC_SENTRY_DSN`을 `extra`에 노출 (M3 Sentry SDK 통합 대비)
+
+**의존성:**
+```typescript
+import { validateEnv } from '@/config/env'
+```
+
+> **참고**: 런타임 진입점은 여전히 `app/_layout.tsx`이다. `app.config.ts`는 빌드 시점 전용 진입점으로, `src/config/env.ts`의 `getEnvVar`/`getOptionalEnvVar`(런타임)와 `validateEnv`(빌드 시점)가 상호 보완적으로 동작한다.
+
+---
+
 ## App Launch Flow
 
 ### Phase 1: App Start → Root Layout

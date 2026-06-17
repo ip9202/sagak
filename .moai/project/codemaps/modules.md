@@ -129,6 +129,23 @@
 | Supabase Client | `src/lib/supabase/client.ts` | Infrastructure | Supabase 클라이언트 싱글톤, @MX:ANCHOR | getSupabaseClient() (createClient<Database>), 타입화된 PostgREST | API-001 REQ-API-007 |
 | Storage Adapter | `src/lib/supabase/storageAdapter.ts` | Infrastructure | Supabase Storage 래퍼 (미사용) | uploadCover, getPublicUrl | DB-001 REQ-DB-005 |
 
+### Config / Environment (`src/config/`)
+
+| 모듈 | 경로 | 계층 | 목적 | 주요 익스포트 | SPEC 참조 |
+|------|------|------|------|-------------|-----------|
+| Env Validation | `src/config/env.ts` | Infrastructure | 환경 변수 검증 및 타입 안전 접근 | getEnvVar, getOptionalEnvVar (런타임 검증 — API-001), validateEnv (빌드 시점 fail-fast), MissingEnvError (전용 에러), REQUIRED_PROD (프로덕션 필수 키 집합) | API-001 REQ-API-001/002 · DEPLOY-001 REQ-DEPLOY-018/024 |
+
+### Build / Deploy Infrastructure (SPEC-DEPLOY-001 M1+M5)
+
+| 모듈 | 경로 | 계층 | 목적 | SPEC 참조 |
+|------|------|------|------|-----------|
+| App Config | `app.config.ts` | Infrastructure (빌드) | Expo 앱 설정 — 빌드 시점 `validateEnv(process.env, ENV)` 호출(환경 변수 fail-fast 게이트, REQ-DEPLOY-018) + `EXPO_PUBLIC_SENTRY_DSN`을 `extra`에 노출 | DEPLOY-001 REQ-DEPLOY-018/024 |
+| EAS Build Profiles | `eas.json` | Infrastructure (빌드) | EAS Build 설정 — 3개 프로필: development / preview / production | DEPLOY-001 REQ-DEPLOY-001~005 |
+| Deployment Manual | `docs/deployment.md` | Documentation | OAuth 콘솔 등록 절차(Kakao/Naver/Google) + Supabase Auth 제공자 활성화 + `.env` 가이드. OAuth 콜백 URI `sagak://auth/callback`은 `src/auth/oauth.ts`에 이미 존재(본 문서는 절차만 문서화, 재구현 아님) | DEPLOY-001 REQ-DEPLOY-019/020 |
+| Env Templates | `.env.example` / `.env.staging` / `.env.production` | Infrastructure (빌드) | 환경 변수 템플릿 — `SENTRY_DSN` 플레이스홀더 포함(M3 Sentry SDK 대비) | DEPLOY-001 REQ-DEPLOY-018/024 |
+
+> **참고**: SPEC-DEPLOY-001은 부분 진행(M1+M5 머지, PR #15 2514263). GitHub Actions CI(M2), Sentry SDK 통합(M3), EAS Submit(M4), Edge Function 배포(M6)는 미완료. M6은 SPEC-CLUB-001 / SPEC-NOTIF-001 의존으로 블로킹.
+
 ### Components (`src/components/`)
 
 | 모듈 | 경로 | 계층 | 목적 | SPEC 참조 |
@@ -150,6 +167,7 @@
 | @tanstack/react-query v5 | `app/_layout.tsx` | Library | React Query (캐싱/비동기 상태) | LIBRARY-001 TASK-001 |
 | @supabase/supabase-js | `src/lib/supabase/client.ts` | Library | Supabase 클라이언트 (타입화됨) | API-001 REQ-API-007 |
 | AsyncStorage/SecureStore | `src/auth/AuthContext.tsx` | SDK | 세션 토큰 지속성 | AUTH-001 REQ-AUTH-013 |
+| expo-constants | `app.config.ts` → `src/config/env.ts` | SDK | 빌드 시점 환경 변수 주입 (`extra` → Constants.expoConfig.extra), validateEnv 게이트 | API-001 · DEPLOY-001 REQ-DEPLOY-018 |
 
 ## Infrastructure Scripts
 

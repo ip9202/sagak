@@ -71,7 +71,7 @@ iOS/Android 모바일 앱 (React Native + Expo SDK 55 + React 19.2)
 - **`src/components/`** (7가지 커스텀 컴포넌트): `Button.tsx`, `Card.tsx`, `ProgressBar.tsx`, `BookCard.tsx` (서재용, 진행률 표시), `SearchResultCard.tsx` (SPEC-BOOK-001 M4 검색 결과용, Pencil x8zuOu 기반, BookCard와 분리), `EmotionRecordCard.tsx`, `StickerReaction.tsx`
 - **`src/theme/`** (디자인 시스템): `tokens.ts` (light 모드 토큰), `darkTokens.ts` (dark 모드 토큰), `theme.tsx` (ThemeProvider + useTheme + useManualMode 패턴)
 - **`src/types/`** (타입 정의): `book.ts` (BookRow, SearchResult, SearchTarget + type guards, M2 완료), `EmotionRecord.ts`, `StickerType.ts` 도메인 타입 정의
-- **`src/config/`** (환경 변수 검증 및 접근): `env.ts` (getEnvVar/getOptionalEnvVar — 환경 변수 런타임 검증 및 타입 안전한 접근)
+- **`src/config/`** (환경 변수 검증 및 접근): `env.ts` — 기존 `getEnvVar`/`getOptionalEnvVar`(런타임 검증)에 더해 SPEC-DEPLOY-001 M1에서 `validateEnv`(빌드 시점 fail-fast 검증), `MissingEnvError`(전용 에러 클래스), `REQUIRED_PROD`(프로덕션 필수 키 목록)가 추가됨
 - **`src/features/book/`** (도서 검색·스캔·화면, M1~M4 완료): `searchApi.ts` (searchBooks, 빈 쿼리 차단), `bookDetailApi.ts` (getBookDetail, PGRST116→NOT_FOUND), `isbn.ts` (M3 — isValidIsbn/isValidIsbn13/isValidIsbn10, ISBN 체크디지트 검증), `debounce.ts` (M3 — shouldSuppressDuplicate 순수 함수, DUPLICATE_DEBOUNCE_MS=2000), `format.ts` (M4 — formatPublishedMonth 공유 유틸), `BarcodeScanner.tsx` (M3 — CameraView/useCameraPermissions, 권한 게이트 3상태, ISBN 바코드 타입 필터), `BookSearchScreen.tsx` (M4 — 검색 메인 화면, Pencil F06-Search), `BookDetailScreen.tsx` (M4 — 도서 상세 화면, useSession 세션 가드), `resolveBookId.ts` (ISBN→UUID 변환 — books.isbn UNIQUE lookup, @MX:ANCHOR), `index.ts` (통합 진입점 — searchBooks, getBookDetail, BarcodeScanner, isValidIsbn* barrel)
 - **`src/features/library/`** (서재 관리, SPEC-LIBRARY-001 완료 — 2026-06-16): `libraryApi.ts` (getLibrary, addLibraryItem, updateProgress, updateStatus, deleteItem — PostgREST API 레이어), `useLibrary.ts` (서재 목록 훅 — React Query useQuery), `useLibraryItem.ts` (단일 항목 훅 — useMutation, optimistic update, invalidateQueries), `types.ts` (LibraryItem, ProgressInput, StatusInput 타입 정의), `progressValidation.ts` (진도 검증 — 페이지 상한, 음수 차단), `progressRate.ts` (진도률 계산 — (current_page / total_pages) * 100), `index.ts` (통합 진입점)
 - **`src/features/emotion/`** (감정 기록, SPEC-EMOTION-001 완료 — 2026-06-17): `types.ts` (EmotionRecordWithAuthor, StickerAggregate, Visibility, CreateInput, UpdateInput, SortOption — DB Row derived), `emotionApi.ts` (create/list/update/delete — PostgREST 직접, client-side pre-validation, users 조인 + sticker GROUP BY, spoiler split), `stickerApi.ts` (precheck/create/delete/aggregate — 409 UNIQUE→VALIDATION mapping via normalizeError, no upsert), `useEmotionRecords.ts` (React Query 훅 — queryKey ['emotion',{bookId,userId}], cache invalidation), `useStickerReaction.ts` (optimistic update + 409 rollback, useReplaceSticker DELETE→POST), `questionPrompts.ts` (정적 풀 5개, round-robin by currentPage), `EmotionInputScreen.tsx` (입력 화면 — page/content/question/visibility toggle, pageNumber validation), `TimelineScreen.tsx` (타임라인 화면 — EmotionRecordCard list, sort toggle time/page, spoiler blur via isSpoiler prop), `index.ts` (통합 진입점)
@@ -190,5 +190,19 @@ iOS/Android 모바일 앱 (React Native + Expo SDK 55 + React 19.2)
 
 **OAuth providers**
 - Kakao: 한국 사용자 편의성 강화, 간편 로그인
-- Apple: 애플 기기 사용자를 위한 Sign in with Apple
+- Naver: Supabase Custom OIDC 연동 (v1.0.1, 2026-06-17 — Apple 제외, App Store Guideline 4.8 한국 예외 적용)
 - Google: Google 계정 연동, 백업 및 복원 지원
+
+## 빌드·배포 인프라 파일 (SPEC-DEPLOY-001 M1+M5, PR #15 2514263)
+
+> 2026-06-17 추가. SPEC-DEPLOY-001의 부분 진행(M1 환경 변수 + EAS 빌드 파운데이션, M5 OAuth 매뉴얼 문서화) 산출물.
+
+**빌드/배포 설정**:
+- `app.config.ts` — Expo 앱 설정. SPEC-DEPLOY-001 M1에서 빌드 시점 `validateEnv(process.env, ENV)` 호출(환경 변수 fail-fast 게이트)을 추가하고 `EXPO_PUBLIC_SENTRY_DSN`을 `extra`에 노출
+- `eas.json` — EAS Build 설정. 3개 빌드 프로필: `development`(개발), `preview`(스테이징), `production`(프로덕션)
+- `.env.example` / `.env.staging` / `.env.production` — 환경 변수 템플릿. `SENTRY_DSN` 플레이스홀더 포함 (M3 Sentry SDK 통합 대비)
+
+**배포 매뉴얼**:
+- `docs/deployment.md` — OAuth 콘솔 등록 절차(Kakao/Naver/Google) + Supabase Auth 제공자 활성화 가이드 + `.env` 설정 가이드. OAuth 콜백 URI `sagak://auth/callback`은 이미 `src/auth/oauth.ts`에 존재(본 문서는 절차만 문서화, 재구현 아님)
+
+> **참고**: SPEC-DEPLOY-001의 나머지 마일스톤(M2 GitHub Actions CI, M3 Sentry SDK 통합, M4 EAS Submit, M6 Edge Function 배포)은 미완료. M6은 SPEC-CLUB-001 / SPEC-NOTIF-001 의존으로 블로킹.

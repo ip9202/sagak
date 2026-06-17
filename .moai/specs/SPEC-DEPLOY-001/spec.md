@@ -2,9 +2,9 @@
 id: SPEC-DEPLOY-001
 title: "Build, Deploy & CI/CD Infrastructure"
 version: "1.0.0"
-status: draft
+status: in-progress
 created: 2026-06-14
-updated: 2026-06-14
+updated: 2026-06-17
 author: "강력쇠주먹"
 priority: medium
 issue_number: 0

@@ -2,7 +2,7 @@
 id: SPEC-DEPLOY-001
 title: "Build, Deploy & CI/CD — Compact Reference"
 version: "1.0.1"
-status: draft
+status: in-progress
 created: 2026-06-14
 updated: 2026-06-17
 author: "강력쇠주먹"
@@ -96,12 +96,14 @@ issue_number: 0
 
 ## 8. 마일스톤 요약
 
-1. **M1 (High)**: 환경 변수 + EAS Build 파운데이션
-2. **M2 (High)**: GitHub Actions CI 파이프라인
-3. **M3 (High)**: Sentry 통합 및 관측 인프라
-4. **M4 (Medium)**: EAS Submit 및 스토어 배포 자동화
-5. **M5 (Medium)**: OAuth 인프라 + Storage 버킷 프로비저닝
-6. **M6 (Medium)**: Edge Function 배포 + Supabase 프로비저닝 (최종 통합 게이트)
+1. **M1 (High)**: 환경 변수 + EAS Build 파운데이션 — ✅ 완료 (PR #15, 2514263, 2026-06-17)
+2. **M2 (High)**: GitHub Actions CI 파이프라인 — ⏸️ 대기 (미착수)
+3. **M3 (High)**: Sentry 통합 및 관측 인프라 — ⏸️ 대기 (env 키만 스캐폴드, SDK 미설치)
+4. **M4 (Medium)**: EAS Submit 및 스토어 배포 자동화 — ⏸️ 대기 (미착수)
+5. **M5 (Medium)**: OAuth 인프라 + Storage 버킷 프로비저닝 — ✅ 완료 (문서화만, PR #15)
+6. **M6 (Medium)**: Edge Function 배포 + Supabase 프로비저닝 (최종 통합 게이트) — 🚫 블로킹 (SPEC-CLUB-001 / SPEC-NOTIF-001 의존)
+
+> **구현 진행 상태 (2026-06-17)**: 본 SPEC은 부분 진행 상태이다. M1(환경 변수 검증 + EAS 빌드 프로필)과 M5의 OAuth 매뉴얼 문서화(`docs/deployment.md`)만 머지되었으며, M2(CI), M3(Sentry SDK), M4(Submit), M6(Edge Function)은 미완료이다. M6은 SPEC-CLUB-001 / SPEC-NOTIF-001 머지 전까지 블로킹된다. 상세 진행 로그는 `progress.md` 참조.
 
 ---
 
@@ -133,4 +135,4 @@ issue_number: 0
 
 버전: 1.0.0
 분류: 컴팩트 참조 (Compact Reference)
-상태: draft (사용자 승인 대기)
+상태: in-progress (M1+M5 머지됨 PR #15 2514263, 2026-06-17; M2/M3/M4/M6 미완료)

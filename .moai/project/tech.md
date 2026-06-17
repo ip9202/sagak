@@ -79,6 +79,14 @@ Expo Push Notifications를 통해 사용자 참여도를 높이는 맞춤형 알
 
 Expo EAS Build를 통한 크로스 플랫폼 빌드와 EAS Submit을 통한 앱 스토어 배포를 자동화한다. 개발 환경은 Expo Go 앱을 사용한 빠른 테스팅과 프리빌드 프로세스를 통해 실제 기기에서의 검증을 병행하며, CI/CD 파이프라인은 GitHub Actions를 통해 구현하여 코드 푸시 시 자동으로 빌드, 테스트, 배포 프로세스를 실행한다. 앱 스토어 배포는 자동화된 스크립트를 통해 TestFlight와 Google Play Console에 배포하며, 버전 관리는 자동화된 태깅 시스템을 통해 관리된다.
 
+### EAS Build 파운데이션 (SPEC-DEPLOY-001 M1 — 2026-06-17)
+
+SPEC-DEPLOY-001 M1(PR #15, 2514263)에서 EAS Build 인프라 파운데이션이 추가되었다:
+- **EAS Build (Expo Application Services)**: `eas.json`에 3개 빌드 프로필 정의 — `development`(Expo Go 기반 개발), `preview`(스테이징/internal 테스트), `production`(앱 스토어 배포용)
+- **빌드 시점 환경 변수 주입**: `EXPO_PUBLIC_*` 접두사 환경 변수가 EAS Build 시점에 빌드 결과물에 인라인된다. 현재 `EXPO_PUBLIC_SENTRY_DSN`이 `app.config.ts`의 `extra`에 노출됨
+- **빌드 시점 fail-fast 환경 변수 검증 (REQ-DEPLOY-018)**: `app.config.ts`가 빌드 시작 시 `validateEnv(process.env, ENV)`를 호출하여 필수 환경 변수 누락 시 빌드를 즉시 중단(`MissingEnvError`). 프로덕션 프로필은 `REQUIRED_PROD` 키 집합에 대해 추가 검증
+- **Sentry SDK (M3 예정)**: `@sentry/react-native` 패키지는 아직 설치되지 않음 — 현재 환경 변수 키(`EXPO_PUBLIC_SENTRY_DSN`)만 스캐폴드됨. SDK 통합·`Sentry.init`·소스맵 업로드는 M3에서 처리
+
 ## 개발 환경 요구사항
 
 Node.js LTS 버전(20.x 이상)을 필수로 하며 npm을 통해 패키지를 관리한다. Expo CLI는 전역 설치되어 있어야 하며, Supabase CLI는 로컬 개발 환경 설정에 필요하다. iOS 개발을 위해서는 Xcode와 iOS SDK가 macOS 환경에서 필수이며, Android 개발을 위해서는 Android Studio와 SDK가 필요하다. 코드 품질 관리를 위해 ESLint 9 flat config, Prettier, TypeScript 설정을 통합하며, 테스트 프레임워크는 Jest와 @testing-library/react-native를 사용한다. 디버깅은 Expo 개발자 메뉴와 React DevTools를 통해 지원되며, 에러 추적을 위해 Sentry를 통합한다. iOS 개발을 위해서는 Xcode와 iOS SDK가 macOS 환경에서 필수이며, Android 개발을 위해서는 Android Studio와 SDK가 필요하다. 코드 품질 관리를 위해 ESLint, Prettier, TypeScript 설정을 통합하며, 테스트 프레임워크는 Jest와 React Native Testing Library(`@testing-library/react-native`)를 사용한다. 디버깅은 Expo 개발자 메뉴와 React DevTools를 통해 지원되며, 에러 추적을 위해 Sentry를 통합한다.
