@@ -27,7 +27,9 @@ export function CelebrationHeader(): React.ReactElement {
           { backgroundColor: theme.colors.brand[500] },
         ]}
       >
-        <Text style={styles.badgeText}>완독</Text>
+        <Text style={[styles.badgeText, { color: theme.colors.text.inverse }]}>
+          완독
+        </Text>
       </View>
       <Text style={[styles.message, { color: theme.colors.text.primary }]}>
         이 책과의 여정을 완성하셨어요
@@ -48,7 +50,6 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   badgeText: {
-    color: '#FDFAF5',
     fontSize: 13,
     fontWeight: '700',
   },
