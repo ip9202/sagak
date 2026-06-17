@@ -18,7 +18,7 @@ import { AppError } from '../../../errors';
 // react-native-svg mock — 차트 렌더 검증용. 실제 SVG 엘리먼트 대신 단순 뷰로 대체.
 jest.mock('react-native-svg', () => {
   const React = require('react');
-  const { View, Text } = require('react-native');
+  const { View } = require('react-native');
   const Mock = ({ children, testID }: { children?: React.ReactNode; testID?: string }) =>
     React.createElement(View, { testID }, children);
   const Line = (props: { testID?: string }) =>

@@ -37,7 +37,7 @@ export function CompletionDiaryScreen({
   userBookId,
 }: CompletionDiaryScreenProps): React.ReactElement {
   const theme = useTheme();
-  const { status, data, error, refetch } = useCompletionReport(userBookId);
+  const { status, data, refetch } = useCompletionReport(userBookId);
 
   if (status === 'loading') {
     return (
