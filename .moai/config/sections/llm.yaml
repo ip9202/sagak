@@ -14,7 +14,7 @@ llm:
             medium: glm-4.7
             low: glm-4.5-air
             opus: glm-5.1
-            sonnet: glm-4.7
+            sonnet: glm-5.1
             haiku: glm-4.5-air
     default_model: ""
     quality_model: ""
