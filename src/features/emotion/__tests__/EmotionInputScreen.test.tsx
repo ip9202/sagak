@@ -118,4 +118,54 @@ describe('SPEC-EMOTION-001 T-009: EmotionInputScreen', () => {
     const { getByDisplayValue } = renderScreen({ currentPage: 77 });
     expect(getByDisplayValue('77')).toBeTruthy();
   });
+
+  it('음수 페이지 번호 제출 시 onSubmit 을 호출하지 않는다 (리뷰 UX-002)', async () => {
+    const {
+      getByDisplayValue,
+      getByPlaceholderText,
+      getByText,
+      onSubmit,
+      queryByText,
+    } = renderScreen({
+      currentPage: 100,
+    });
+    // 페이지 입력을 음수로 변경
+    fireEvent.changeText(getByDisplayValue('100'), '-5');
+    fireEvent.changeText(
+      getByPlaceholderText(/감정|내용|기록/),
+      '내용 있음',
+    );
+    fireEvent.press(getByText('기록 저장'));
+
+    await waitFor(() => {
+      expect(onSubmit).not.toHaveBeenCalled();
+    });
+    expect(queryByText(/올바른 페이지 번호/)).not.toBeNull();
+  });
+
+  it('소수 페이지 번호 제출 시 onSubmit 을 호출하지 않는다 (리뷰 UX-002)', async () => {
+    const { getByDisplayValue, getByPlaceholderText, getByText, onSubmit } =
+      renderScreen({ currentPage: 100 });
+    fireEvent.changeText(getByDisplayValue('100'), '12.7');
+    fireEvent.changeText(getByPlaceholderText(/감정|내용|기록/), '내용 있음');
+    fireEvent.press(getByText('기록 저장'));
+
+    await waitFor(() => {
+      expect(onSubmit).not.toHaveBeenCalled();
+    });
+  });
+
+  it('0 페이지(독서 전)는 허용한다 — 음수가 아닌 정수', async () => {
+    const { getByDisplayValue, getByPlaceholderText, getByText, onSubmit } =
+      renderScreen({ currentPage: 100 });
+    fireEvent.changeText(getByDisplayValue('100'), '0');
+    fireEvent.changeText(getByPlaceholderText(/감정|내용|기록/), '시작 전 감상');
+    fireEvent.press(getByText('기록 저장'));
+
+    await waitFor(() => {
+      expect(onSubmit).toHaveBeenCalledWith(
+        expect.objectContaining({ pageNumber: 0 }),
+      );
+    });
+  });
 });

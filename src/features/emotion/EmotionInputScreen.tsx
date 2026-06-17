@@ -81,10 +81,20 @@ export const EmotionInputScreen: React.FC<EmotionInputScreenProps> = ({
       setError('모임 감정 기록은 모임을 선택해야 합니다');
       return;
     }
+    // 페이지 번호 검증: 자연수만 허용 (0 = 독서 전). 음수/소수/과대값은 조기 차단 (리뷰 UX-002).
+    const parsedPage = Number(pageNumber);
+    if (
+      !Number.isFinite(parsedPage) ||
+      parsedPage < 0 ||
+      !Number.isInteger(parsedPage)
+    ) {
+      setError('올바른 페이지 번호를 입력해주세요');
+      return;
+    }
     setError(null);
     onSubmit({
       bookId,
-      pageNumber: Number(pageNumber) || 0,
+      pageNumber: parsedPage,
       content: trimmed,
       visibility,
       clubId: visibility === 'club' ? clubId : null,
