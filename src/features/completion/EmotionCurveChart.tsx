@@ -67,9 +67,16 @@ export function EmotionCurveChart({
 
   const coords = scalePoints(points, width, height, padding);
   const pointsStr = coords.map((c) => `${c.x},${c.y}`).join(' ');
+  const maxCount = points.reduce((m, p) => Math.max(m, p.emotion_count), 0);
 
   return (
-    <View testID="emotion-curve-chart" style={{ width, height }}>
+    <View
+      testID="emotion-curve-chart"
+      accessible
+      accessibilityRole="image"
+      accessibilityLabel={`페이지별 감정 기록 수 차트. 총 ${points.length}개 구간, 최대 ${maxCount}건`}
+      style={{ width, height }}
+    >
       <Svg width={width} height={height}>
         <G>
           <Polyline

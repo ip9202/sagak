@@ -104,7 +104,7 @@ export function CompletionDiaryScreen({
         이 책에서 남긴 감정 {total}개
       </Text>
       {isEmpty ? (
-        <Text style={[styles.emptyText, { color: theme.colors.text.tertiary }]}>
+        <Text style={[styles.emptyText, { color: theme.colors.text.secondary }]}>
           기록된 감정이 없어요
         </Text>
       ) : (
@@ -136,7 +136,8 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderRadius: 10,
     paddingHorizontal: 16,
-    paddingVertical: 8,
+    minHeight: 44,
+    justifyContent: 'center',
     alignSelf: 'center',
     marginTop: 16,
   },

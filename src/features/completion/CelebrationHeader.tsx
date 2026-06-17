@@ -19,7 +19,12 @@ import { useTheme } from '../../theme/theme';
 export function CelebrationHeader(): React.ReactElement {
   const theme = useTheme();
   return (
-    <View style={styles.container}>
+    <View
+      style={styles.container}
+      accessible
+      accessibilityRole="header"
+      accessibilityLabel="완독 완료. 이 책과의 여정을 완성하셨어요"
+    >
       <View
         testID="completion-badge"
         style={[
