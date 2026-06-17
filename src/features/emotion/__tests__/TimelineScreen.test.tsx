@@ -13,6 +13,8 @@ import React from 'react';
 import { render, fireEvent } from '@testing-library/react-native';
 import { ThemeProvider } from '../../../theme/theme';
 import { TimelineScreen } from '../TimelineScreen';
+import { getBookDetail } from '../../book/bookDetailApi';
+import type { BookRow } from '../../../types/book';
 import type { EmotionListResult, EmotionRecordWithAuthor } from '../types';
 
 jest.mock('@react-native-async-storage/async-storage', () => ({
@@ -25,6 +27,19 @@ jest.mock('expo-secure-store', () => ({
   deleteItemAsync: jest.fn(),
   WHEN_UNLOCKED: 'WHEN_UNLOCKED',
 }));
+jest.mock('../../book/bookDetailApi', () => ({
+  getBookDetail: jest.fn(),
+}));
+
+const mockedGetBookDetail = getBookDetail as jest.MockedFunction<typeof getBookDetail>;
+
+function makeBook(overrides: Partial<BookRow> = {}): BookRow {
+  return {
+    id: 'b1',
+    title: '데미안',
+    ...overrides,
+  } as unknown as BookRow;
+}
 
 function makeRecord(overrides: Partial<EmotionRecordWithAuthor> = {}): EmotionRecordWithAuthor {
   return {
@@ -131,5 +146,27 @@ describe('SPEC-EMOTION-001 T-010: TimelineScreen', () => {
     const { getByText } = renderScreen({ data: { safe: recs, spoiler: [] } });
     expect(getByText('첫 기록')).toBeTruthy();
     expect(getByText('둘째 기록')).toBeTruthy();
+  });
+
+  it('책 제목을 getBookDetail 로 조회해 카드에 표시한다 (bookTitle 빈값 수정)', async () => {
+    mockedGetBookDetail.mockResolvedValue(makeBook({ title: '데미안' }));
+    const rec = makeRecord({ id: 's1', content: '기록' });
+    const { findByText } = renderScreen({
+      data: { safe: [rec], spoiler: [] },
+    });
+    // getBookDetail(bookId) 호출
+    expect(mockedGetBookDetail).toHaveBeenCalledWith('b1');
+    // 조회된 책 제목이 카드에 표시된다
+    expect(await findByText(/데미안/)).toBeTruthy();
+  });
+
+  it('getBookDetail 실패 시에도 emotion 기록은 정상 렌더링된다 (bookTitle 보조 표시)', async () => {
+    mockedGetBookDetail.mockRejectedValue(new Error('network'));
+    const rec = makeRecord({ id: 's1', content: '감상 내용' });
+    const { getByText } = renderScreen({
+      data: { safe: [rec], spoiler: [] },
+    });
+    // 책 제목 조회 실패해도 emotion 데이터는 렌더링
+    expect(getByText('감상 내용')).toBeTruthy();
   });
 });
