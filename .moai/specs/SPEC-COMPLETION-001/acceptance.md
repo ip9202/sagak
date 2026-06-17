@@ -8,7 +8,7 @@ spec: SPEC-COMPLETION-001
 version: "1.0.0"
 status: draft
 created: 2026-06-14
-updated: 2026-06-14
+updated: 2026-06-17
 author: "강력쇠주먹"
 priority: medium
 issue_number: 0
@@ -133,13 +133,15 @@ Feature: report_data 스키마 파싱
   Scenario: 정상 report_data를 ReportData 인터페이스로 파싱한다
     Given completion_reports.report_data에 다음 JSON이 저장되어 있다
       """
-      { "emotion_curve": [{"page": 12, "emotion": "감동", "count": 3}],
-        "highlights": [{"page": 12, "content": "마음이 찡해졌다", "emotion": "감동"}],
+      { "emotion_curve": [{"page_number": 12, "emotion_count": 3}],
+        "highlights": [{"page_number": 12, "content": "마음이 찡해졌다"}],
         "total_records": 47 }
       """
     When 클라이언트가 report_data를 파싱한다
     Then ReportData 타입 객체가 생성된다
-    And emotion_curve[0].page가 12이다
+    And emotion_curve[0].page_number가 12이다
+    And emotion_curve[0].emotion_count가 3이다
+    And highlights[0].page_number가 12이다
     And highlights[0].content가 "마음이 찡해졌다"이다
     And total_records가 47이다
 ```
@@ -156,15 +158,15 @@ Feature: report_data 스키마 검증 실패 처리
       """
       { "emotion_curve": [], "highlights": [] }
       """
-    When 클라이언트가 Zod 스키마로 파싱을 시도하면
-    Then 파싱 에러가 발생한다
+    When 클라이언트가 순수 타입 가드 isReportData() 로 파싱을 시도하면
+    Then 검증 실패로 AppError(category=VALIDATION) 가 throw 된다
     And 에러가 로깅된다
     And 다이어리가 "데이터 오류" 상태로 표시된다 (빈 상태와 구분)
 
-  Scenario: emotion_curve 요소의 page가 숫자가 아닌 경우 감지한다
-    Given report_data.emotion_curve[0].page가 "12" (문자열)이다
-    When 클라이언트가 Zod 스키마로 파싱을 시도하면
-    Then 타입 불일치 에러가 발생한다
+  Scenario: emotion_curve 요소의 page_number가 숫자가 아닌 경우 감지한다
+    Given report_data.emotion_curve[0].page_number가 "12" (문자열)이다
+    When 클라이언트가 순수 타입 가드 isReportData() 로 파싱을 시도하면
+    Then 타입 불일치로 AppError(category=VALIDATION) 가 throw 된다
     And 다이어리가 "데이터 오류" 상태로 표시된다
 ```
 
@@ -210,8 +212,9 @@ Feature: 감정 곡선 차트
   Scenario: emotion_curve 포인트를 차트로 시각화한다
     Given report_data.emotion_curve에 3개 이상의 포인트가 있다
     When 클라이언트가 EmotionCurveChart 컴포넌트를 렌더링하면
-    Then 차트가 x축(page)과 y축(count)으로 포인트를 표시한다
-    And 감정 종류별로 고유한 색상 토큰이 적용된다
+    Then 차트가 x축(page_number)과 y축(emotion_count)으로 포인트를 표시한다
+    And 단일 브랜드 컬러 토큰(colors.brand[500] = #C17B2F)이 일관되게 적용된다
+    And 감정 종류별 범례(legend)는 렌더링되지 않는다
 
   Scenario: emotion_curve에 1개 포인트만 있어도 차트가 렌더링된다
     Given report_data.emotion_curve에 1개 포인트만 있다
@@ -237,7 +240,8 @@ Feature: 하이라이트 감정 기록 표시
     Given report_data.highlights에 2개의 하이라이트가 있다
     When 클라이언트가 HighlightList 컴포넌트를 렌더링하면
     Then 2개의 카드가 리스트 형태로 표시된다
-    And 각 카드에 페이지 번호, 감정, 기록 내용이 포함된다
+    And 각 카드에 페이지 번호(page_number)와 기록 내용(content)이 포함된다
+    And 감정 종류 필드는 표시되지 않는다 (데이터에 존재하지 않음)
 
   Scenario: 하이라이트 카드는 SPEC-UI-001 디자인 패턴을 따른다
     Given HighlightList가 렌더링된다
@@ -380,7 +384,7 @@ Feature: 인증 세션 만료
 - [ ] 단위 테스트 커버리지 85% 이상 달성
 - [ ] 통합 테스트(완독 처리 → 다이어리 진입 → 렌더) 통과
 - [ ] SPEC-UI-001 디자인 토큰 적용 확인
-- [ ] 차트 라이브러리(미결정 6.1) 확정 및 호환성 검증
+- [ ] 차트 라이브러리(6.1 해결됨 — 순수 SVG/react-native-svg) 호환성 검증
 - [ ] SPEC-DB-001 report_data 읽기 전용 계약 준수 확인 (생성 로직 미구현)
 - [ ] 빈 상태 / 에러 상태 / 데이터 오류 상태 3종 분기 처리 확인
 
@@ -390,7 +394,7 @@ Feature: 인증 세션 만료
 
 | 검증 영역 | 도구 | 대상 |
 |-----------|------|------|
-| 단위 테스트 | Jest | completionApi, useCompletionReport, Zod 스키마 |
+| 단위 테스트 | Jest | completionApi, useCompletionReport, 순수 타입 가드 isReportData() |
 | 컴포넌트 테스트 | @testing-library/react-native | EmotionCurveChart, HighlightList, CelebrationHeader, CompletionDiaryScreen |
 | 타입 검증 | tsc --noEmit (strict) | 전체 산출물 |
 | 린트 | ESLint 9 flat config | 전체 산출물 |

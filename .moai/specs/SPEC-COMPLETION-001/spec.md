@@ -7,7 +7,7 @@ title: "완독 다이어리 및 아카이브 시각화"
 version: "1.0.0"
 status: draft
 created: 2026-06-14
-updated: 2026-06-14
+updated: 2026-06-17
 author: "강력쇠주먹"
 priority: medium
 issue_number: 0
@@ -21,6 +21,7 @@ labels: [completion, diary, archive, visualization, emotion-curve, frontend]
 | 날짜 | 버전 | 변경 내용 | 작성자 |
 |------|------|-----------|--------|
 | 2026-06-14 | 1.0.0 | 최초 작성 — 완독 다이어리 시각화, report_data 읽기 전용 클라이언트, 4개 요구사항 모듈 (TRIGGER/DATA/VIEW/CELEBRATE) | 강력쇠주먹 |
+| 2026-06-17 | 1.0.0 | report_data 스키마 시정 — DB 트리거 실제 산출물(page_number/emotion_count, emotion_kind 없음)과 일치. REQ-COMP-006 단일 브랜드 컬러 토큰화, 6.1/6.3 해결(순수 SVG / 정적 축하), Zod→순수 타입 가드 전환. 계약 시정이며 기능 범위 변동 없음 | 강력쇠주먹 |
 
 ---
 
@@ -39,18 +40,30 @@ labels: [completion, diary, archive, visualization, emotion-curve, frontend]
 
 ### report_data JSONB 구조 (SPEC-DB-001 위임 — 참조 전용)
 
-```json
+> **주의 (2026-06-17 시정)**: 아래 구조는 실제 DB 트리거 `generate_completion_report()`
+> (`supabase/migrations/20240614000010_create_completion_reports.sql`)의 산출물과
+> 정확히 일치한다. emotion_curve는 **페이지별 감정 수량** 집계이며, emotion_count 외에
+> 감정 종류(kind) 필드는 존재하지 않는다. highlights 역시 content만 포함한다.
+
+```jsonc
 {
   "emotion_curve": [
-    { "page": 12, "emotion": "감동", "count": 3 },
-    { "page": 45, "emotion": "슬픔", "count": 2 }
+    { "page_number": 12, "emotion_count": 3 },
+    { "page_number": 45, "emotion_count": 2 }
   ],
   "highlights": [
-    { "page": 12, "content": "이 문장에서 마음이 찡해졌다", "emotion": "감동" }
+    { "page_number": 12, "content": "이 문장에서 마음이 찡해졌다" }
   ],
   "total_records": 47
 }
 ```
+
+필드 계약:
+- `emotion_curve[]`: 페이지별 감정 기록 수. 각 원소는 `page_number`(number)와
+  `emotion_count`(number)만 가진다. **감정 종류 필드는 없다.**
+- `highlights[]`: 최근 감정 기록 최대 5건(트리거 `ORDER BY created_at DESC LIMIT 5`).
+  각 원소는 `page_number`(number)와 `content`(string)만 가진다. **감정 종류 필드는 없다.**
+- `total_records`(number): 해당 user_book의 전체 감정 기록 수.
 
 > 위 구조는 SPEC-DB-001 REQ-DB-010이 DB 트리거 PL/pgSQL으로 채운다. 트리거 로직(하이라이트 선정 알고리즘 등)은 SPEC-DB-001 영역이며, 본 SPEC은 이 JSONB를 **있는 그대로 파싱하여 렌더링**한다.
 
@@ -127,22 +140,23 @@ interface ReportData {
 }
 
 interface EmotionCurvePoint {
-  page: number;
-  emotion: string;
-  count: number;
+  page_number: number;
+  emotion_count: number;
 }
 
 interface Highlight {
-  page: number;
+  page_number: number;
   content: string;
-  emotion: string;
 }
 ```
+
+> 위 인터페이스는 DB 트리거의 실제 산출 필드와 1:1로 일치한다. emotion_curve /
+> highlights 어디에도 감정 종류(kind) 필드는 존재하지 않는다.
 
 **IF** report_data가 위 스키마와 일치하지 않으면 (키 누락, 타입 불일치),
 **THEN** 시스템은 파싱 에러를 로깅하고, 다이어리를 "데이터 오류" 상태로 표시해야 한다 (빈 상태와 구분).
 
-> **설계 근거**: report_data는 DB 트리거 PL/pgSQL이 산출하므로 스키마 안정성이 높지만, 런타임 파싱에서 방어적 검증을 수행한다. Zod 또는 런타임 타입 가드를 사용한다 (기술 결정은 plan.md 참조).
+> **설계 근거**: report_data는 DB 트리거 PL/pgSQL이 산출하므로 스키마 안정성이 높지만, 런타임 파싱에서 방어적 검증을 수행한다. 순수 TypeScript 타입 가드 함수 `isReportData(value): value is ReportData`를 사용하며(의존성 추가 없음 — EMOTION 모듈의 순수 타입 정책 준수), 검증 실패 시 `category=VALIDATION`인 `AppError`를 throw한다 (기술 결정은 plan.md 참조).
 
 #### REQ-COMP-005: 감정 기록 0건 케이스 처리
 
@@ -161,17 +175,22 @@ interface Highlight {
 #### REQ-COMP-006: 감정 곡선 차트 시각화
 
 **WHEN** emotion_curve에 1개 이상의 포인트가 존재하면,
-**THEN** 시스템은 페이지(x축)별 감정 빈도(y축)를 선형 차트 또는 바 차트로 시각화해야 한다.
+**THEN** 시스템은 페이지(x축)별 감정 기록 수(y축, emotion_count)를 선형 차트 또는 바 차트로 시각화해야 한다.
 
 **WHERE** 감정 곡선 차트가 렌더링되면,
-**THEN** 시스템은 감정 종류별로 고유한 색상 토큰(SPEC-UI-001 디자인 토큰 기반)을 적용해야 한다.
+**THEN** 시스템은 단일 브랜드 컬러 토큰(`colors.brand[500]` = `#C17B2F`, SPEC-UI-001)을 일관되게 적용해야 한다.
 
-> **미결정 사항 (6.1)**: 차트 라이브러리는 순수 SVG, react-native-chart-kit, victory-native 중 선택한다. 결정 상태는 미결정 사항 섹션에 기록한다.
+> **설계 근거 (2026-06-17 시정)**: DB 트리거의 emotion_curve는 페이지별 감정 *수량* 집계이며
+> 감정 종류(kind) 필드를 포함하지 않는다. 따라서 "감정 종류별 고유 색상"은 데이터 근거가 없고,
+> 단일 브랜드 컬러 토큰으로 시각화한다. 범례(legend)도 불필요하다.
+>
+> **미결정 사항 (6.1) — 해결됨**: 차트는 **순수 SVG(react-native-svg, 이미 설치됨)**로 구현한다.
+> 의존성 추가 없이 단일 색상 선형/바 차트를 렌더링한다.
 
 #### REQ-COMP-007: 하이라이트 감정 기록 표시
 
 **WHEN** highlights 배열에 1개 이상의 하이라이트가 존재하면,
-**THEN** 시스템은 하이라이트를 카드 리스트 형태로 표시하되, 각 카드에 페이지 번호, 감정, 기록 내용을 포함해야 한다.
+**THEN** 시스템은 하이라이트를 카드 리스트 형태로 표시하되, 각 카드에 페이지 번호(`page_number`)와 기록 내용(`content`)을 포함해야 한다.
 
 **WHERE** 하이라이트 카드가 표시되면,
 **THEN** 시스템은 SPEC-UI-001의 `EmotionRecordCard` 컴포넌트 디자인 패턴을 재사용하거나 일관된 스타일을 적용해야 한다.
@@ -192,7 +211,9 @@ interface Highlight {
 **WHEN** 사용자가 처음으로 완독 다이어리를 열면 (또는 완독 처리 직후),
 **THEN** 시스템은 "이 책과의 여정을 완성하셨어요" 축하 메시지를 다이어리 상단에 표시해야 한다.
 
-> **미결정 사항 (6.3)**: 축하 애니메이션(컨페티, 펼쳐지는 효과 등)의 범위는 후순위 결정 대상이다. MVP에서는 정적 텍스트 + 이미지(배지) 조합을 우선한다.
+> **미결정 사항 (6.3) — 해결됨**: 축하 애니메이션 범위는 **옵션 A(정적 텍스트 + 배지 MVP)**로 확정한다.
+> 컨페티/펼쳐지기 효과 없이 다이어리 헤더에 축하 메시지와 배지만 표시한다. 애니메이션 라이브러리
+> (react-native-reanimated, react-native-confetti)는 도입하지 않는다.
 
 #### REQ-COMP-010: 완독 배지 표시
 
@@ -227,16 +248,19 @@ interface Highlight {
 
 ## 6. 미결정 사항 (Open Questions)
 
-### 6.1 감정 곡선 차트 라이브러리 — 미해결
+### 6.1 감정 곡선 차트 라이브러리 — 해결됨
 
-**상태**: 미해결 (구현 단계에서 결정)
+**상태**: 해결됨 (옵션 A 확정)
 
-**옵션**:
-- **A. 순수 SVG (react-native-svg)**: 의존성 최소, 커스터마이징 자유도最高, 구현 비용 중간
-- **B. react-native-chart-kit**: 선형/바 차트 기본 제공, 의존성 가벼움, 커스터마이징 제한적
-- **C. victory-native**: 고급 차트 기능, 의존성 무거움, 러닝 커브 존재
+**결정**: **옵션 A — 순수 SVG (react-native-svg)**로 구현한다. `react-native-svg@15.15.3`이 이미
+설치되어 있으므로 추가 의존성 없이 단일 브랜드 컬러 선형/바 차트를 렌더링한다.
+감정 종류별 색상이 불필요한 단일 계열 데이터이므로(REQ-COMP-006 시정 참조) chart-kit이나
+victory-native의 부가 기능은 오버엔지니어링이다.
 
-**결정 시점**: plan.md 기술 스택 섹션에서 확정. RUN 단계 프로토타이핑 후 최종 선택.
+**옵션 (기록용)**:
+- A. 순수 SVG (react-native-svg) — 채택
+- B. react-native-chart-kit — 기각 (단일 색상 데이터에 과함)
+- C. victory-native — 기각 (의존성 무거움, 러닝 커브)
 
 ### 6.2 하이라이트 선정 알고리즘 — SPEC-DB-001에 위임 (해결됨)
 
@@ -244,16 +268,18 @@ interface Highlight {
 
 **결정**: report_data.highlights의 선정 로직(어떤 감정 기록을 하이라이트로 선별할지)은 DB 트리거 PL/pgSQL에 구현된다 (SPEC-DB-001 REQ-DB-010). 본 SPEC의 클라이언트는 트리거가 선정한 highlights를 **있는 그대로 렌더링**한다. 알고리즘 상세는 SPEC-DB-001의 트리거 구현에 기술한다.
 
-### 6.3 축하 애니메이션 범위 — 미해결
+### 6.3 축하 애니메이션 범위 — 해결됨
 
-**상태**: 미해결 (MVP 범위 한정 가능성 높음)
+**상태**: 해결됨 (옵션 A 확정)
 
-**옵션**:
-- **A. 정적 텍스트 + 배지 이미지** (MVP 최소): 컨페티 없음, 다이어리 헤더에 축하 메시지와 배지만 표시
-- **B. 경량 애니메이션**: 배지 펼쳐지기 효과, 페이드인 (react-native-reanimated 사용)
-- **C. 풀 컨페티**: react-native-confetti 또는 유사 라이브러리
+**결정**: **옵션 A — 정적 텍스트 + 배지**로 MVP를 한정한다. 컨페티/펼쳐지기 효과 없이
+다이어리 헤더에 축하 메시지와 배지만 표시한다. 애니메이션 라이브러리는 도입하지 않는다.
+옵션 B/C는 후순위 확장 후보로만 기록한다.
 
-**결정 시점**: MVP에서는 옵션 A를 기본으로 하고, plan.md에서 옵션 B/C의 우선순위를 논의한다.
+**옵션 (기록용)**:
+- A. 정적 텍스트 + 배지 — 채택 (MVP)
+- B. 경량 애니메이션 (react-native-reanimated) — 후순위
+- C. 풀 컨페티 (react-native-confetti) — 후순위
 
 ---
 
