@@ -25,6 +25,9 @@ sagak://auth/callback
 
 - Redirect URI 는 **정확히 일치(exact-match)** 하는 값만 등록한다.
 - 와일드카드(`*`)나 패턴 매칭은 절대 사용하지 않는다 (Open Redirect 위험).
+- 위 원칙은 클라이언트 deep-link(`sagak://auth/callback`)뿐 아니라 2절의
+  Supabase server callback(`https://<project-ref>.supabase.co/auth/v1/callback`)에도
+  동일하게 적용된다 — trailing slash(`.../callback/`)나 경로 와일드카드 없이 verbatim 으로 등록한다.
 
 ### Kakao Developers
 

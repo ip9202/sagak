@@ -59,5 +59,25 @@ describe('validateEnv (SPEC-DEPLOY-001 M1, REQ-DEPLOY-003)', () => {
         }
       }
     });
+
+    it('RED-5: ENV=production 에서 필수 키가 빈 문자열이어도 누락으로 간주한다 (.env placeholder 빈 값 방어, AC-DEPLOY-018)', () => {
+      // .env.production 에 EXPO_PUBLIC_SENTRY_DSN= 처럼 빈 값으로 남는 경우를 방어한다.
+      // 이 테스트는 향후 !env[key] 를 env[key] === undefined 로 리팩터하면 실패하므로
+      // empty-string 도 fail-fast 대상임을 고정한다.
+      const env = {
+        EXPO_PUBLIC_SUPABASE_URL: 'https://prod.supabase.co',
+        EXPO_PUBLIC_SUPABASE_ANON_KEY: 'prod-anon-key',
+        EXPO_PUBLIC_SENTRY_DSN: '', // 빈 문자열 → 누락과 동일 취급
+      };
+
+      expect(() => validateEnv(env, 'production')).toThrow(MissingEnvError);
+      try {
+        validateEnv(env, 'production');
+        fail('예외가 던져져야 합니다');
+      } catch (e) {
+        expect(e).toBeInstanceOf(MissingEnvError);
+        expect((e as Error).message).toContain('EXPO_PUBLIC_SENTRY_DSN');
+      }
+    });
   });
 });
