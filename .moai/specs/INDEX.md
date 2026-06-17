@@ -143,12 +143,13 @@ Phase 5 (배포)
 
 #### SPEC-COMPLETION-001: 완독 다이어리 및 아카이브 시각화
 - **도메인**: COMPLETION
-- **우선순위**: medium
-- **핵심 범위**: 완독 처리 플로우(reading → completed 전환 트리거), `completion_reports.report_data` 시각화(감정 곡선, 하이라이트, 총 기록 수), "이 책과의 여정" 다이어리 뷰, 완독 성취 표시
-- **DB 엔터티**: `completion_reports`, `user_books`(상태 전환)
-- **API/Edge Function**: `GET /completion_reports`(조회), `generate-completion-report` Edge Function은 예비(DB 트리거가 이미 자동 생성)
-- **의존성**: SPEC-EMOTION-001(감정 데이터)
-- **구현 산출물**: `src/features/completion/*.ts`, 완독 다이어리 화면, 차트 컴포넌트
+- **상태**: ✅ 구현 완료 (10/10 REQ, PR #14 머지 463996e, 2026-06-17, 커버리지 91.92%)
+- **핵심 범위**: `completion_reports.report_data` 시각화(감정 곡선, 하이라이트, 총 기록 수), "이 책과의 여정" 다이어리 뷰, 완독 성취 표시. **Note**: 완독 처리 플로우(reading → completed 전환 트리거)는 SPEC-LIBRARY-001 협력 영역. 본 SPEC은 report_data 읽기 전용 소비자(UI 시각화)만 구현.
+- **진입 버튼 계약 (REQ-COMP-002)**: 완독 다이어리 진입 버튼 UI는 SPEC-LIBRARY-001과 협력 필요(계약만 정의, 구현 연기).
+- **DB 엔터티**: `completion_reports` (DB 트리거가 자동 생성), `user_books`(상태 전환은 SPEC-LIBRARY-001)
+- **API/Edge Function**: `GET /completion_reports`(조회, PostgREST 직접), `generate-completion-report` Edge Function은 예비(DB 트리거가 이미 자동 생성)
+- **의존성**: SPEC-EMOTION-001(감정 데이터 원천), SPEC-DB-001(report_data 생성 트리거), SPEC-UI-001(토큰 전용 스타일링)
+- **구현 산출물**: `src/features/completion/*.ts` (7 source + 4 test), 완독 다이어리 화면, 순수 SVG 차트
 - **제외**: 리치 콘텐츠(이미지 카드 등) 생성 Edge Function(확장 단계)
 
 ---
@@ -277,7 +278,7 @@ product.md "비목표" + SPEC-DB-001 "제외 범위" 기반:
 | 2 | SPEC-BOOK-001 | ✅ | ✅ | ✅ | 구현 완료 (M1~M4 전부, PR #8 852f0ac M1+M2 + PR #9 a293e8d M3+M4, 2026-06-17) |
 | 2 | SPEC-LIBRARY-001 | ✅ | ✅ | ✅ | SPEC 작성 완료 (16 REQ) |
 | 2 | SPEC-EMOTION-001 | ✅ | ✅ | ✅ | 구현 완료 (10/10 REQ, PR #12 머지 a1ce6cf, 2026-06-17, 커버리지 92.47%) |
-| 2 | SPEC-COMPLETION-001 | ✅ | ✅ | ✅ | SPEC 작성 완료 (10 REQ) |
+| 2 | SPEC-COMPLETION-001 | ✅ | ✅ | ✅ | 구현 완료 (10/10 REQ, PR #14 머지 463996e, 2026-06-17, 커버리지 91.92%) |
 | 3 | SPEC-CLUB-001 | ✅ | ✅ | ✅ | SPEC 작성 완료 (12 REQ) |
 | 3 | SPEC-CLUB-002 | ✅ | ✅ | ✅ | SPEC 작성 완료 (17 REQ) |
 | 3 | SPEC-FEED-001 | ✅ | ✅ | ✅ | SPEC 작성 완료 (8 REQ) |
@@ -309,6 +310,7 @@ product.md "비목표" + SPEC-DB-001 "제외 범위" 기반:
 |-------|---------------|----------|----|----|-----------|--------|---------|
 | 2 | SPEC-BOOK-001 | 2026-06-17 | #8+#9 | 852f0ac+a293e8d | 16/16 (100%) | 462/462 | 94%+ |
 | 2 | SPEC-EMOTION-001 | 2026-06-17 | #12 | a1ce6cf | 10/10 (100%) | 627/627 | 92.47% |
+| 2 | SPEC-COMPLETION-001 | 2026-06-17 | #14 | 463996e | 10/10 (100%) | 683/683 | 91.92% |
 
 **Phase 1 완결 상태**: 인프라·인증·네비게이션 파운데이션 100% 완성. 도메인 SPEC(SPEC-BOOK-001, SPEC-LIBRARY-001 등) 구현 준비 완료.
 

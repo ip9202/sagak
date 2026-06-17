@@ -5,12 +5,12 @@
 id: SPEC-COMPLETION-001
 title: "완독 다이어리 및 아카이브 시각화"
 version: "1.0.0"
-status: draft
+status: completed
 created: 2026-06-14
 updated: 2026-06-17
 author: "강력쇠주먹"
 priority: medium
-issue_number: 0
+issue_number: 14
 labels: [completion, diary, archive, visualization, emotion-curve, frontend]
 ---
 
@@ -298,3 +298,130 @@ victory-native의 부가 기능은 오버엔지니어링이다.
 | SPEC-EMOTION-001 | emotion_records 데이터 (report_data 소스) | 간접 의존 (DB 트리거가 집계) |
 | SPEC-UI-001 | 디자인 토큰, EmotionRecordCard, ThemeProvider | 시각화 일관성 적용 |
 | SPEC-API-001 | Supabase 클라이언트, 타입 안전 쿼리 래퍼 | PostgREST GET 호출 |
+
+---
+
+## 8. Implementation Notes (sync 2026-06-17)
+
+### 8.1 최종 ReportData 계약
+
+본 SPEC은 DB 트리거 `generate_completion_report()`가 산출한 `completion_reports.report_data`를 읽기 전용으로 소비한다. 최종 계약은 SPEC-DB-001에 의해 2026-06-14에 생성된 migration `20240614000010_create_completion_reports.sql`의 PL/pgSQL 트리거와 정확히 일치한다:
+
+**ReportData 구조**:
+```typescript
+interface ReportData {
+  emotion_curve: Array<{page_number: number, emotion_count: number}>
+  highlights: Array<{page_number: number, content: string}>
+  total_records: number
+}
+```
+
+**필드 계약 (2026-06-17 시정 사항)**:
+- `emotion_curve[]`: 페이지별 감정 기록 수. 각 원소는 `page_number`(number)와 `emotion_count`(number)만 가진다. **감정 종류 필드는 없다.**
+- `highlights[]`: 최근 감정 기록 최대 5건(트리거 `ORDER BY created_at DESC LIMIT 5`). 각 원소는 `page_number`(number)와 `content`(string)만 가진다. **감정 종류 필드는 없다.**
+- `total_records`(number): 해당 user_book의 전체 감정 기록 수
+
+이 구조는 SPEC-DB-001 REQ-DB-010이 DB 트리거 PL/pgSQL로 채운다. 트리거 로직(하이라이트 선정 알고리즘 등)은 SPEC-DB-001 영역이며, 본 SPEC은 이 JSONB를 **있는 그대로 파싱하여 렌더링**한다.
+
+---
+
+### 8.2 구현 산출물 (11 files)
+
+**계획**: 10 files
+**실제**: 11 files (+ `types.test.ts` 추가)
+**Drift**: 10% (비차단 — 단위 테스트 증가는 품질 개선)
+
+**Source files (7)**:
+1. `src/features/completion/types.ts` — ReportData/EmotionCurvePoint/Highlight + isReportData() 순수 타입 가드
+2. `src/features/completion/completionApi.ts` — fetchReport (PostgREST GET 래퍼 + 재시도 최대3 + 점진백오프 + normalizeError, RLS auth.uid() 신뢰)
+3. `src/features/completion/useCompletionReport.ts` — useState/useEffect 기반 6상태 훅 (loading/success/empty/error/data-error/auth)
+4. `src/features/completion/EmotionCurveChart.tsx` — 순수 SVG 감정 곡선 (단일 brand-500 색상, 페이지별 수량)
+5. `src/features/completion/HighlightList.tsx` — FlatList 하이라이트 (text.inverse 스타일)
+6. `src/features/completion/CelebrationHeader.tsx` — 정적 배지 + 축하 메시지 MVP
+7. `src/features/completion/CompletionDiaryScreen.tsx` — 메인 통합 화면 (6상태 분기 렌더링)
+
+**Test files (4)**:
+1. `src/features/completion/types.test.ts` — Type validation (isReportData)
+2. `src/features/completion/completionApi.test.ts` — fetchReport scenarios (retry logic, error classification, empty response)
+3. `src/features/completion/useCompletionReport.test.tsx` — 6상태 훅 (loading/success/empty/error/data-error/auth 분기)
+4. `src/features/completion/CompletionDiaryScreen.test.tsx` — 6상태 분기 UI
+
+---
+
+### 8.3 Cross-SPEC 협력 사항
+
+**REQ-COMP-002 (진입 버튼)**: 완독 다이어리 진입 버튼 UI는 본 SPEC에서 **계약만 정의**하고, 실제 구현은 SPEC-LIBRARY-001과 협력한다. 진입 버튼 배치(BookDetailScreen 또는 LibraryScreen), 라우팅 파라미터(userBookId 전달)은 SPEC-LIBRARY-001 영역이다.
+
+**의존 관계**:
+- SPEC-DB-001: `completion_reports.report_data` 생성 트리거 (본 SPEC은 읽기만)
+- SPEC-EMOTION-001: `emotion_records` 데이터 (report_data 소스, 간접 의존)
+- SPEC-LIBRARY-001: 완독 처리 플로우 (status 전환) + 진입 버튼 협력 (REQ-COMP-002)
+- SPEC-UI-001: 디자인 토큰 (text.inverse, brand-500)
+
+---
+
+### 8.4 기술 결정 (Decisions)
+
+**결정 1: Zod → 순수 타입 가드 (2026-06-17)**
+- **이유**: runtime validation 라이브러리 의존성 제거, 테스트 커버리지 유지
+- **결과**: `isReportData(data: unknown): data is ReportData` 순수 타입 가드로 대체
+- **영향**: `types.ts` 단순화, 테스트 통과
+
+**결정 2: 단일 brand-500 색상 (REQ-COMP-006, 2026-06-17)**
+- **이유**: 감정 종류별 색상 구현은 복잡도 증가 + MVP 단순화
+- **결과**: `EmotionCurveChart`는 단일 `$brand-500` 토큰 사용
+- **영향**: 차트 라이브러리 불필요, 순수 SVG 구현 가능
+
+**결정 3: 정적 축하 헤더 (6.3, 2026-06-17)**
+- **이유**: MVP 범위 한정, 애니메이션 라이브러리 도입 비용 절감
+- **결과**: `CelebrationHeader`는 정적 배지 + 축하 메시지만 표시
+- **영향**: react-native-reanimated, react-native-confetti 미사용
+
+**결정 4: RLS 신뢰 (user_id 미전송)**
+- **이유**: PostgREST는 RLS 정책(`auth.uid() = user_id`)에 의해 본인 리포트만 자동 필터링
+- **결과**: `completionApi.fetchReport(userBookId)`는 `user_id` 미전송
+- **영향**: API 호출 단순화, 보안 유지
+
+---
+
+### 8.5 품질 게이트 (Quality Gates)
+
+**LSP (tsc)**: 0 errors
+**Lint (eslint)**: 0 errors
+**Tests (jest)**: 683/683 pass
+**Coverage**:
+- Statements: 91.92% (target 85%+ exceeded)
+- Branches: 85.55%
+- Functions: 96.79%
+- Lines: 93.62%
+
+**A11Y (WCAG 2.1)**:
+- 1.1.1: EmotionCurveChart `<title>` 태그로 차트 라벨 제공
+- AA: text.inverse 색상 대비 준수 (-brand-500 on -inverse)
+- 2.5.5: touch target 44px 이상 충족
+
+---
+
+### 8.6 PR 및 머지 정보
+
+**PR**: #14
+**Commit**: 463996e6bba21663ffea897b24faebef54700f24
+**Merge Date**: 2026-06-17
+**Branch**: develop (PR #14 머지 후 develop)
+**Feature Branch**: 이미 삭제 (git workflow 준수)
+
+---
+
+### 8.7 미결 사항 (Deferred)
+
+**Deferred 1: 진입 버튼 구현 (REQ-COMP-002)**
+- 현재 상태: 계약만 정의 완료
+- 구현 시점: SPEC-LIBRARY-001 협력 필요
+- 배치 위치 미정: BookDetailScreen 또는 LibraryScreen
+
+**Deferred 2: report_data 자동 갱신**
+- 현재 상태: 완독 시점 스냅샷만 제공
+- 후순위: v1.1.0 연기
+- 요구사항: 완독 이후 감정 기록 추가 시 자동 갱신
+
+---

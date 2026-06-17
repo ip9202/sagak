@@ -89,6 +89,19 @@
 | Progress Validation | `src/features/library/progressValidation.ts` | Business (순수함수) | 진도 검증 — 페이지 상한, 음수 차단 | validatePage(current_page, total_pages) → ValidationError | LIBRARY-001 REQ-LIB-011 |
 | Progress Rate | `src/features/library/progressRate.ts` | Business (순수함수) | 진도률 계산 | calcProgressRate(current_page, total_pages) → number (0~100, 정수) | LIBRARY-001 REQ-LIB-012 |
 
+### Completion Domain (`src/features/completion/`)
+
+| 모듈 | 경로 | 계층 | 목적 | 주요 익스포트 | SPEC 참조 |
+|------|------|------|------|-------------|-----------|
+| Completion Barrel | `src/features/completion/index.ts` | Business | Completion 도메인 barrel | completionApi, useCompletionReport, types | COMPLETION-001 |
+| Completion Types | `src/features/completion/types.ts` | Business | Completion 도메인 타입 (DB Row derived) | ReportData, EmotionCurvePoint, Highlight, isReportData (순수 타입 가드) | COMPLETION-001 REQ-COMP-003 |
+| Completion API | `src/features/completion/completionApi.ts` | Business | 완독 리포트 조회 API (PostgREST GET 래퍼 + 재시도 최대3 + 점진백오프 + normalizeError, RLS auth.uid() 신뢰) | fetchReport(userBookId) → ReportData, NETWORK/빈응답 재시도, VALIDATION/AUTH 즉시 throw, retriesExhausted 표식 | COMPLETION-001 REQ-COMP-003/004 |
+| Completion Hook | `src/features/completion/useCompletionReport.ts` | Business | 완독 리포트 훅 (useState/useEffect 기반 6상태: loading/success/empty/error/data-error/auth) | useCompletionReport(userBookId) → {state, report, error}, 6상태 분기 렌더링 | COMPLETION-001 REQ-COMP-005 |
+| Emotion Curve Chart | `src/features/completion/EmotionCurveChart.tsx` | Presentation | 감정 곡선 차트 (순수 SVG, 단일 brand-500 색상, 페이지별 수량) | EmotionCurveChart({emotionCurve}) — 순수 SVG, width/height props, style={{flex:1}} | COMPLETION-001 REQ-COMP-006 |
+| Highlight List | `src/features/completion/HighlightList.tsx` | Presentation | 하이라이트 리스트 (FlatList, {page_number, content} 렌더링) | HighlightList({highlights}) — FlatList, text.inverse 스타일 | COMPLETION-001 REQ-COMP-007 |
+| Celebration Header | `src/features/completion/CelebrationHeader.tsx` | Presentation | 축하 헤더 (정적 배지 + 축하 메시지 MVP) | CelebrationHeader({totalRecords}) — 정적 MVP, 축하 메시지 | COMPLETION-001 REQ-COMP-008 |
+| Completion Diary Screen | `src/features/completion/CompletionDiaryScreen.tsx` | Presentation | 완독 다이어리 메인 화면 (6상태 분기 렌더링: loading/success/empty/error/data-error/auth) | CompletionDiaryScreen({userBookId}) — useCompletionReport + 6상태 분기 | COMPLETION-001 REQ-COMP-005 |
+
 ### Emotion Domain (`src/features/emotion/`)
 
 | 모듈 | 경로 | 계층 | 목적 | 주요 익스포트 | SPEC 참조 |

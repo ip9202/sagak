@@ -301,6 +301,7 @@ if (__DEV__) {
 | `emotionApi.list` | TimelineScreen mount | 특정 책의 감정 기록 목록 | PostgREST SELECT (users join + sticker GROUP BY) → client-side spoiler split | EMOTION-001 REQ-EMO-002 |
 | `stickerApi.create` | EmotionRecordCard 스티커 클릭 | 스티커 반응 등록 | precheck → INSERT (409 UNIQUE 위반 시 VALIDATION_ERROR 매핑, no upsert) | EMOTION-001 REQ-EMO-006 |
 | `useStickerReaction.toggle` | EmotionRecordCard 스티커 토글 | optimistic update + 409 rollback | precheck → existingReaction 있으면 DELETE→POST / 없으면 INSERT → invalidateQueries | EMOTION-001 REQ-EMO-006~007 |
+| `completionApi.fetchReport` | CompletionDiaryScreen mount | 완독 리포트 조회 | client-side pre-validation → PostgREST GET (재시도 최대3, 점진백오프) → isReportData() 타입 가드 → 6상태 분기 | COMPLETION-001 REQ-COMP-003/004/005 |
 
 ---
 

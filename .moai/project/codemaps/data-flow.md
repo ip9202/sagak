@@ -847,6 +847,145 @@ export async function createStickerReaction(input: CreateInput): Promise<Sticker
 
 ---
 
+## 11. Completion Report Flow (완독 다이어리 시각화)
+
+**목적:** user_books 완독 → DB 트리거 자동 생성 → completion_reports.report_data 조회 → 6상태 분기 렌더링 (loading/success/empty/error/data-error/auth)
+
+**진입점:** `src/features/completion/CompletionDiaryScreen.tsx`
+
+```mermaid
+sequenceDiagram
+    participant User as User
+    participant Screen as CompletionDiaryScreen
+    participant Hook as useCompletionReport
+    participant API as completionApi
+    participant Supabase as Supabase (PostgREST)
+    participant DB as Database (completion_reports)
+    participant Trigger as DB Trigger<br/>generate_completion_report
+
+    User->>Screen: 완독 다이어리 진입 (userBookId prop)
+    Screen->>Hook: useCompletionReport(userBookId)
+    Hook->>Hook: useState 초기 상태 loading
+    Hook->>Hook: useEffect 시작
+
+    Hook->>API: fetchReport(userBookId)
+    API->>API: client-side pre-validation (userBookId UUID)
+    alt 유효하지 않은 UUID
+        API->>API: throw AppError (VALIDATION_ERROR)
+        API-->>Hook: error
+        Hook->>Hook: set 상태 error
+        Hook-->>Screen: error 상태
+        Screen->>User: "에러가 발생했습니다" (text.inverse)
+    else 유효한 UUID
+        API->>Supabase: GET /rest/v1/completion_reports?user_book_id=eq.{uuid}
+        alt 재시도 사이클 (최대 3회, 점진 백오프)
+            Note over API,Supabase: NETWORK 에러 또는 빈 응답(data: null)
+            Supabase-->>API: error or {data: null}
+            API->>API: 재시도 (retryWithBackoff)
+            API->>Supabase: GET 재시도
+        end
+
+        alt 성공 (report_data 존재)
+            Supabase-->>API: {report_data: {...}}
+            API->>API: isReportData() 타입 가드 검증
+            alt report_data 구조 불일치
+                API->>API: throw AppError (DATA_ERROR)
+                API-->>Hook: data-error
+                Hook-->>Screen: data-error 상태
+                Screen->>User: "데이터를 불러올 수 없습니다"
+            else report_data 유효
+                API-->>Hook: ReportData
+                Hook->>Hook: set 상태 success + report
+                alt total_records === 0 (empty)
+                    Hook-->>Screen: empty 상태
+                    Screen->>User: "기록된 감정이 없습니다" (빈 상태)
+                else total_records > 0
+                    Hook-->>Screen: success 상태
+                    Screen->>Screen: EmotionCurveChart 렌더링 (순수 SVG, brand-500)
+                    Screen->>Screen: HighlightList 렌더링 (FlatList, text.inverse)
+                    Screen->>Screen: CelebrationHeader 렌더링 (정적 배지)
+                    Screen->>User: "이 책과의 여정" 다이어리 표시
+                end
+            end
+        else 404 NOT FOUND (리포트 없음)
+            Supabase-->>API: PGRST116 (0 rows)
+            API->>API: throw AppError (NOT_FOUND)
+            API-->>Hook: empty
+            Hook->>Hook: set 상태 empty
+            Hook-->>Screen: empty 상태
+            Screen->>User: "완독 다이어리가 없습니다" (빈 상태)
+        else 403 FORBIDDEN (RLS 거부)
+            Supabase-->>API: 42501 (RLS_DENIED)
+            API->>API: classifyError() → AUTH_ERROR
+            API-->>Hook: auth
+            Hook->>Hook: set 상태 auth
+            Hook-->>Screen: auth 상태
+            Screen->>User: "접근 권한이 없습니다" (text.inverse)
+        else 기타 에러 (500 등)
+            Supabase-->>API: error
+            API->>API: normalizeError → NETWORK/VALIDATION/AUTH
+            API-->>Hook: error
+            Hook->>Hook: set 상태 error
+            Hook-->>Screen: error 상태
+            Screen->>User: "에러가 발생했습니다"
+        end
+    end
+```
+
+### Key Implementation
+
+**File:** `src/features/completion/completionApi.ts`
+
+```typescript
+export async function fetchReport(userBookId: string): Promise<ReportData> {
+  // Client-side pre-validation
+  if (!isValidUuid(userBookId)) {
+    throw new AppError('유효하지 않은 ID입니다', 'VALIDATION_ERROR', 400)
+  }
+
+  const client = getSupabaseClient()
+  let retries = 0
+  const maxRetries = 3
+
+  while (retries < maxRetries) {
+    const { data, error } = await client
+      .from('completion_reports')
+      .select('report_data')
+      .eq('user_book_id', userBookId)
+      .maybeSingle()
+
+    if (!error && data) {
+      // 타입 가드 검증
+      if (!isReportData(data.report_data)) {
+        throw new AppError('데이터 구조가 올바르지 않습니다', 'DATA_ERROR', 500)
+      }
+      return data.report_data
+    }
+
+    // NETWORK 에러 또는 빈 응답만 재시도
+    const normalized = normalizeError(error)
+    if (normalized.category === 'network' || (!data && !error)) {
+      retries++
+      await new Promise(resolve => setTimeout(resolve, Math.pow(2, retries) * 1000))
+      continue
+    }
+
+    // VALIDATION/AUTH 에러는 즉시 throw
+    throw normalized
+  }
+
+  throw new AppError('재시도 횟수를 초과했습니다', 'NETWORK_ERROR', 503)
+}
+```
+
+**특이사항:**
+- **재시도 로직**: NETWORK 에러 또는 빈 응답(`data: null, error: null`)만 재시도(최대 3회, 점진 백오프). VALIDATION/AUTH 에러는 즉시 throw.
+- **RLS 신뢰**: `user_id` 미전송. RLS 정책(`auth.uid() = user_id`)에 의해 본인 리포트만 자동 필터링.
+- **타입 가드**: `isReportData()` 순수 타입 가드로 런타임 검증(Zod 제거, 2026-06-17 결정).
+- **6상태 분기**: loading → success/empty/error/data-error/auth. 각 상태별 명확한 UI 분기.
+
+---
+
 ## Data Flow Summary
 
 | Flow | Entry | Key Modules | External APIs | Cache Strategy |
@@ -861,3 +1000,4 @@ export async function createStickerReaction(input: CreateInput): Promise<Sticker
 | gen-types Pipeline | `scripts/gen-types-with-header.js` | CLI, client.ts | Supabase DB | - |
 | Emotion Record CRUD | `EmotionInputScreen` | useEmotionRecords, emotionApi | Supabase (PostgREST) | React Query (optimistic) |
 | Sticker Reaction | `EmotionRecordCard` | useStickerReaction, stickerApi | Supabase (PostgREST) | React Query (optimistic) |
+| Completion Report | `CompletionDiaryScreen` | useCompletionReport, completionApi | Supabase (PostgREST) | useState/useEffect (6상태) |

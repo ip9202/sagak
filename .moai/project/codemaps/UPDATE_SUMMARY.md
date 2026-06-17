@@ -2,12 +2,15 @@
 
 ## 개요
 
-본 문서는 두 단계의 업데이트를 누적 기록:
+본 문서는 다섯 단계의 업데이트를 누적 기록:
 
 - **1차 (M1+M2):** SPEC-BOOK-001 M1+M2(852f0ac) 머지 반영 — Edge Function + 클라이언트 API
 - **2차 (M3+M4):** SPEC-BOOK-001 M3+M4(a293e8d) 머지 반영 — 바코드 스캔 + 검색/상세 UI
+- **3차 (OAuth):** PR #11(c6630ae) 머지 반영 — OAuth provider 변경 (apple → naver)
+- **4차 (EMOTION):** SPEC-EMOTION-001(a1ce6cf) 머지 반영 — 감정 아카이브 및 스티커 반응
+- **5차 (COMPLETION):** SPEC-COMPLETION-001(463996e) 머지 반영 — 완독 다이어리 시각화
 
-> 기존 M1/M2 항목은 보존됨. 2차(M3/M4) 항목은 하단에 추가됨.
+> 기존 1~4차 항목은 보존됨. 5차(COMPLETION) 항목은 하단에 추가됨.
 
 ---
 
@@ -752,4 +755,227 @@ SPEC-EMOTION-001 구현 완료(a1ce6cf) 반영하여 감정 아카이브 및 스
 ---
 
 **검증 완료:** 2026-06-17 (SPEC-EMOTION-001)
+**업데이트 담당:** MoAI Documentation System
+
+---
+
+# 5차 업데이트: SPEC-COMPLETION-001 구현 완료 (2026-06-17)
+
+## 개요 (5차)
+
+SPEC-COMPLETION-001 구현 완료(463996e) 반영하여 완독 다이어리 시각화 기능을 코드맵에 갱신함. 7개 source 파일 + 4개 test 파일, 683 tests pass, 91.92% coverage.
+
+## 변경사항 요약 (5차)
+
+### 1. modules.md
+**변경 내용:**
+- ✅ **신규 섹션:** Completion Domain (`src/features/completion/`) 추가
+  - `index.ts` (barrel)
+  - `types.ts` (ReportData, EmotionCurvePoint, Highlight, isReportData 순수 타입 가드)
+  - `completionApi.ts` (fetchReport — PostgREST GET 래퍼 + 재시도 최대3 + 점진백오프 + normalizeError, RLS auth.uid() 신뢰)
+  - `useCompletionReport.ts` (useState/useEffect 기반 6상태 훅: loading/success/empty/error/data-error/auth)
+  - `EmotionCurveChart.tsx` (순수 SVG, 단일 brand-500 색상, 페이지별 수량)
+  - `HighlightList.tsx` (FlatList, text.inverse 스타일)
+  - `CelebrationHeader.tsx` (정적 배지 + 축하 메시지 MVP)
+  - `CompletionDiaryScreen.tsx` (메인 통합 화면, 6상태 분기 렌더링)
+- ✅ 계층별 모듈 분포 업데이트:
+  - Business: 46+개 → 53+개 (+7 Completion 도메인)
+
+**영향 범위:**
+- 모듈 카탈로그: 71+ → 78+ (Completion 도메인 +7)
+- @MX:ANCHOR 후보: 12개 → 13개 (completionApi 추가 예상)
+
+---
+
+### 2. data-flow.md
+**변경 내용:**
+- ✅ 헤더 갱신: COMPLETION-001 추가
+- ✅ **신규 섹션 11:** Completion Report Flow (완독 다이어리 시각화) — CompletionDiaryScreen → useCompletionReport → completionApi → PostgREST → 재시도 사이클(최대3) → isReportData() 타입 가드 → 6상태 분기(loading/success/empty/error/data-error/auth) 시퀀스 다이어그램
+- ✅ Data Flow Summary 테이블에 1행 추가: Completion Report
+
+**영향 범위:**
+- Mermaid 시퀀스 다이어그램 1개 추가
+- 데이터 흐름 섹션 1개 추가 (약 120-150 라인)
+- Data Flow Summary (1행 추가)
+
+---
+
+### 3. entry-points.md
+**변경 내용:**
+- ✅ Entry Point Invocation Summary에 1행 추가: completionApi.fetchReport
+- ✅ 진입점에 COMPLETION-001 REQ 참조 추가
+
+**영향 범위:**
+- Entry Point Invocation Summary (1행 추가)
+
+---
+
+### 4. overview.md
+**변경 내용:**
+- ✅ SPEC Coverage 테이블: SPEC-COMPLETION-001 추가 (Status: ✅ Complete, 2026-06-17, Key Components 상세 설명)
+- ✅ Current State: 완독 다이어리 항목 추가 (10 REQ coverage, 683/683 tests pass, 91.92% coverage)
+- ✅ 브랜치 정보: a1ce6cf → 463996e
+
+**영향 범위:**
+- SPEC Coverage (1행 추가)
+- Current State (1항목 추가)
+
+---
+
+### 5. dependencies.md
+**변경 내용:**
+- ✅ Dependency Graph 다이어그램에 COMPLETION 모듈 노드 7개 추가:
+  - CMP1(types), CMP2(completionApi), CMP3(useCompletionReport), CMP4(EmotionCurveChart), CMP5(HighlightList), CMP6(CelebrationHeader), CMP7(CompletionDiaryScreen)
+- ✅ 신규 엣지 8개 추가 (Completion 내부 의존성 + Supabase/Error API/Theme)
+- ✅ Import Matrix에 3개 새로운 섹션 추가:
+  - `src/features/completion/` → `src/lib/api/` (normalizeError)
+  - `src/features/completion/` → `src/lib/supabase/` (getSupabaseClient)
+  - `src/features/completion/` → `src/theme/` (Design tokens)
+- ✅ High Fan-in Analysis에 #13 신규 추가: completionApi (fetchReport)
+- ✅ Circular Dependency Check: COMPLETION 의존성 분석 추가(단방향 흐름 검증)
+
+**순환 의존성 검증 결과:** ✅ **없음 (COMPLETION 모듈 추가 후에도 정상)**
+
+**영향 범위:**
+- Mermaid 다이어그램 (노드 7개, 엣지 8개 추가)
+- Import Matrix (3개 새로운 섹션)
+- @MX:ANCHOR: 12개 → 13개 (+1 신규 후보)
+
+---
+
+### 6. INDEX.md + structure.md
+**변경 내용:**
+- ✅ INDEX.md: SPEC-COMPLETION-001 상태 갱신 ("구현 완료 (10/10 REQ, PR #14 머지 463996e, 2026-06-17, 커버리지 91.92%)")
+- ✅ INDEX.md: Phase 2 구현 완료 SPEC 테이블에 COMPLETION-001 추가
+- ✅ structure.md: `src/features/completion/` 도메인 설명 추가 (7개 모듈 상세)
+
+**영향 범위:**
+- INDEX.md (2개 섹션 갱신: 상세 상태 + 진행표)
+- structure.md (1개 섹션 추가: Completion 도메인)
+
+---
+
+## SPEC-COMPLETION-001 구현 요약
+
+### Files Created (7 source + 4 tests)
+
+**Source files:**
+1. `src/features/completion/types.ts` — ReportData/EmotionCurvePoint/Highlight + isReportData() 순수 타입 가드
+2. `src/features/completion/completionApi.ts` — fetchReport (PostgREST GET 래퍼 + 재시도 최대3 + 점진백오프 + normalizeError, RLS auth.uid() 신뢰)
+3. `src/features/completion/useCompletionReport.ts` — useState/useEffect 기반 6상태 훅 (loading/success/empty/error/data-error/auth)
+4. `src/features/completion/EmotionCurveChart.tsx` — 순수 SVG 감정 곡선 (단일 brand-500 색상, 페이지별 수량)
+5. `src/features/completion/HighlightList.tsx` — FlatList 하이라이트 (text.inverse 스타일)
+6. `src/features/completion/CelebrationHeader.tsx` — 정적 배지 + 축하 메시지 MVP
+7. `src/features/completion/CompletionDiaryScreen.tsx` — 메인 통합 화면 (6상태 분기 렌더링)
+
+**Test files (683 tests pass, 91.92% coverage):**
+- `types.test.ts` — Type validation (isReportData)
+- `completionApi.test.ts` — fetchReport scenarios (retry logic, error classification, empty response)
+- `useCompletionReport.test.tsx` — 6상태 훅 (loading/success/empty/error/data-error/auth 분기)
+- `EmotionCurveChart.test.tsx` — SVG 차트 렌더링
+- `HighlightList.test.tsx` — FlatList 렌더링
+- `CelebrationHeader.test.tsx` — 정적 배지 렌더링
+- `CompletionDiaryScreen.test.tsx` — 6상태 분기 UI
+
+### REQ Coverage
+
+- REQ-COMP-001: 완독 리포트 존재 확인 ✅
+- REQ-COMP-002: 완독 다이어리 진입 버튼 ✅ (계약만 정의, 구현 연기 — SPEC-LIBRARY-001 협력)
+- REQ-COMP-003: report_data 구조 준수 ✅
+- REQ-COMP-004: 재시도 로직 ✅ (NETWORK/빈응답 재시도, VALIDATION/AUTH 즉시 throw)
+- REQ-COMP-005: 6상태 분기 렌더링 ✅ (loading/success/empty/error/data-error/auth)
+- REQ-COMP-006: 감정 곡선 시각화 ✅ (순수 SVG, 단일 brand-500 색상, 페이지별 수량)
+- REQ-COMP-007: 하이라이트 표시 ✅ (FlatList, text.inverse)
+- REQ-COMP-008: 축하 헤더 ✅ (정적 배지 + 축하 메시지 MVP)
+- REQ-COMP-009: 빈 상태 처리 ✅ (total_records === 0)
+- REQ-COMP-010: 에러 상태 분기 ✅ (error/data-error/auth)
+
+**Total: 10/10 REQ covered (100%)**
+
+### Key Architecture Decisions
+
+1. **report_data 읽기 전용**: DB 트리거가 자동 생성한 report_data를 수정/재계산하지 않고 읽기만 함
+2. **재시도 로직**: NETWORK 에러 또는 빈 응답(`data: null, error: null`)만 재시도(최대 3회, 점진 백오프). VALIDATION/AUTH 에러는 즉시 throw
+3. **RLS 신뢰**: `user_id` 미전송. RLS 정책(`auth.uid() = user_id`)에 의해 본인 리포트만 자동 필터링
+4. **순수 타입 가드**: Zod 제거, `isReportData()` 순수 타입 가드로 런타임 검증 (2026-06-17 결정)
+5. **6상태 분기**: useState/useEffect 기반 6상태 훅 (loading/success/empty/error/data-error/auth). 각 상태별 명확한 UI 분기
+6. **단일 brand-500**: REQ-COMP-006 결정 — 감정별 색상 대신 단일 brand-500 토큰 사용 (디자인 일관성)
+7. **진입 버튼 계약**: REQ-COMP-002는 완독 다이어리 진입 버튼 UI 계약만 정의. 실제 구현은 SPEC-LIBRARY-001과 협력 필요
+
+### Test Results
+
+- 683/683 tests pass
+- 91.92% statements coverage (target 85%+ exceeded)
+- 85.55% branches coverage
+- 96.79% functions coverage
+- 93.62% lines coverage
+
+### Known Follow-ups
+
+1. **진입 버튼 협력 (REQ-COMP-002)**: 완독 다이어리 진입 버튼 UI 구현은 SPEC-LIBRARY-001과 협력 필요 (BookDetailScreen 또는 LibraryScreen에 버튼 배치)
+2. **report_data 갱신 (후순위)**: 현재는 완독 시점 스냅샷만 제공. 이후 감정 기록 추가 시 자동 갱신 기능은 v1.1.0 연기
+
+---
+
+## 순환 의존성 검증 결과 (5차)
+
+**결론:** ✅ **순환 의존성 없음 (COMPLETION 모듈 추가 후에도 정상)**
+
+**검증 항목:**
+1. ✅ `app/` → `src/` (단방향)
+2. ✅ `src/features/completion/` → `src/lib/api/` → `src/lib/supabase/` (단방향)
+3. ✅ `src/features/completion/` → `src/theme/` (단방향)
+4. ✅ `src/features/completion/` → `src/types/` (단방향)
+5. ✅ `src/features/completion/`는 `src/features/emotion/`를 임포트하지 않음 (데이터는 DB 트리거가 제공)
+
+---
+
+## 모듈 수 변화 (5차)
+
+| 계층 | 4차 후 (EMOTION-001) | 5차 후 (COMPLETION-001) | 증가 |
+|------|---------------------|----------------------|------|
+| **Presentation (app/)** | 15개 | 15개 | 0 |
+| **Business (src/)** | 46+개 | 53+개 | +7 |
+| ├── AUTH | 6개 | 6개 | 0 |
+| ├── Theme | 3개 | 3개 | 0 |
+| ├── API | 4개 | 4개 | 0 |
+| ├── Types | 3개 | 3개 | 0 |
+| ├── Book Domain | 9개 | 9개 | 0 |
+| ├── Library Domain | 6개 | 6개 | 0 |
+| ├── Emotion Domain | 8개 | 8개 | 0 |
+| ├── **Completion Domain** | 0개 | **7개** | **+7 (신규)** |
+| └── Components | 7개 | 7개 | 0 |
+| **Infrastructure (src/lib/)** | 5개 | 5개 | 0 |
+| **Edge Functions** | 5개 | 5개 | 0 |
+| **총계** | **71+개** | **78+개** | **+7** |
+
+---
+
+## @MX:ANCHOR 후보 변화 (5차)
+
+| 모듈 | Fan-in | 우선순위 | 4차 상태 | 5차 상태 |
+|------|--------|----------|---------|---------|
+| `useSession` | 5+ | HIGH | 적용됨 | 적용됨 |
+| `useTheme` | 6+ | HIGH | 적용됨 | 적용됨 |
+| `tokens` | 4+ | MEDIUM | 적용됨 | 적용됨 |
+| `getSupabaseClient` | 임계적 | CRITICAL | 적용됨 | 적용됨 |
+| `searchBooks` | 1+ | HIGH | 적용됨 | 적용됨 |
+| `getBookDetail` | 1+ | HIGH | 적용됨 | 적용됨 |
+| `emotionApi` | 2+ (예상) | HIGH | 신규 후보 | 신규 후보 |
+| `stickerApi` | 2+ (예상) | HIGH | 신규 후보 | 신규 후보 |
+| **`completionApi`** | **2+ (예상)** | **HIGH** | **-** | **신규 후보** |
+
+**총계:** 12개 → 13개 (+1 신규 후보)
+
+---
+
+## 브랜치 정보 (5차)
+
+- **4차 기준:** develop (a1ce6cf - SPEC-EMOTION-001 구현 완료)
+- **5차 기준:** develop (463996e - SPEC-COMPLETION-001 구현 완료)
+- **추가된 커밋:** 463996e (PR #14 머지)
+
+---
+
+**검증 완료:** 2026-06-17 (SPEC-COMPLETION-001)
 **업데이트 담당:** MoAI Documentation System

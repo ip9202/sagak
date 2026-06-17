@@ -87,6 +87,16 @@ graph TB
         EMO8[src/features/emotion/TimelineScreen.tsx]
     end
 
+    subgraph "Completion Domain (src/features/completion/)"
+        CMP1[src/features/completion/types.ts]
+        CMP2[src/features/completion/completionApi.ts]
+        CMP3[src/features/completion/useCompletionReport.ts]
+        CMP4[src/features/completion/EmotionCurveChart.tsx]
+        CMP5[src/features/completion/HighlightList.tsx]
+        CMP6[src/features/completion/CelebrationHeader.tsx]
+        CMP7[src/features/completion/CompletionDiaryScreen.tsx]
+    end
+
     subgraph "External Services"
         X1[@tanstack/react-query v5]
         X2[@supabase/supabase-js]
@@ -184,6 +194,20 @@ graph TB
     EMO8 --> T1
     EMO8 --> C4
     EMO8 --> C5
+
+    %% Completion Domain Dependencies
+    CMP1 --> TP1
+    CMP2 --> API2
+    CMP2 --> SB1
+    CMP3 --> CMP2
+    CMP3 --> CMP1
+    CMP4 --> CMP1
+    CMP4 --> T1
+    CMP5 --> CMP1
+    CMP5 --> T1
+    CMP6 --> T1
+    CMP7 --> CMP3
+    CMP7 --> T1
 ```
 
 ## Import Matrix
@@ -235,6 +259,10 @@ graph TB
 | `src/features/emotion/EmotionInputScreen.tsx` | `src/features/emotion/useEmotionRecords.ts` | useEmotionRecords | CRUD mutations |
 | `src/features/emotion/EmotionInputScreen.tsx` | `src/features/emotion/questionPrompts.ts` | getQuestionPrompt | 질문지 유도 |
 | `src/features/emotion/TimelineScreen.tsx` | `src/features/emotion/useEmotionRecords.ts` | useEmotionRecords | list query |
+| `src/features/completion/completionApi.ts` | `src/lib/api/errors.ts` | normalizeError | 에러 정규화 |
+| `src/features/completion/completionApi.ts` | `src/lib/supabase/client.ts` | getSupabiceClient | PostgREST 직접 호출 |
+| `src/features/completion/useCompletionReport.ts` | `src/features/completion/completionApi.ts` | fetchReport | API 호출 |
+| `src/features/completion/CompletionDiaryScreen.tsx` | `src/features/completion/useCompletionReport.ts` | useCompletionReport | 6상태 훅 |
 | `src/components/EmotionRecordCard.tsx` | `src/theme/tokens.ts` | Design tokens | Styling |
 | `src/components/StickerReaction.tsx` | `src/theme/tokens.ts` | Design tokens | Styling |
 
@@ -253,6 +281,7 @@ graph TB
 | `src/features/library/useLibrary.ts` | 3+ | src/features/book/BookDetailScreen.tsx, tests | 서재 목록 훅 |
 | **`src/features/emotion/emotionApi.ts`** | **2+ (예상)** | **src/features/emotion/useEmotionRecords.ts, tests** | **감정 기록 CRUD 공용 진입점** |
 | **`src/features/emotion/stickerApi.ts`** | **2+ (예상)** | **src/features/emotion/useStickerReaction.ts, tests** | **스티커 반응 CRUD 공용 진입점** |
+| **`src/features/completion/completionApi.ts`** | **2+ (예상)** | **src/features/completion/useCompletionReport.ts, tests** | **완독 리포트 조회 공용 진입점** |
 | `src/lib/api/errors.ts` | 5+ | src/lib/api/retry.ts, src/features/book/bookDetailApi.ts, src/features/library/libraryApi.ts, src/lib/supabase/client.ts, src/features/emotion/emotionApi.ts, src/features/emotion/stickerApi.ts, tests | 에러 정규화의 공통 계약 |
 
 ## Circular Dependency Check
