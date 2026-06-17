@@ -10,7 +10,7 @@
  * - M1-5 AC-S7/S8: refreshProfile 외부 노출 — 온보딩 후 수동 프로필 재조회 (완료)
  */
 import React, { createContext, useEffect, useState, useCallback, useRef } from 'react';
-import type { Session, User } from '@supabase/supabase-js';
+import type { Session, User, Provider } from '@supabase/supabase-js';
 import type { AuthContextValue, AuthProvider, UserProfile } from './types';
 import { getSupabaseClient } from '../lib/supabase/client';
 import { getOAuthRedirectUri } from './oauth';
@@ -142,11 +142,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
    * REQ-AUTH-010: signInWithProvider(provider) — OAuth 로그인 액션
    * REQ-AUTH-002: redirectTo에 getOAuthRedirectUri() 결과 전달 (딥링크 콜백)
    *
-   * 세 제공자(kakao/apple/google)를 동일 경로로 처리한다.
+   * 세 제공자(kakao/naver/google)를 동일 경로로 처리한다.
    */
   const signInWithProvider = async (provider: AuthProvider): Promise<void> => {
+    // naver는 Supabase 네이티브 Provider 타입에 없음 — DEPLOY에서 Custom OIDC provider 'naver'로
+    // 등록하면 동일 signInWithOAuth 경로로 동작. 타입은 Supabase가 모르므로 Provider로 캐스팅.
     await getSupabaseClient().auth.signInWithOAuth({
-      provider,
+      provider: provider as Provider,
       options: { redirectTo: getOAuthRedirectUri() },
     });
   };

@@ -5,7 +5,7 @@
  * 구현 상태:
  * - AC-A1: 카카오 버튼 — kakao 제공자로 signInWithProvider 호출
  * - AC-A2: 구글 버튼 — google 제공자로 signInWithProvider 호출 (M4 추가)
- * - AC-A3: 애플 버튼 — apple 제공자로 signInWithProvider 호출
+ * - AC-A3: 네이버 버튼 — naver 제공자로 signInWithProvider 호출
  * - AC-A4/A5: OAuth 실패 처리 — 에러 메시지 표시
  */
 import React, { useState, useContext } from 'react';
@@ -17,7 +17,7 @@ import { colors, spacing, typography, radius } from '../theme/tokens';
 /**
  * 로그인 화면 컴포넌트
  *
- * 카카오, 애플 OAuth 로그인 버튼을 제공하고,
+ * 카카오, 네이버 OAuth 로그인 버튼을 제공하고,
  * OAuth 실패 시 에러 메시지를 표시한다.
  */
 export function LoginScreen() {
@@ -33,7 +33,7 @@ export function LoginScreen() {
   /**
    * OAuth 로그인 핸들러
    *
-   * @param provider - OAuth 제공자 (kakao, apple, google)
+   * @param provider - OAuth 제공자 (kakao, naver, google)
    */
   const handleSignIn = async (provider: AuthProvider): Promise<void> => {
     try {
@@ -44,7 +44,7 @@ export function LoginScreen() {
       // 제공자별 구체적 에러 메시지
       const providerNames: Record<AuthProvider, string> = {
         kakao: '카카오',
-        apple: 'Apple',
+        naver: '네이버',
         google: 'Google',
       };
       setError(`${providerNames[provider]} 로그인에 실패했습니다`);
@@ -91,14 +91,14 @@ export function LoginScreen() {
       </TouchableOpacity>
 
       <TouchableOpacity
-        style={[styles.button, styles.appleButton]}
-        onPress={() => handleSignIn('apple')}
+        style={[styles.button, styles.naverButton]}
+        onPress={() => handleSignIn('naver')}
         disabled={loading !== null}
-        accessibilityLabel="Apple로 시작하기"
+        accessibilityLabel="네이버로 시작하기"
         accessibilityRole="button"
       >
-        <Text style={styles.buttonText}>
-          {loading === 'apple' ? 'Apple 로그인 중...' : 'Apple로 시작하기'}
+        <Text style={styles.naverButtonText}>
+          {loading === 'naver' ? '네이버 로그인 중...' : '네이버로 시작하기'}
         </Text>
       </TouchableOpacity>
     </View>
@@ -137,8 +137,14 @@ const styles = StyleSheet.create({
     ...typography.headingSm,
     color: colors.text.primary,
   },
-  appleButton: {
-    backgroundColor: '#000000',
+  // AC-A3: 네이버 버튼 — 네이버 브랜드 초록(#03C75A), 텍스트는 흰색
+  naverButton: {
+    backgroundColor: '#03C75A',
+  },
+  naverButtonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '600',
   },
   buttonText: {
     color: '#000000',

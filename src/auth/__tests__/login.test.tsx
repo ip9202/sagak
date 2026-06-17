@@ -4,7 +4,7 @@
  *
  * M2-B TDD 사이클:
  * - M2-B-1 AC-A2: 카카오 버튼 렌더링 — kakao 제공자로 signInWithProvider 호출
- * - M2-B-2 AC-A3: 애플 버튼 렌더링 — apple 제공자로 signInWithProvider 호출
+ * - M2-B-2 AC-A3: 네이버 버튼 렌더링 — naver 제공자로 signInWithProvider 호출
  * - M2-B-3 AC-A4: OAuth 실패 처리 — 에러 메시지 표시
  */
 import React from 'react';
@@ -63,13 +63,13 @@ describe('M2-B-1 + M2-B-2 AC-A2/A3: OAuth 버튼 렌더링', () => {
     expect(kakaoButton).toBeTruthy();
   });
 
-  it('애플 로그인 버튼을 렌더링한다', () => {
+  it('네이버 로그인 버튼을 렌더링한다', () => {
     render(<LoginScreen />, {
       wrapper: createWrapper(mockAuthContextValue),
     });
 
-    const appleButton = screen.getByText('Apple로 시작하기');
-    expect(appleButton).toBeTruthy();
+    const naverButton = screen.getByText('네이버로 시작하기');
+    expect(naverButton).toBeTruthy();
   });
 
   it('카카오 버튼 탭 시 signInWithProvider를 kakao로 호출한다', async () => {
@@ -89,7 +89,7 @@ describe('M2-B-1 + M2-B-2 AC-A2/A3: OAuth 버튼 렌더링', () => {
     });
   });
 
-  it('애플 버튼 탭 시 signInWithProvider를 apple로 호출한다', async () => {
+  it('네이버 버튼 탭 시 signInWithProvider를 naver로 호출한다', async () => {
     const mockSignIn = jest.fn().mockResolvedValue(undefined);
     render(<LoginScreen />, {
       wrapper: createWrapper({
@@ -98,11 +98,11 @@ describe('M2-B-1 + M2-B-2 AC-A2/A3: OAuth 버튼 렌더링', () => {
       }),
     });
 
-    const appleButton = screen.getByText('Apple로 시작하기');
-    fireEvent.press(appleButton);
+    const naverButton = screen.getByText('네이버로 시작하기');
+    fireEvent.press(naverButton);
 
     await waitFor(() => {
-      expect(mockSignIn).toHaveBeenCalledWith('apple');
+      expect(mockSignIn).toHaveBeenCalledWith('naver');
     });
   });
 });

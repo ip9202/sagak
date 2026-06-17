@@ -1,6 +1,6 @@
 /**
  * Auth type definitions tests
- * REQ-AUTH-001: AuthProvider union type 'kakao' | 'apple' | 'google'
+ * REQ-AUTH-001: AuthProvider union type 'kakao' | 'naver' | 'google'
  * Tests compile-time type safety and runtime value constraints
  */
 
@@ -8,18 +8,18 @@ import type { AuthProvider, UserProfile, AuthContextValue } from '../types';
 
 describe('AuthProvider type', () => {
   it('accepts exactly three provider values', () => {
-    const providers: AuthProvider[] = ['kakao', 'apple', 'google'];
+    const providers: AuthProvider[] = ['kakao', 'naver', 'google'];
     expect(providers).toHaveLength(3);
     expect(providers).toContain('kakao');
-    expect(providers).toContain('apple');
+    expect(providers).toContain('naver');
     expect(providers).toContain('google');
   });
 
   it('matches users.provider CHECK constraint values', () => {
-    // SPEC-DB-001 REQ-DB-001 CHECK constraint: kakao/apple/google
+    // SPEC-DB-001 REQ-DB-001 CHECK constraint: kakao/naver/google
     // These must be identical at compile time and runtime
-    const dbProviders = ['kakao', 'apple', 'google'];
-    const tsProviders: AuthProvider[] = ['kakao', 'apple', 'google'];
+    const dbProviders = ['kakao', 'naver', 'google'];
+    const tsProviders: AuthProvider[] = ['kakao', 'naver', 'google'];
     expect(tsProviders.sort()).toEqual(dbProviders.sort());
   });
 });

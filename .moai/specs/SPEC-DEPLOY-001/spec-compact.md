@@ -1,10 +1,10 @@
 ---
 id: SPEC-DEPLOY-001
 title: "Build, Deploy & CI/CD — Compact Reference"
-version: "1.0.0"
+version: "1.0.1"
 status: draft
 created: 2026-06-14
-updated: 2026-06-14
+updated: 2026-06-17
 author: "강력쇠주먹"
 priority: medium
 issue_number: 0
@@ -46,7 +46,7 @@ issue_number: 0
 - `sentry.properties` / Sentry CLI 통합
 - `.env.example`, `.env.development`, `.env.staging`, `.env.production`
 - `docs/deployment.md` (배포 매뉴얼)
-- OAuth 콘솔 설정 (Kakao/Apple/Google)
+- OAuth 콘솔 설정 (Kakao/Naver/Google)
 - Supabase 프로젝트 3개 (dev/staging/prod)
 - Storage 버킷: `book-covers`, `avatars`
 - Edge Function 배포: `kakao-book-search`, `process-join-request`, `send-notification`
@@ -110,7 +110,7 @@ issue_number: 0
 - 24개 REQ 인수 기준 통과
 - 첫 프로덕션 릴리즈 v1.0.0 양 스토어 심사 제출
 - 세 환경 Supabase 프로젝트 + Edge Function 3종 배포
-- 세 OAuth 제공자 로그인 검증
+- 세 OAuth 제공자(Kakao/Naver/Google) 로그인 검증
 - Sentry 프로덕션 통합 검증
 - TRUST 5 게이트 5/5 통과
 

@@ -87,7 +87,8 @@ Phase 5 (배포)
 #### SPEC-AUTH-001: OAuth 인증 및 세션 관리
 - **도메인**: AUTH
 - **우선순위**: high
-- **핵심 범위**: 카카오/애플/구글 OAuth 로그인, 세션 관리(JWT), 자동 로그인, 로그아웃, 온보딩 프로필 설정(nickname/avatar), AuthContext 전역 상태, 인증 가드용 세션 훅
+- **핵심 범위**: 카카오/네이버/구글 OAuth 로그인, 세션 관리(JWT), 자동 로그인, 로그아웃, 온보딩 프로필 설정(nickname/avatar), AuthContext 전역 상태, 인증 가드용 세션 훅
+- **OAuth 제공자**: 카카오/네이버/구글 (v1.0.1, 2026-06-17) — Apple 제외(App Store Guideline 4.8 한국 예외 적용), 네이버는 Supabase Custom OIDC로 연동
 - **DB 엔터티**: `users`(프로필), `auth.users`(Supabase 내부)
 - **API/Edge Function**: Supabase Auth (`signInWithOAuth`, `signOut`, `getSession`)
 - **의존성**: SPEC-API-001

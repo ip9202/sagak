@@ -64,7 +64,7 @@ labels: [database, supabase, postgresql, rls, security, schema, tdd]
 - **Acceptance** (pgTAP RED→GREEN):
   - Scenario 7: UNIQUE(user_id, book_id) blocks duplicate registration
   - Scenario 8: auth.users INSERT creates public.users row (handle_new_user fires)
-  - users.role CHECK(member/admin), users.provider CHECK(kakao/apple/google)
+  - users.role CHECK(member/admin), users.provider CHECK(kakao/naver/google)
   - user_books.status CHECK(reading/completed/shelved)
   - current_page update sets last_progress_at = now()
   - status reading→completed sets completed_at

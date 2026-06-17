@@ -48,14 +48,14 @@ Feature: OAuth 로그인
     And OAuth 플로우 완료 후 session과 user가 설정된다
 ```
 
-### 시나리오 A3: 애플 OAuth 로그인 성공 (REQ-AUTH-002)
+### 시나리오 A3: 네이버 OAuth 로그인 성공 (REQ-AUTH-002)
 
 ```gherkin
-  Scenario: 사용자가 애플 버튼을 탭하여 OAuth 로그인에 성공한다
+  Scenario: 사용자가 네이버 버튼을 탭하여 OAuth 로그인에 성공한다
     Given 사용자가 로그인 화면에 있다
     And 세션이 존재하지 않는다
-    When 사용자가 "Apple로 시작하기" 버튼을 탭한다
-    Then signInWithOAuth가 provider='apple' 인자로 호출된다
+    When 사용자가 "네이버로 시작하기" 버튼을 탭한다
+    Then signInWithOAuth가 provider='naver' 인자로 호출된다
     And OAuth 플로우 완료 후 session과 user가 설정된다
 ```
 
@@ -89,7 +89,7 @@ Feature: OAuth 로그인
 ```gherkin
   Scenario: OAuth 제공자 식별자가 users.provider CHECK 제약과 일치한다
     Given src/auth/types.ts에 AuthProvider 타입이 정의되어 있다
-    Then AuthProvider는 'kakao' | 'apple' | 'google' 유니온 타입이어야 한다
+    Then AuthProvider는 'kakao' | 'naver' | 'google' 유니온 타입이어야 한다
     And 이 값들은 SPEC-DB-001 REQ-DB-001의 users.provider CHECK 제약값과 정확히 일치한다
     And TypeScript 컴파일러가 잘못된 provider 문자열 전달 시 에러를 발생시킨다
 ```

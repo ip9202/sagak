@@ -1,13 +1,13 @@
 /**
  * Authentication type definitions
- * REQ-AUTH-001: AuthProvider union type ('kakao' | 'apple' | 'google')
+ * REQ-AUTH-001: AuthProvider union type ('kakao' | 'naver' | 'google')
  * REQ-AUTH-030: AuthContextValue exposes session, user, profile, loading + 3 actions
  */
 import type { Session, User } from '@supabase/supabase-js';
 
 // @MX:ANCHOR: [AUTO] AuthProvider 유니온 — users.provider CHECK(SPEC-DB-001 REQ-DB-001)와 컴파일 타임 일치
 // @MX:REASON: 잘못된 provider 문자열은 OAuth 호출 실패 및 DB CHECK 위반을 유발한다. 세 제공자 값은 DB 스키마와 단일 진실 원천을 공유해야 한다.
-export type AuthProvider = 'kakao' | 'apple' | 'google';
+export type AuthProvider = 'kakao' | 'naver' | 'google';
 
 /**
  * public.users 테이블 행 스키마
