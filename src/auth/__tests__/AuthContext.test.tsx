@@ -217,15 +217,15 @@ describe('AuthContext — M1-2 AC-S1: signInWithProvider OAuth 호출 (A1~A3)', 
     });
   });
 
-  it('A2 — signInWithProvider("apple")가 signInWithOAuth를 apple provider로 호출한다', async () => {
-    mockSupabaseClient.auth.signInWithOAuth.mockResolvedValue({ data: { provider: 'apple', url: 'https://appleid.apple.com/auth/authorize' }, error: null });
+  it('A2 — signInWithProvider("naver")가 signInWithOAuth를 naver provider로 호출한다', async () => {
+    mockSupabaseClient.auth.signInWithOAuth.mockResolvedValue({ data: { provider: 'naver', url: 'https://nid.naver.com/oauth2.0/authorize' }, error: null });
     const value = await renderAndCapture();
 
-    await value.signInWithProvider('apple');
+    await value.signInWithProvider('naver');
 
     expect(mockSupabaseClient.auth.signInWithOAuth).toHaveBeenCalledTimes(1);
     expect(mockSupabaseClient.auth.signInWithOAuth).toHaveBeenCalledWith({
-      provider: 'apple',
+      provider: 'naver',
       options: { redirectTo: 'sagak://auth/callback' },
     });
   });

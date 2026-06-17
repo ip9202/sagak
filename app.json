@@ -37,7 +37,9 @@
           "cameraPermission": "바코드 스캔을 위해 카메라 접근이 필요합니다.",
           "barcodeScannerEnabled": true
         }
-      ]
+      ],
+      "expo-secure-store",
+      "expo-font"
     ]
   }
 }

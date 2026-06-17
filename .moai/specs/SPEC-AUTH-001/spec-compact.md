@@ -1,10 +1,10 @@
 ---
 id: SPEC-AUTH-001
 title: "OAuth Authentication & Session Management — Compact Reference"
-version: "1.0.0"
+version: "1.0.1"
 status: completed
 created: 2026-06-14
-updated: 2026-06-15
+updated: 2026-06-17
 author: "강력쇠주먹"
 priority: high
 issue_number: 0
@@ -23,7 +23,7 @@ labels: [auth, oauth, compact, reference]
 
 | REQ ID | 모듈 | 요약 |
 |--------|------|------|
-| REQ-AUTH-001 | OAUTH | `'kakao' \| 'apple' \| 'google'` AuthProvider 유니온 타입 정의 (`users.provider` CHECK와 일치) |
+| REQ-AUTH-001 | OAUTH | `'kakao' \| 'naver' \| 'google'` AuthProvider 유니온 타입 정의 (`users.provider` CHECK와 일치) |
 | REQ-AUTH-002 | OAUTH | `signInWithOAuth(provider, { redirectTo })` — 딥링크는 `makeRedirectUri()` |
 | REQ-AUTH-003 | OAUTH | OAuth 실패(취소/오류/거부) 시 친화적 에러 메시지, 원시 에러는 로그만 |
 | REQ-AUTH-004 | OAUTH | `handle_new_user` 트리거가 자동 INSERT — 클라이언트 INSERT 금지 |
@@ -101,7 +101,7 @@ labels: [auth, oauth, compact, reference]
 
 | SPEC-DB-001 REQ | 본 SPEC 연동 |
 |-----------------|-------------|
-| REQ-DB-001 (`users.provider` CHECK: kakao/apple/google) | REQ-AUTH-001 AuthProvider 유니온 타입과 정확히 일치 |
+| REQ-DB-001 (`users.provider` CHECK: kakao/naver/google) | REQ-AUTH-001 AuthProvider 유니온 타입과 정확히 일치 |
 | REQ-DB-013c (`handle_new_user` SECURITY DEFINER 트리거) | REQ-AUTH-004 클라이언트 INSERT 금지, 트리거 자동 생성 가정 |
 | REQ-DB-014 (`users` RLS: `auth.uid() = id` UPDATE만 허용) | REQ-AUTH-023 온보딩 UPDATE가 RLS 통과, REQ-AUTH-013 profile 조회 |
 
@@ -123,15 +123,16 @@ SPEC-UI-001 (디자인 토큰/컴포넌트) ──↗
 |----|------|------|-----------|
 | 5.1 | 온보딩 건너뛰기 허용 여부 | 미해결 | (A) nickname 필수 |
 | 5.2 | 세션 만료 시 자동 리다이렉트 vs 모달 | 미해결 | (A) 자동 리다이렉트 |
-| 5.3 | 애플 Sign in with Apple iOS 강제 요구사항 | 미해결 | (B) 양쪽 플랫폼 표시 |
+| 5.3 | Apple 제외 및 네이버 선정 | 해결됨 | Apple 제외, 네이버 포함 (App Store 4.8 한국 예외 적용) |
 
 ---
 
 ## 구현 노트 (Implementation Notes)
 
-본 SPEC은 2026-06-15에 전체 구현이 완료되었습니다:
+본 SPEC은 2026-06-15에 전체 구현이 완료되었습니다 (v1.0.0):
 
 - **구현 범위**: 17개 REQ 모두 충족 (REQ-AUTH-001~004: OAuth, REQ-AUTH-010~014: 세션, REQ-AUTH-020~024: 온보딩, REQ-AUTH-030~033: 가드 훅)
+- **OAuth 제공자**: v1.0.0 구현은 kakao/apple/google 기준. v1.0.1(2026-06-17)에 네이버로 변경 반영 필요
 - **모듈 위치**: `src/auth/` (AuthContext, useSession, types, oauth, login, onboarding)
 - **라우팅**: `app/(auth)/`는 리익스포트 레이어 (실제 구현은 `src/auth/`에 존재)
 - **테스트 커버리지**: src/auth 모듈 96.72% (277개 테스트 통과)

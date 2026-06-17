@@ -333,12 +333,13 @@ Feature: OAuth 제공자 앱 등록
   REQ-DEPLOY-019 (Ubiquitous) — 위임 항목 (SPEC-DB-001, SPEC-AUTH-001)
 
   Scenario: 세 OAuth 제공자에 앱이 등록된다
-    Given Kakao Developers, Apple Developer, Google Cloud Console 계정이 있다
+    Given Kakao Developers, Naver Developers, Google Cloud Console 계정이 있다
     When 각 콘솔에서 사각 앱을 등록한다
     Then 카카오 앱에 딥링크 콜백 URL이 설정된다
-    And Apple Services ID에 Return URL이 설정된다
+    And 네이버 앱에 Client ID/Secret이 발급되고 콜백 URL이 설정된다
     And Google OAuth 클라이언트에 승인된 리다이렉트 URI가 설정된다
     And 모든 콜백 URL은 expo-linking makeRedirectUri() 결과와 일치한다
+    And 네이버/카카오/구글 콘솔의 리다이렉트 URI는 exact-match 허용 목록만 사용한다 (와일드카드 금지, CWE-601 방어)
 ```
 
 ### AC-DEPLOY-020: Supabase Auth 제공자 활성화
@@ -350,15 +351,18 @@ Feature: Supabase Auth OAuth 활성화
   Scenario: 세 제공자가 Supabase에 활성화된다
     Given Supabase Dashboard에 접근할 수 있다
     When Auth → Providers 설정을 연다
-    Then Kakao, Apple, Google 세 제공자가 모두 "Enabled" 상태다
+    Then Kakao, Google 제공자가 "Enabled" 상태다 (Native 제공자)
+    And Naver Custom OIDC 제공자가 활성화되어 있다 (2026년 6월 기능)
     And 각 제공자에 클라이언트 ID와 시크릿이 구성된다
     And 콜백 URL이 https://<project>.supabase.co/auth/v1/callback로 설정된다
 
   Scenario: OAuth 로그인이 성공한다
     Given 세 제공자가 활성화되어 있다
-    When 클라이언트에서 카카오/애플/구글 로그인을 시도한다 (SPEC-AUTH-001)
+    When 클라이언트에서 카카오/네이버/구글 로그인을 시도한다 (SPEC-AUTH-001)
     Then 세 제공자 모두 로그인이 성공한다
     And Supabase auth.users에 사용자 행이 생성된다
+    And 네이버 로그인 시 public.users.provider = 'naver' 가 설정된다 (handle_new_user 매핑, security review C1)
+    And 네이버 최초 로그인 사용자의 가입이 CHECK 제약 위반 없이 완료된다
 ```
 
 ### AC-DEPLOY-021: Storage 버킷 정책

@@ -6,8 +6,17 @@
  * IMPORTANT: This file is evaluated at BUILD TIME, not runtime.
  * Use process.env to inject environment variables into the extra field.
  * At runtime, access them via Constants.expoConfig.extra in React components.
+ *
+ * Function pattern ({ config }) => ({ ...config, extra }) inherits app.json's
+ * expo settings (name/ios/android/plugins) and injects `extra`. Returning only
+ * a bare object { extra } drops app.json's contents — bundleIdentifier goes
+ * missing and prebuild (expo run:ios) fails with "Cannot automatically write
+ * to dynamic config".
  */
-export default {
+import type { ConfigContext } from 'expo/config';
+
+export default ({ config }: ConfigContext) => ({
+  ...config,
   extra: {
     // Supabase Configuration (REQ-API-017)
     EXPO_PUBLIC_SUPABASE_URL: process.env.EXPO_PUBLIC_SUPABASE_URL,
@@ -18,4 +27,4 @@ export default {
     // Environment (REQ-API-019)
     ENV: process.env.ENV || 'development',
   },
-};
+});

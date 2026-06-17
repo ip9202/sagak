@@ -5,7 +5,7 @@
  * M4 TDD 사이클:
  * - AC-A1: 카카오 버튼 → signInWithProvider('kakao')
  * - AC-A2: 구글 버튼 → signInWithProvider('google')
- * - AC-A3: 애플 버튼 → signInWithProvider('apple')
+ * - AC-A3: 네이버 버튼 → signInWithProvider('naver')
  * - AC-A4: OAuth 취소 → 에러 메시지 표시
  * - AC-A5: 네트워크 오류 → 에러 메시지 표시
  * - AC-A7: 클라이언트 INSERT 금지 (수동 검증 — src/auth/login.tsx에 insert 호출 없음)
@@ -95,22 +95,22 @@ describe('AC-A2: 구글 OAuth 로그인', () => {
   });
 });
 
-describe('AC-A3: 애플 OAuth 로그인', () => {
-  it('애플 버튼이 렌더링된다', () => {
+describe('AC-A3: 네이버 OAuth 로그인', () => {
+  it('네이버 버튼이 렌더링된다', () => {
     render(<LoginScreen />, { wrapper: createWrapper(baseAuthValue) });
-    expect(screen.getByText('Apple로 시작하기')).toBeTruthy();
+    expect(screen.getByText('네이버로 시작하기')).toBeTruthy();
   });
 
-  it('애플 버튼 탭 시 signInWithProvider를 apple로 호출한다', async () => {
+  it('네이버 버튼 탭 시 signInWithProvider를 naver로 호출한다', async () => {
     const mockSignIn = jest.fn().mockResolvedValue(undefined);
     render(<LoginScreen />, {
       wrapper: createWrapper({ ...baseAuthValue, signInWithProvider: mockSignIn }),
     });
 
-    fireEvent.press(screen.getByText('Apple로 시작하기'));
+    fireEvent.press(screen.getByText('네이버로 시작하기'));
 
     await waitFor(() => {
-      expect(mockSignIn).toHaveBeenCalledWith('apple');
+      expect(mockSignIn).toHaveBeenCalledWith('naver');
     });
   });
 });

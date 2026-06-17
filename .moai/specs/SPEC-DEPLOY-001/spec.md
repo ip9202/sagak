@@ -22,6 +22,7 @@ issue_number: 0
 | 날짜       | 버전   | 내용                                                                       | 작성자       |
 | ---------- | ------ | -------------------------------------------------------------------------- | ------------ |
 | 2026-06-14 | 1.0.0  | 최초 작성 — EAS Build/Submit, GitHub Actions CI/CD, Sentry, 환경 분리, OAuth 인프라, Storage 버킷, Edge Function 배포, Supabase 프로비저닝 정의 | 강력쇠주먹 |
+| 2026-06-17 | 1.0.1  | OAuth 제공자 변경: apple → naver (REQ-DEPLOY-019, REQ-DEPLOY-020), 네이버 Custom OIDC 설정 추가, Apple 제외 사유 기술 | 강력쇠주먹 |
 
 ---
 
@@ -59,7 +60,7 @@ issue_number: 0
 ### 1.6 외부 서비스 콘솔 (수동 프로비저닝)
 
 - **Kakao Developers Console**: 카카오 OAuth 앱 등록, 콜백 URL
-- **Apple Developer Console + App Store Connect**: Sign in with Apple 서비스 ID, TestFlight
+- **Naver Developers Console**: 네이버 OAuth 앱 등록, Client ID/Secret 발급 (Supabase Custom OIDC용)
 - **Google Cloud Console + Google Play Console**: Google OAuth 클라이언트, Play 등록
 - **Expo Push Notifications**: 푸시 토큰 인프라 (SPEC-NOTIF-001 산출물의 전송 채널)
 
@@ -190,11 +191,43 @@ issue_number: 0
 
 #### REQ-DEPLOY-019: OAuth 앱 등록 및 콜백 URL (위임 항목)
 
-시스템은 **항상** 카카오(Kakao Developers), 애플(Apple Developer), 구글(Google Cloud Console) 세 OAuth 제공자에 앱을 등록하고, 각 제공자에 딥링크 콜백 URL(SPEC-AUTH-001 REQ-AUTH-002의 `makeRedirectUri()` 결과)을 설정해야 한다. 이 항목은 SPEC-DB-001 §5-1, SPEC-API-001 §5-2, SPEC-AUTH-001 §4-1이 본 SPEC으로 위임한 것이다.
+시스템은 **항상** 카카오(Kakao Developers), 네이버(Naver Developers), 구글(Google Cloud Console) 세 OAuth 제공자에 앱을 등록하고, 각 제공자에 딥링크 콜백 URL(SPEC-AUTH-001 REQ-AUTH-002의 `makeRedirectUri()` 결과)을 설정해야 한다. 이 항목은 SPEC-DB-001 §5-1, SPEC-API-001 §5-2, SPEC-AUTH-001 §4-1이 본 SPEC으로 위임한 것이다.
+
+**별도 설치 단계 (Naver Custom OIDC)**:
+
+1. **Naver Developers Console 설정**:
+   - 앱 등록: [NAVER Developers](https://developers.naver.com/)에서 앱 생성
+   - Client ID/Secret 발급: OAuth 로그인용 client_id, client_secret 획득
+   - 콜백 URL 등록: Supabase Auth 콜백 URL `https://<project>.supabase.co/auth/v1/callback` 추가
+
+2. **Supabase Custom OIDC 제공자 설정** (2026년 6월 기능):
+   - Supabase Dashboard → Authentication → Providers → Custom OIDC
+   - 제공자 ID: `naver` (소문자)
+   - Naver 콘솔에서 획득한 client_id, client_secret 입력
+   - Issuer URL: `https://nid.naver.com`
+   - Authorization URL: `https://nid.naver.com/oauth2.0/authorize`
+   - Token URL: `https://nid.naver.com/oauth2.0/token`
+   - UserInfo URL: `https://openapi.naver.com/v1/nid/me`
+   - Scopes: `profile`, `email`
+   - Redirect URIs: Supabase 프로젝트별 콜백 URL 추가
+
+> **Apple 제외 사유**: App Store Guideline 4.8 한국 예외 조항(한국 타겟 앱의 Apple Sign in 강제 요구사항 제외) 적용. 네이버로 대체하여 한국 시장 주류 OAuth 조합(카카오/네이버/구글) 완성.
 
 #### REQ-DEPLOY-020: Supabase Auth 제공자 활성화 (위임 항목)
 
-시스템은 **항상** Supabase Dashboard에서 카카오/애플/구글 세 제공자를 활성화하고, 클라이언트 ID/시크릿과 콜백 URL을 구성해야 한다(SPEC-DB-001 §5-1 위임). Supabase Auth의 콜백 URL은 `https://<project>.supabase.co/auth/v1/callback`이어야 한다.
+시스템은 **항상** Supabase Dashboard에서 다음 제공자를 활성화하고, 클라이언트 ID/시크릿과 콜백 URL을 구성해야 한다(SPEC-DB-001 §5-1 위임):
+
+**Native 제공자** (Supabase 내장, 원클릭 설정):
+- **Kakao**: Kakao 제공자 활성화, Kakao Developers Console에서 획득한 Client ID/Secret 입력
+- **Google**: Google 제공자 활성화, Google Cloud Console에서 획득한 Client ID/Secret 입력
+
+**Custom OIDC 제공자** (2026년 6월 기능, 수동 설정 필요):
+- **Naver**: Custom OIDC 제공자 `naver` 활성화, Naver Developers Console에서 획득한 client_id/client_secret 입력
+  - Issuer: `https://nid.naver.com`
+  - Scopes: `profile`, `email`
+  - 설정 단계는 REQ-DEPLOY-019 "별도 설치 단계" 참조
+
+Supabse Auth의 콜백 URL은 `https://<project>.supabase.co/auth/v1/callback`이어야 하며, 이 URL을 각 제공자 콘솔의 콜백 URL 목록에 등록해야 한다.
 
 #### REQ-DEPLOY-021: Storage 버킷 정책 (위임 항목)
 
@@ -315,6 +348,7 @@ issue_number: 0
 - 본 SPEC은 **인프라 정의 문서**이며, 구현 코드(EAS 설정, 워크플로우 YAML, 콘솔 설정)는 `/moai run SPEC-DEPLOY-001` 단계에서 작성된다.
 - Git Flow(workspace 전역 규칙)를 엄격히 준수한다. 본 SPEC의 CI/CD 파이프라인은 `main`/`develop`/`feature`/`release`/`hotfix` 브랜치 모델과 SemVer 태깅 정책을 전제로 설계되었다.
 - OAuth 앱 등록, Storage 버킷 정책, Supabase 프로젝트 프로비저닝은 **수동 콘솔 작업**이 포함되며, 이는 자동화 스크립트가 아닌 배포 매뉴얼(`docs/deployment.md`)로 문서화한다.
+- v1.0.1(2026-06-17) 변경: OAuth 제공자 apple → naver, 네이버 Custom OIDC 설정 절차 추가(REQ-DEPLOY-019, REQ-DEPLOY-020)
 
 ---
 
