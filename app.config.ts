@@ -15,13 +15,30 @@
  * to dynamic config".
  */
 import type { ConfigContext } from 'expo/config';
-import { validateEnv } from './src/config/env';
+
+// SPEC-DEPLOY-001 M1 / REQ-DEPLOY-003: production 빌드 시 필수 환경변수 누락 검증(fail-fast).
+// IMPORTANT: 이 파일은 빌드 시점 Expo Config 평가(Node CJS)에서 실행되므로
+// src/config/env.ts 같은 .ts 모듈을 import(require)할 수 없다 ("Cannot find module './src/config/env'").
+// 따라서 검증 로직을 인라인으로 작성한다. src/config/env.ts 의 validateEnv 와 동일 상수(REQUIRED_PROD)를
+// 사용하며, 두 정의는 반드시 동기화해야 한다. env.ts 의 validateEnv 는 런타임/단위 테스트용으로 유지된다.
+const REQUIRED_PROD_ENV = [
+  'EXPO_PUBLIC_SUPABASE_URL',
+  'EXPO_PUBLIC_SUPABASE_ANON_KEY',
+  'EXPO_PUBLIC_SENTRY_DSN',
+] as const;
 
 export default ({ config }: ConfigContext) => {
-  // SPEC-DEPLOY-001 M1 / REQ-DEPLOY-003:
+  const currentEnv = process.env.ENV || 'development';
   // production 빌드에서만 필수 환경변수 누락 시 빌드를 중단(fail-fast)한다.
   // development/staging 은 누락을 허용(dev tolerance)하여 로컬 개발을 방해하지 않는다.
-  validateEnv(process.env, process.env.ENV || 'development');
+  if (currentEnv === 'production') {
+    const missing = REQUIRED_PROD_ENV.filter((key) => !process.env[key]);
+    if (missing.length > 0) {
+      throw new Error(
+        `Missing required environment variables for production build: ${missing.join(', ')}`
+      );
+    }
+  }
 
   return {
     ...config,
