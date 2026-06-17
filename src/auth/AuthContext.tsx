@@ -147,6 +147,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const signInWithProvider = async (provider: AuthProvider): Promise<void> => {
     // naver는 Supabase 네이티브 Provider 타입에 없음 — DEPLOY에서 Custom OIDC provider 'naver'로
     // 등록하면 동일 signInWithOAuth 경로로 동작. 타입은 Supabase가 모르므로 Provider로 캐스팅.
+    // @MX:WARN: [AUTO] provider as Provider 캐스팅 — 런타임 진짜 guard는 DB users.provider CHECK(SPEC-DB-001)
+    // @MX:REASON: Supabase Provider 타입과 AuthProvider 불일치를 이 캐스트가 숨김. types.test.ts가 두 타입 동기화를 검증한다.
     await getSupabaseClient().auth.signInWithOAuth({
       provider: provider as Provider,
       options: { redirectTo: getOAuthRedirectUri() },

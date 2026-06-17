@@ -339,6 +339,7 @@ Feature: OAuth 제공자 앱 등록
     And 네이버 앱에 Client ID/Secret이 발급되고 콜백 URL이 설정된다
     And Google OAuth 클라이언트에 승인된 리다이렉트 URI가 설정된다
     And 모든 콜백 URL은 expo-linking makeRedirectUri() 결과와 일치한다
+    And 네이버/카카오/구글 콘솔의 리다이렉트 URI는 exact-match 허용 목록만 사용한다 (와일드카드 금지, CWE-601 방어)
 ```
 
 ### AC-DEPLOY-020: Supabase Auth 제공자 활성화
@@ -360,6 +361,8 @@ Feature: Supabase Auth OAuth 활성화
     When 클라이언트에서 카카오/네이버/구글 로그인을 시도한다 (SPEC-AUTH-001)
     Then 세 제공자 모두 로그인이 성공한다
     And Supabase auth.users에 사용자 행이 생성된다
+    And 네이버 로그인 시 public.users.provider = 'naver' 가 설정된다 (handle_new_user 매핑, security review C1)
+    And 네이버 최초 로그인 사용자의 가입이 CHECK 제약 위반 없이 완료된다
 ```
 
 ### AC-DEPLOY-021: Storage 버킷 정책

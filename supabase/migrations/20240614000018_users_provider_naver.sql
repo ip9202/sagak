@@ -14,6 +14,12 @@
 --   즉, 네이버 OAuth wiring (Naver Developers 앱 + Supabase OIDC provider 등록) 은
 --   본 스키마/로컬 config 변경 범위가 아니며 SPEC-DEPLOY-001 단계에서 처리됨.
 --   따라서 본 마이그레이션은 DB CHECK 제약조건의 "구조적 허용값"만 변경한다.
+--
+-- ⚠ DEPLOY 필수 검증 (security review PR #11 — C1):
+--   handle_new_user 트리거(SPEC-DB-001, migration 0017)가 raw_user_id_data->>'provider' 를
+--   그대로 INSERT 한다. 따라서 naver Custom OIDC provider 는 반드시 raw_user_id_data.provider
+--   = 'naver' 를 전달해야 함. 누락 시 이 CHECK 위반으로 사용자 가입이 실패한다.
+--   → SPEC-DEPLOY-001 REQ-DEPLOY-020 인수 조건으로 검증 필수.
 
 -- 기존 제약조건 제거 (이름이 명시되지 않았으므로 Postgres 자동 이름 규칙 사용: users_provider_check)
 ALTER TABLE public.users DROP CONSTRAINT IF EXISTS users_provider_check;
