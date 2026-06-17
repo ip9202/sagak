@@ -218,7 +218,7 @@ app/(tabs)/scan.tsx
 ```mermaid
 sequenceDiagram
     participant User as User
-    participant OAuth as OAuth Provider<br/>(Kakao/Apple/Google)
+    participant OAuth as OAuth Provider<br/>(Kakao/Naver/Google)
     participant DeepLink as Deep Link<br/>sagak://auth/callback
     participant Callback as callback.tsx
     participant AuthContext as AuthContext

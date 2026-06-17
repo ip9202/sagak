@@ -502,3 +502,59 @@ src/features/book/
 
 **검증 완료:** 2026-06-16 (M3/M4)
 **업데이트 담당:** MoAI Documentation System
+
+---
+---
+
+# 3차 업데이트: PR #11 OAuth provider 변경 (2026-06-17)
+
+## 개요 (3차)
+
+PR #11 머지 반영하여 OAuth provider 변경을 코드맵에 갱신함. apple → naver 변경 (최종 조합: kakao/naver/google).
+
+## 변경사항 요약 (3차)
+
+### 1. modules.md
+**변경 내용:**
+- ✅ Auth Types (`src/auth/types.ts`)의 AuthProvider 타입 정의 갱신: `'kakao'|'apple'|'google'` → `'kakao'|'naver'|'google'`
+
+**영향 범위:**
+- 모듈 카탈로그: 1행 갱신
+
+---
+
+### 2. data-flow.md
+**변경 내용:**
+- ✅ Auth Guard Flow 섹션의 useSession 반환 타입 갱신: `signInWithProvider: (provider: 'kakao' | 'apple' | 'google')` → `'kakao' | 'naver' | 'google'`
+
+**영향 범위:**
+- 데이터 흐름 문서: 1행 갱신
+
+---
+
+### 3. UPDATE_SUMMARY.md (본 파일)
+**변경 내용:**
+- ✅ 본 섹션 추가 (3차 업데이트 기록)
+
+---
+
+## PR #11 배경
+
+**변경 이유:** 한국 시장 주류 OAuth 제공자 조합 반영 (kakao/naver/google). Apple 제외 이유:
+- App Store 4.8 한국 예외 규정 (대안 인증 수단 허용)
+- Supabase Custom OIDC로 naver 연동 (SPEC-DEPLOY-001 시점)
+
+**최종 제공자:** kakao, naver, google
+
+---
+
+## 브랜치 정보 (3차)
+
+- **2차 기준:** develop (a293e8d - BOOK M3+M4)
+- **3차 기준:** develop (c6630ae - PR #11 OAuth provider 변경)
+- **추가된 커밋:** c6630ae (PR #11 머지)
+
+---
+
+**검증 완료:** 2026-06-17 (PR #11)
+**업데이트 담당:** MoAI Documentation System

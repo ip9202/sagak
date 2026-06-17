@@ -8,7 +8,7 @@
 - **프레임워크:** React Native 0.83.2 + Expo SDK 55
 - **라우팅:** Expo Router ~5 (File-based routing)
 - **상태 관리:** React Context (Auth, Theme)
-- **인증:** Supabase OAuth (Kakao, Apple, Google)
+- **인증:** Supabase OAuth (Kakao, Naver, Google)
 - **백엔드:** Supabase (Database, Auth, Storage, Edge Functions)
 - **언어:** TypeScript 5.9 (strict mode)
 - **테스트:** jest-expo + @testing-library/react-native
@@ -110,7 +110,7 @@ graph TB
 | **SPEC-UI-001** | Component System | ✅ Complete | Button, Card, ProgressBar, EmotionRecordCard, StickerReaction |
 | **SPEC-DB-001** | Database Schema | ✅ Complete | Book, EmotionRecord, User, Profile, user_books 테이블 (RLS 포함) |
 | **SPEC-API-001** | API Layer | ✅ Complete | Edge Functions, 에러 처리, 재시도 로직, Supabase 클라이언트(createClient<Database>) |
-| **SPEC-AUTH-001** | Authentication | ✅ Complete | OAuth(Kakao/Apple/Google), Session, Onboarding |
+| **SPEC-AUTH-001** | Authentication | ✅ Complete | OAuth(Kakao/Naver/Google), Session, Onboarding |
 | **SPEC-NAV-001** | Navigation System | ✅ Complete | 4-tab navigator, 가드 로직, 딥링크 |
 | **SPEC-BOOK-001** | Book Search & Detail | ✅ Complete M1~M4 | M1 Edge function(kakao-book-search) + M2 클라이언트 API + M3 바코드 스캔(BarcodeScanner/ISBN/Debounce) + M4 검색·상세 화면(BookSearchScreen/BookDetailScreen/SearchResultCard/format) |
 | **SPEC-LIBRARY-001** | Library & Progress | ✅ Complete | Library CRUD API, React Query v5 QueryClient 싱글톤, useLibrary/useLibraryItem 훅, resolveBookId(ISBN→UUID, @MX:ANCHOR), progressValidation/progressRate 유틸, BookDetailScreen 서재 통합 |

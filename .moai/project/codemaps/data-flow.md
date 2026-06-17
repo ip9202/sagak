@@ -73,7 +73,7 @@ type SessionState = null | {
   loading: boolean
   isAuthenticated: boolean
   isOnboarded: boolean
-  signInWithProvider: (provider: 'kakao' | 'apple' | 'google') => Promise<void>
+  signInWithProvider: (provider: 'kakao' | 'naver' | 'google') => Promise<void>
   signOut: () => Promise<void>
   refreshProfile: () => Promise<void>
 }
@@ -83,7 +83,7 @@ type SessionState = null | {
 
 ## 2. OAuth Deep-link Flow
 
-**목적:** OAuth 제공자(Kakao/Apple/Google)에서 인증 후 앱으로 복귀
+**목적:** OAuth 제공자(Kakao/Naver/Google)에서 인증 후 앱으로 복귀
 
 **진입점:** `app/(auth)/auth/callback.tsx`
 
