@@ -30,8 +30,9 @@ BEGIN
             ADD CONSTRAINT users_nickname_format CHECK (
                 -- 길이 제한 (1~20자, 문자 단위)
                 char_length(nickname) BETWEEN 1 AND 20
-                -- C0 제어문자(U+0000~U+001F) 및 DEL(U+007F) 거부
-                AND nickname !~ ('[' || chr(0) || '-' || chr(31) || chr(127) || ']')
+                -- C0 제어문자(U+0001~U+001F) 및 DEL(U+007F) 거부
+                -- (U+0000 null 은 PostgreSQL text 에 들어올 수 없으므로 chr(1) 부터 검사)
+                AND nickname !~ ('[' || chr(1) || '-' || chr(31) || chr(127) || ']')
                 -- C1 제어문자(U+0080~U+009F) 거부
                 AND nickname !~ ('[' || chr(128) || '-' || chr(159) || ']')
                 -- Zero-width / 방향 제어 / BOM 특수문자 거부 (position()=0 은 미포함 의미)
