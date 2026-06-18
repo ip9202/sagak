@@ -200,16 +200,19 @@ issue_number: 0
    - Client ID/Secret 발급: OAuth 로그인용 client_id, client_secret 획득
    - 콜백 URL 등록: Supabase Auth 콜백 URL `https://<project>.supabase.co/auth/v1/callback` 추가
 
-2. **Supabase Custom OIDC 제공자 설정** (2026년 6월 기능):
-   - Supabase Dashboard → Authentication → Providers → Custom OIDC
-   - 제공자 ID: `naver` (소문자)
-   - Naver 콘솔에서 획득한 client_id, client_secret 입력
-   - Issuer URL: `https://nid.naver.com`
-   - Authorization URL: `https://nid.naver.com/oauth2.0/authorize`
-   - Token URL: `https://nid.naver.com/oauth2.0/token`
-   - UserInfo URL: `https://openapi.naver.com/v1/nid/me`
-   - Scopes: `profile`, `email`
-   - Redirect URIs: Supabase 프로젝트별 콜백 URL 추가
+2. **Supabase Custom OIDC 제공자 설정** (2026년 기능, **OIDC auto-discovery 모드**):
+   - Supabase Dashboard → Authentication → Providers → New Provider → **Auto-discovery (OIDC)**
+   - 식별자(Identifier): `custom:naver` (`custom:` 접두사는 Supabase 공식 요구사항 — 빌트인 provider와 구분)
+   - Naver 콘솔에서 획득한 Client ID, Client Secret 입력
+   - Issuer URL: `https://nid.naver.com` (discovery 문서·JWKS·엔드포인트 자동 해석)
+   - Scopes: `openid`, `profile` (**⚠️ 네이버 OIDC는 `email` 미지원** — discovery `scopes_supported` 확인)
+   - **email_optional: true** (필수 — Supabase 기본 email 필수 정책 회피, 네이버 email 미지원 대응)
+   - Redirect URI: Supabase가 표시하는 Callback URL (`https://<project>.supabase.co/auth/v1/callback`)
+
+> **정합성 메모 (2026-06-18 실기기 검증 반영, unsupported_provider修正)**:
+> - 네이버 OIDC discovery(`https://nid.naver.com/.well-known/openid-configuration`) 실존 → auto-discovery 모드 사용. 초안의 `/oauth2.0/*` 수동 URL은 OAuth2.0 레거시(OIDC 엔드포인트는 `/oauth2/*`)이나 auto-discovery 적용 시 무관.
+> - `custom:naver` 인증 시 `auth.users.raw_app_meta_data.provider = 'custom:naver'`. DB `users.provider` CHECK(`kakao`/`naver`/`google`) 준수를 위해 `handle_new_user` 트리거가 `REPLACE(provider,'custom:','')`로 정규화 (migration `20240618000004`).
+> - 클라이언트(`AuthContext.signInWithProvider`)는 `provider='naver'`일 때 Supabase에 `'custom:naver'`로 매핑 전달. 앱 도메인 식별자(`naver`)와 DB CHECK 값은 `naver` 유지.
 
 > **Apple 제외 사유**: App Store Guideline 4.8 한국 예외 조항(한국 타겟 앱의 Apple Sign in 강제 요구사항 제외) 적용. 네이버로 대체하여 한국 시장 주류 OAuth 조합(카카오/네이버/구글) 완성.
 
@@ -221,11 +224,13 @@ issue_number: 0
 - **Kakao**: Kakao 제공자 활성화, Kakao Developers Console에서 획득한 Client ID/Secret 입력
 - **Google**: Google 제공자 활성화, Google Cloud Console에서 획득한 Client ID/Secret 입력
 
-**Custom OIDC 제공자** (2026년 6월 기능, 수동 설정 필요):
-- **Naver**: Custom OIDC 제공자 `naver` 활성화, Naver Developers Console에서 획득한 client_id/client_secret 입력
-  - Issuer: `https://nid.naver.com`
-  - Scopes: `profile`, `email`
-  - 설정 단계는 REQ-DEPLOY-019 "별도 설치 단계" 참조
+**Custom OIDC 제공자** (2026년 기능, OIDC auto-discovery 모드):
+- **Naver**: Custom OIDC 제공자 식별자 `custom:naver` 활성화, Naver Developers Console에서 획득한 client_id/client_secret 입력
+  - Issuer: `https://nid.naver.com` (auto-discovery)
+  - Scopes: `openid`, `profile` (email 미지원)
+  - email_optional: `true` (필수)
+  - DB 정규화: `handle_new_user` 트리거가 `custom:naver` → `naver` 매핑 (migration `20240618000004`)
+  - 상세 설정 단계는 REQ-DEPLOY-019 "별도 설치 단계" 참조
 
 Supabse Auth의 콜백 URL은 `https://<project>.supabase.co/auth/v1/callback`이어야 하며, 이 URL을 각 제공자 콘솔의 콜백 URL 목록에 등록해야 한다.
 
