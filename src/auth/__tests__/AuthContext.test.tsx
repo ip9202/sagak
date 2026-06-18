@@ -333,6 +333,24 @@ describe('AuthContext — M1-2 AC-S1: signInWithProvider OAuth 호출 (A1~A3)', 
 
     expect(mockSupabaseClient.auth.exchangeCodeForSession).not.toHaveBeenCalled();
   });
+
+  it('SECURITY — 위장된 스킴/호스트의 콜백 URL은 세션 교환/토큰 주입을 시도하지 않는다', async () => {
+    // defense-in-depth: openAuthSessionAsync 결과가 우리 딥링크(sagak://auth)가 아니면 무시한다.
+    mockSupabaseClient.auth.signInWithOAuth.mockResolvedValue({
+      data: { provider: 'kakao', url: 'https://kauth.kakao.com/oauth/authorize' },
+      error: null,
+    });
+    mockOpenAuthSessionAsync.mockResolvedValue({
+      type: 'success',
+      url: 'https://evil.example.com/auth/callback?code=stolen',
+    });
+    const value = await renderAndCapture();
+
+    await value.signInWithProvider('kakao');
+
+    expect(mockSupabaseClient.auth.exchangeCodeForSession).not.toHaveBeenCalled();
+    expect(mockSupabaseClient.auth.setSession).not.toHaveBeenCalled();
+  });
 });
 
 describe('AuthContext — M1-3 AC-S6/S9: signOut 액션 (REQ-AUTH-011, REQ-AUTH-014)', () => {

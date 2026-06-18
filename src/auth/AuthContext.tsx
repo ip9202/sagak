@@ -166,6 +166,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const res = await WebBrowser.openAuthSessionAsync(data.url, redirectTo);
       if (res.type === 'success' && res.url) {
         const url = new URL(res.url);
+        // @MX:WARN: [AUTO] OAuth 콜백 딥링크 검증 — 위장 스킴/호스트 차단 (defense-in-depth)
+        // @MX:REASON: openAuthSessionAsync 결과 URL이 우리 딥링크(sagak://auth)가 아니면 세션 교환/토큰 주입을 시도하지 않는다. PKCE code는 null이면 무해하지만 implicit fallback의 setSession 토큰 주입 경로를 보호한다.
+        if (url.protocol !== 'sagak:' || url.host !== 'auth') {
+          return;
+        }
         const code = url.searchParams.get('code');
         if (code) {
           // PKCE flow: 인증 코드 → 세션 교환 → onAuthStateChange SIGNED_IN
