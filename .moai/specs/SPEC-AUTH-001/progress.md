@@ -46,4 +46,13 @@
 - Phase 2.8a evaluator-active: PASS (Functionality 100, Security 100, Craft 95, Consistency 100), all AC verified
 - Phase 2.9 MX tags: onboarding.tsx @MX:ANCHOR/WARN/NOTE attached, consistent with AuthContext
 
-### SPEC-AUTH-001 status: COMPLETE (all 17 REQ, A1-A7/O1-O9/S1-S9/G1-G8 covered)
+### SPEC-AUTH-001 status: COMPLETE (all 18 REQ, A1-A7/O1-O9/S1-S9/G1-G8 covered)
+
+### PR #16 merged (hardening + DB schema fixes)
+- Squash merge: da5b262 (2026-06-18)
+- **RN OAuth 패턴**: `skipBrowserRedirect` + `openAuthSessionAsync` + `exchangeCodeForSession`(PKCE) + implicit fallback
+- **딥링크 검증**: `sagak://auth` 스킴/호스트 검증 (defense-in-depth)
+- **DB 스키마 수정**: `nickname` nullable, `handle_new_user` 컬럼 오타 수정, CHECK 제약 추가
+- **React 19 호환**: `router.replace`를 `useEffect`로 이동
+- **실기기 검증**: Pixel 6 end-to-end 완료 (로그인 → 온보딩 → 홈)
+- feature/SPEC-AUTH-001-rn-oauth-hardening deleted (local + remote)

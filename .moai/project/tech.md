@@ -26,6 +26,7 @@ TanStack React Query v5를 서버 상태 관리 라이브러리로 채택했다.
 
 **OAuth 인증 (SPEC-AUTH-001)**:
 - `expo-linking` ~7.0.0 — OAuth 딥링크 콜백 URL 생성 (`makeRedirectUri`) 및 처리
+- `expo-web-browser` ~55.0.16 — React Native OAuth 브라우저 오픈 (`openAuthSessionAsync`, `maybeCompleteAuthSession`)
 
 **바코드 스캔 (SPEC-BOOK-001 M3)**:
 - `expo-camera` ~55.0.19 — 카메라 권한 요청 및 ISBN(EAN-13) 바코드 인식. `CameraView`(active/barcodeScannerSettings/onBarcodeScanned API)와 `useCameraPermissions` 훅 사용. SDK 55 호환. 권한 게이트 3상태(loading/granted/denied) 처리.

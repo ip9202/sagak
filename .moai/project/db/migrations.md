@@ -40,6 +40,10 @@ SPEC-DB-001 구현: 15개 migration (T-001~T-009), 272 pgTAP 테스트 통과.
 | 20240614000014_enable_rls.sql | T-007/T-008 | RLS 11테이블 + 31 정책 + fn_user_in_club + 보안 뷰 (통합) |
 | 20240614000015_create_triggers.sql | T-009 | updated_at 트리거 3개 (set_updated_at 공용 함수, emotion_records 컬럼 추가) |
 | 20240614000016_enable_books_rls.sql | post-sync fix | books RLS 활성화 (DoD #4 / REQ-DB-013b fix — 0014 누락 보정, 0016 test로 검증) |
+| 20240614000017_users_nickname_check.sql | SPEC-AUTH-001 | 닉네임 CHECK 제약 (길이 1~20, 제어문자/zero-width/RTL/BOM 거부), handle_new_user left(...,20) 수정 |
+| 20240618000001_backfill_users.sql | SPEC-AUTH-001 | 기존 OAuth 사용자 backfill (provider=raw_app_meta_data) |
+| 20240618000002_fix_handle_new_user_columns.sql | SPEC-AUTH-001 | handle_new_user 컬럼 오타 수정 (raw_user_id_data → raw_app_meta_data/raw_user_meta_data) |
+| 20240618000003_users_nickname_nullable.sql | SPEC-AUTH-001 | nickname NOT NULL 제거 + handle_new_user nickname=NULL (온보딩 필수 진입) |
 
 ---
 
