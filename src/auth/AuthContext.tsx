@@ -146,10 +146,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
    * 세 제공자(kakao/naver/google)를 동일 경로로 처리한다.
    */
   const signInWithProvider = async (provider: AuthProvider): Promise<void> => {
-    // naver는 Supabase 네이티브 Provider 타입에 없음 — DEPLOY에서 Custom OIDC provider 'naver'로
-    // 등록하면 동일 signInWithOAuth 경로로 동작. 타입은 Supabase가 모르므로 Provider로 캐스팅.
-    // @MX:WARN: [AUTO] provider as Provider 캐스팅 — 런타임 진짜 guard는 DB users.provider CHECK(SPEC-DB-001)
-    // @MX:REASON: Supabase Provider 타입과 AuthProvider 불일치를 이 캐스트가 숨김. types.test.ts가 두 타입 동기화를 검증한다.
+    // Supabase provider 식별자 매핑:
+    // - naver → 'custom:naver' (Supabase Custom OIDC provider, 2026년 기능).
+    //   custom: 접두사는 Supabase 공식 요구사항. DB users.provider CHECK는 앱 도메인 값 'naver' 유지 —
+    //   handle_new_user 트리거가 raw_app_meta_data.provider('custom:naver') → 'naver' 로 정규화한다.
+    // - kakao/google → Supabase 빌트인 provider, 식별자 그대로.
+    // @MX:ANCHOR: [AUTO] AuthProvider → Supabase provider 매핑 — custom: 접두사 정책의 단일 지점
+    // @MX:REASON: 매핑 누락 시 unsupported_provider(custom: 빠짐), 잔존 시 DB CHECK 위반(custom: 남음). fan_in >= 3 (login.tsx 3 버튼 + 단위 테스트).
+    const supabaseProvider = provider === 'naver' ? 'custom:naver' : provider;
     const supabase = getSupabaseClient();
     const redirectTo = getOAuthRedirectUri();
     // RN OAuth (공식 Supabase 패턴, native-mobile-deep-linking 가이드):
@@ -158,7 +162,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // maybeCompleteAuthSession()은 web 전용이라 RN 에서는 세션 교환을 하지 않는다 — 반드시
     // exchangeCodeForSession(PKCE) / setSession(implicit) 으로 직접 교환해야 SIGNED_IN 이 발생한다.
     const { data, error } = await supabase.auth.signInWithOAuth({
-      provider: provider as Provider,
+      provider: supabaseProvider as Provider,
       options: { redirectTo, skipBrowserRedirect: true },
     });
     if (error) throw error;

@@ -243,20 +243,22 @@ describe('AuthContext — M1-2 AC-S1: signInWithProvider OAuth 호출 (A1~A3)', 
     );
   });
 
-  it('A2 — signInWithProvider("naver")가 signInWithOAuth를 naver provider로 호출한다', async () => {
-    mockSupabaseClient.auth.signInWithOAuth.mockResolvedValue({ data: { provider: 'naver', url: 'https://nid.naver.com/oauth2.0/authorize' }, error: null });
+  it('A2 — signInWithProvider("naver")가 signInWithOAuth를 custom:naver provider로 호출한다 (Custom OIDC 매핑)', async () => {
+    // naver는 Supabase 빌트인 provider가 아님 → AuthContext가 'custom:naver'로 매핑해 signInWithOAuth 호출.
+    // DB users.provider CHECK는 앱 도메인 값 'naver' 유지(handle_new_user 트리거가 custom: 제거).
+    mockSupabaseClient.auth.signInWithOAuth.mockResolvedValue({ data: { provider: 'custom:naver', url: 'https://nid.naver.com/oauth2/authorize' }, error: null });
     const value = await renderAndCapture();
 
     await value.signInWithProvider('naver');
 
     expect(mockSupabaseClient.auth.signInWithOAuth).toHaveBeenCalledTimes(1);
     expect(mockSupabaseClient.auth.signInWithOAuth).toHaveBeenCalledWith({
-      provider: 'naver',
+      provider: 'custom:naver',
       options: { redirectTo: 'sagak://auth/callback', skipBrowserRedirect: true },
     });
     expect(mockOpenAuthSessionAsync).toHaveBeenCalledTimes(1);
     expect(mockOpenAuthSessionAsync).toHaveBeenCalledWith(
-      'https://nid.naver.com/oauth2.0/authorize',
+      'https://nid.naver.com/oauth2/authorize',
       'sagak://auth/callback'
     );
   });
