@@ -8,8 +8,9 @@
  * - AC-A3: 네이버 버튼 — naver 제공자로 signInWithProvider 호출
  * - AC-A4/A5: OAuth 실패 처리 — 에러 메시지 표시
  */
-import React, { useState, useContext } from 'react';
+import React, { useState, useContext, useEffect } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { useRouter } from 'expo-router';
 import { AuthContext } from './AuthContext';
 import type { AuthProvider } from './types';
 import { colors, spacing, typography, radius } from '../theme/tokens';
@@ -26,9 +27,20 @@ export function LoginScreen() {
     throw new Error('LoginScreen must be used within AuthProvider');
   }
 
-  const { signInWithProvider } = context;
+  const { signInWithProvider, session, user, profile } = context;
+  const router = useRouter();
   const [loading, setLoading] = useState<AuthProvider | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  // RN OAuth 타이밍 보완 (SPEC-AUTH-001): callback 라우트가 SIGNED_IN 도착 전에
+  // !isAuthenticated 로 login 으로 replace 해버린 경우, SIGNED_IN 이 이 컴포넌트에
+  // 도달하면 인증된 사용자를 onboarding/tabs 로 보낸다.
+  // React 19 호환 — replace 는 useEffect 내에서만 호출 (app/index.tsx 동일 패턴).
+  useEffect(() => {
+    if (session && user) {
+      router.replace(profile?.nickname ? '/(tabs)/' : '/(auth)/onboarding');
+    }
+  }, [session, user, profile, router]);
 
   /**
    * OAuth 로그인 핸들러
