@@ -402,3 +402,12 @@ s3_secret_key = "env(S3_SECRET_KEY)"
 # declarative_schema_path = "./database"
 # JSON string passed through to pg-delta SQL formatting.
 # format_options = "{\"keywordCase\":\"upper\",\"indent\":2,\"maxWidth\":80,\"commaStyle\":\"trailing\"}"
+
+# @MX:NOTE: [AUTO] 네이버 userinfo 프록시. 호출자가 Supabase JWT 가 아닌 네이버 access_token(Bearer) 을 전달하므로
+#           verify_jwt=false 필수. true 로 배포되면 Supabase Auth 서버 호출이 401 로 막혀 로그인 전체가 깨진다.
+#           @MX:REASON: idempotent 보장 — CLI 재배포 시 기본값(true) 으로 덮이는 것 방지.
+[functions.naver-userinfo-proxy]
+verify_jwt = false
+
+[functions.naver-discovery]
+verify_jwt = false
