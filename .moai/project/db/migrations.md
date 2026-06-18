@@ -44,6 +44,7 @@ SPEC-DB-001 구현: 15개 migration (T-001~T-009), 272 pgTAP 테스트 통과.
 | 20240618000001_backfill_users.sql | SPEC-AUTH-001 | 기존 OAuth 사용자 backfill (provider=raw_app_meta_data) |
 | 20240618000002_fix_handle_new_user_columns.sql | SPEC-AUTH-001 | handle_new_user 컬럼 오타 수정 (raw_user_id_data → raw_app_meta_data/raw_user_meta_data) |
 | 20240618000003_users_nickname_nullable.sql | SPEC-AUTH-001 | nickname NOT NULL 제거 + handle_new_user nickname=NULL (온보딩 필수 진입) |
+| 20240618000004_handle_new_user_custom_provider_strip.sql | SPEC-AUTH-001 | handle_new_user custom: 접두사 정규화 (REPLACE) + SECURITY DEFINER owner postgres 고정 (naver Custom OIDC 대응, 리뷰 M1) |
 
 ---
 

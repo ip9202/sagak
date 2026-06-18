@@ -138,9 +138,10 @@ completion_reports(user_book_id).
 - **SECURITY DEFINER 함수 (6, 모두 owner=postgres/BYPASSRLS)**:
   handle_new_user, handle_new_club_host, guard_join_request_status, join_request_accept,
   generate_completion_report, fn_user_in_club
+- **handle_new_user** (migration 0004, 2026-06-18): auth.users INSERT 시 `REPLACE(raw_app_meta_data->>'provider','custom:','')` 정규화 → Custom OIDC 값(custom:naver)을 users.provider CHECK(kakao/naver/google) 값으로 변환. owner postgres 고정 (리뷰 M1, FORCE RLS 환경 안전성).
 - **정책**: 31개 (rls-policies.md 참조)
 - **fn_user_in_club**: club_members 재귀 방지용 멤버십 헬퍼 (SECURITY DEFINER)
 
 ---
 
-*Synced 2026-06-14 from supabase/migrations/0001-0015 (SPEC-DB-001 T-001~T-009).*
+*Synced 2026-06-14 from supabase/migrations/0001-0015 (SPEC-DB-001 T-001~T-009). Updated 2026-06-18: migration 0004 (SPEC-AUTH-001 naver Custom OIDC — handle_new_user custom: 정규화 + owner 고정).*

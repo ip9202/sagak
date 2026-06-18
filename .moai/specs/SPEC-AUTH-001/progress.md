@@ -56,3 +56,13 @@
 - **React 19 호환**: `router.replace`를 `useEffect`로 이동
 - **실기기 검증**: Pixel 6 end-to-end 완료 (로그인 → 온보딩 → 홈)
 - feature/SPEC-AUTH-001-rn-oauth-hardening deleted (local + remote)
+
+### PR #17 merged (네이버 Custom OIDC 연동)
+- Squash merge: 799c919 (2026-06-18)
+- **네이버 Custom OIDC**: `naver` → `custom:naver` 매핑 (AuthContext.signInWithProvider) — Supabase Custom OIDC 식별자는 `custom:` 접두사 필수
+- **DB migration 004**: `handle_new_user` `REPLACE(provider,'custom:','')` 정규화 (custom:naver → naver, users.provider CHECK 준수) + SECURITY DEFINER owner postgres 고정 (리뷰 M1)
+- **SPEC-DEPLOY-001 정정**: naver OIDC auto-discovery 모드 (scope openid/profile, email_optional:true, custom:naver 식별자)
+- **검증**: tsc 0 / 80 suites 692 tests / 실기기 unsupported_provider 해결 (네이버 로그인 페이지 오픈)
+- **보안 리뷰**: expert-security + 직검 — injection/escalation/bypass 없음
+- feature/SPEC-AUTH-001-naver-custom-oidc deleted (local + remote)
+- **네이버 실기기 e2e 보류**: 네이버 콜백 URL 오타(`o` 누락) 수정 + C1(email NOT NULL) 검증 + M2(provider guard) 차후 진행
