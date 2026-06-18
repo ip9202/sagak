@@ -11,6 +11,7 @@
  * 각 스크린 구현은 src/auth/* 에 있으며, 라우트 파일은 re-export만 수행한다.
  */
 
+import { useEffect } from 'react';
 import { Stack, useRouter } from 'expo-router';
 import { useSession } from '../../src/auth/useSession';
 
@@ -19,11 +20,22 @@ export default function AuthLayout() {
   const router = useRouter();
 
   // G5: 인증+온보딩 완료 사용자의 (auth) 접근 차단
-  // useSession이 null(loading)이면 절대 replace 하지 않는다 (EC7 루프 방지)
-  if (s !== null && s.isAuthenticated && s.isOnboarded) {
-    // @MX:WARN: [AUTO] replace 사용 필수 — push 사용 시 백스택에 (auth) 화면이 남아 tabs 진입 후 노출됨
-    // @MX:REASON: 인증 완료 후 백버튼으로 로그인/온보딩 화면으로 돌아가는 것을 차단.
-    router.replace('/(tabs)/');
+  const redirectAway = s !== null && s.isAuthenticated && s.isOnboarded;
+
+  // React 19 호환: router.replace 는 렌더링 중 호출할 수 없다
+  // (Cannot update a component while rendering). useEffect 내에서 호출한다.
+  // useSession이 null(loading)이면 절대 replace 하지 않는다 (EC7 루프 방지).
+  // @MX:WARN: [AUTO] replace 사용 필수 — push 사용 시 백스택에 (auth) 화면이 남아 tabs 진입 후 노출됨
+  // @MX:REASON: 인증 완료 후 백버튼으로 로그인/온보딩 화면으로 돌아가는 것을 차단.
+  useEffect(() => {
+    if (redirectAway) {
+      router.replace('/(tabs)/');
+    }
+  }, [redirectAway, router]);
+
+  // redirect 대상이면 렌더링 중 Stack 노출을 막아 로그인 화면 점멸을 차단한다.
+  // (return null 자체는 side-effect 가 아니므로 렌더링 중 안전하다.)
+  if (redirectAway) {
     return null;
   }
 

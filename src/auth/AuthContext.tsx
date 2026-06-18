@@ -11,6 +11,7 @@
  */
 import React, { createContext, useEffect, useState, useCallback, useRef } from 'react';
 import type { Session, User, Provider } from '@supabase/supabase-js';
+import * as WebBrowser from 'expo-web-browser';
 import type { AuthContextValue, AuthProvider, UserProfile } from './types';
 import { getSupabaseClient } from '../lib/supabase/client';
 import { getOAuthRedirectUri } from './oauth';
@@ -149,10 +150,44 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // 등록하면 동일 signInWithOAuth 경로로 동작. 타입은 Supabase가 모르므로 Provider로 캐스팅.
     // @MX:WARN: [AUTO] provider as Provider 캐스팅 — 런타임 진짜 guard는 DB users.provider CHECK(SPEC-DB-001)
     // @MX:REASON: Supabase Provider 타입과 AuthProvider 불일치를 이 캐스트가 숨김. types.test.ts가 두 타입 동기화를 검증한다.
-    await getSupabaseClient().auth.signInWithOAuth({
+    const supabase = getSupabaseClient();
+    const redirectTo = getOAuthRedirectUri();
+    // RN OAuth (공식 Supabase 패턴, native-mobile-deep-linking 가이드):
+    // skipBrowserRedirect 로 자동 브라우저 오픈을 막고 openAuthSessionAsync 로 수동 열기한 뒤,
+    // 딥링크로 복귀한 result.url 에서 code(또는 access_token)를 추출해 세션으로 교환한다.
+    // maybeCompleteAuthSession()은 web 전용이라 RN 에서는 세션 교환을 하지 않는다 — 반드시
+    // exchangeCodeForSession(PKCE) / setSession(implicit) 으로 직접 교환해야 SIGNED_IN 이 발생한다.
+    const { data, error } = await supabase.auth.signInWithOAuth({
       provider: provider as Provider,
-      options: { redirectTo: getOAuthRedirectUri() },
+      options: { redirectTo, skipBrowserRedirect: true },
     });
+    if (error) throw error;
+    if (data?.url) {
+      const res = await WebBrowser.openAuthSessionAsync(data.url, redirectTo);
+      if (res.type === 'success' && res.url) {
+        const url = new URL(res.url);
+        // @MX:WARN: [AUTO] OAuth 콜백 딥링크 검증 — 위장 스킴/호스트 차단 (defense-in-depth)
+        // @MX:REASON: openAuthSessionAsync 결과 URL이 우리 딥링크(sagak://auth)가 아니면 세션 교환/토큰 주입을 시도하지 않는다. PKCE code는 null이면 무해하지만 implicit fallback의 setSession 토큰 주입 경로를 보호한다.
+        if (url.protocol !== 'sagak:' || url.host !== 'auth') {
+          return;
+        }
+        const code = url.searchParams.get('code');
+        if (code) {
+          // PKCE flow: 인증 코드 → 세션 교환 → onAuthStateChange SIGNED_IN
+          const { error: exErr } = await supabase.auth.exchangeCodeForSession(code);
+          if (exErr) throw exErr;
+        } else {
+          // implicit flow fallback: hash 에서 토큰 추출 → setSession
+          const params = new URLSearchParams(url.hash.substring(1));
+          const access_token = params.get('access_token');
+          const refresh_token = params.get('refresh_token');
+          if (access_token && refresh_token) {
+            const { error: setErr } = await supabase.auth.setSession({ access_token, refresh_token });
+            if (setErr) throw setErr;
+          }
+        }
+      }
+    }
   };
 
   /**

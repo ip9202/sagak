@@ -24,9 +24,15 @@
 import React from 'react';
 import { Stack } from 'expo-router';
 import { QueryClientProvider } from '@tanstack/react-query';
+import * as WebBrowser from 'expo-web-browser';
 import { ThemeProvider } from '../src/theme/theme';
 import { AuthProvider } from '../src/auth/AuthContext';
 import { getQueryClient } from '../src/lib/query/queryClient';
+
+// @MX:NOTE: [AUTO] OAuth 콜백 딥링크(sagak://auth/callback)로 앱이 열렸을 때 인증 세션 브라우저를 닫고
+//           Supabase가 코드 교환을 완료하도록 돕는다. 반드시 모듈 최상단(컴포넌트 외부)에서 호출해야 한다.
+//           컴포넌트 내부에서 호출 시 렌더링마다 중복 실행되거나 타이밍이 어긋나 세션이 누락된다.
+WebBrowser.maybeCompleteAuthSession();
 
 export default function RootLayout() {
   return (

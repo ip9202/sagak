@@ -31,6 +31,15 @@ jest.mock('expo-secure-store', () => ({
   },
 }));
 
+// expo-router mock — login.tsx 가 useRouter 를 사용하므로 네이티브 Navigator 의존성을 회피한다.
+// login.tsx 의 useEffect authenticated 리다이렉트(RN OAuth 타이밍 보완)는 mock context 의
+// session=null 조건에서는 replace 가 호출되지 않아 별도 검증이 불필요하다.
+jest.mock('expo-router', () => ({
+  useRouter: () => ({ replace: jest.fn(), push: jest.fn(), back: jest.fn() }),
+  useNavigation: () => ({ navigate: jest.fn(), goBack: jest.fn() }),
+  Link: ({ children }: { children: React.ReactNode }) => children,
+}));
+
 // Mock AuthContext
 const mockAuthContextValue: AuthContextValue = {
   session: null,
