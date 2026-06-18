@@ -31,6 +31,13 @@ jest.mock('expo-secure-store', () => ({
   },
 }));
 
+// expo-router mock — login.tsx 가 useRouter 를 사용하므로 네이티브 Navigator 의존성을 회피한다.
+jest.mock('expo-router', () => ({
+  useRouter: () => ({ replace: jest.fn(), push: jest.fn(), back: jest.fn() }),
+  useNavigation: () => ({ navigate: jest.fn(), goBack: jest.fn() }),
+  Link: ({ children }: { children: React.ReactNode }) => children,
+}));
+
 import LoginScreen from '../login';
 import { AuthContext } from '../../../src/auth/AuthContext';
 import type { AuthContextValue } from '../../../src/auth/types';
