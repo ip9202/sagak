@@ -53,14 +53,21 @@ TanStack React Query v5를 서버 상태 관리 라이브러리로 채택했다.
 
 백엔드는 Supabase를 통해 서버리스 아키텍처를 구현하며, 데이터베이스는 PostgreSQL을 사용하고 API 계층은 PostgREST를 통해 자동 생성된 RESTful API를 활용한다. 비즈니스 로직 처리와 외부 API 연동은 Supabase Edge Functions(Deno 런타임)에서 처리하며, 실시간 동기화 기능을 통해 사용자 간의 감정 공유와 모임 활동을 실시간으로 처리한다. 보안은 PostgreSQL의 RLS(Row Level Security)를 통해 구현하며, 모든 API 요청이 인증된 사용자에게만 접근 권한을 부여하고, 데이터는 자동으로 백업되고 복제되어 안정성을 보장한다. 스토리지는 Supabase Storage를 사용하여 책 표지 이미지와 사용자 업로드 파일을 관리한다.
 
-### Edge Function 런타임 (Deno) — SPEC-BOOK-001 M1 완료
+### Edge Function 런타임 (Deno) — SPEC-BOOK-001 M1 완료, SPEC-AUTH-001 네이버 연동 완료
 
-Supabase Edge Functions는 Deno 런타임을 사용하여 서버 측 비즈니스 로직을 실행한다. 2026-06-16 기준 `kakao-book-search` Edge Function이 구현 완료되었으며:
+Supabase Edge Functions는 Deno 런타임을 사용하여 서버 측 비즈니스 로직을 실행한다. 2026-06-19 기준 카카오/네이버 연동 Edge Function이 구현 완료되었으며:
+
+**kakao-book-search (도서 검색)**
 - **순수 로직 모듈**: `normalizer.ts`, `mapper.ts`, `cacheManager.ts` — Deno globals 없이 Jest로 DI 테스트
 - **얇은 Deno 셸**: `index.ts` — HTTP 요청/응답 처리만
 - **보안**: `KAKAO_REST_API_KEY` + `SUPABASE_SERVICE_ROLE_KEY`는 Edge Function 환경 변수만 (클라이언트 노출 금지)
 - **캐싱 전략**: `books` 테이블 먼저 조회 → 캐시 미스 시 Kakao API 호출 후 업서트 (할당량 절약)
 - **N+1 해결**: `upsertBooks` 배치 업서트 (PostgREST `.upsert(rows[])`)
+
+**naver-userinfo-proxy (Custom OIDC)**
+- **목적**: 네이버 userinfo 비표준 중첩 응답 평탄화 + `email_verified:true` 주입 → Supabase account linking(auto-linking) 트리거
+- **문제 해결**: 네이버 OAuth 로그인 시 "missing provider id" 에러 방지
+- **보안**: `verify_jwt=false` (서버-서버 호출, 네이버 Bearer 토큰)
 
 ## 인증
 

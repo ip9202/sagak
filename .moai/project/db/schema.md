@@ -138,10 +138,10 @@ completion_reports(user_book_id).
 - **SECURITY DEFINER 함수 (6, 모두 owner=postgres/BYPASSRLS)**:
   handle_new_user, handle_new_club_host, guard_join_request_status, join_request_accept,
   generate_completion_report, fn_user_in_club
-- **handle_new_user** (migration 0004, 2026-06-18): auth.users INSERT 시 `REPLACE(raw_app_meta_data->>'provider','custom:','')` 정규화 → Custom OIDC 값(custom:naver)을 users.provider CHECK(kakao/naver/google) 값으로 변환. owner postgres 고정 (리뷰 M1, FORCE RLS 환경 안전성).
+- **handle_new_user** (migration 0004 + 0005, 2026-06-18): auth.users INSERT 시 두 가지 정규화 수행 — ① `REPLACE(raw_app_meta_data->>'provider','custom:','')` → Custom OIDC 값(custom:naver)을 users.provider CHECK(kakao/naver/google) 값으로 변환. ② email COALESCE 폴백 — 네이버 등 email 미제공 provider 가입 시 `public.users.email NOT NULL` 위반(C1, "Database error saving new user") 해결. 형태: `{provider}_{auth.users.id}@noemail.local` (uuid 기반 UNIQUE 보장). kakao/google(email 제공)는 영향 없음. owner postgres 고정 (리뷰 M1, FORCE RLS 환경 안전성). (2026-06-18, SPEC-AUTH-001 REQ-AUTH-001)
 - **정책**: 31개 (rls-policies.md 참조)
 - **fn_user_in_club**: club_members 재귀 방지용 멤버십 헬퍼 (SECURITY DEFINER)
 
 ---
 
-*Synced 2026-06-14 from supabase/migrations/0001-0015 (SPEC-DB-001 T-001~T-009). Updated 2026-06-18: migration 0004 (SPEC-AUTH-001 naver Custom OIDC — handle_new_user custom: 정규화 + owner 고정).*
+*Synced 2026-06-14 from supabase/migrations/0001-0015 (SPEC-DB-001 T-001~T-009). Updated 2026-06-18: migration 0004+0005 (SPEC-AUTH-001 naver Custom OIDC — handle_new_user custom: 정규화 + owner 고정 + email COALESCE 폴백).*
