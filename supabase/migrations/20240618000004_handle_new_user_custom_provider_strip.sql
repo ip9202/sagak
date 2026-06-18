@@ -59,3 +59,10 @@ $$;
 
 COMMENT ON FUNCTION public.handle_new_user() IS
     'auth.users INSERT 시 public.users 프로필 행 생성. provider=raw_app_meta_data 에서 custom: 접두사 제거 정규화 (2026-06-18, SPEC-AUTH-001 naver Custom OIDC 대응). nickname/avatar=raw_user_meta_data.';
+
+-- SECURITY DEFINER owner 고정 (코드 리뷰 M1):
+-- users 테이블에 FORCE ROW LEVEL SECURITY 가 설정되어 있어(migration 0014),
+-- 함수 owner 가 non-BYPASSRLS role 이면 SECURITY DEFINER 가 RLS 를 우회하지 못해
+-- public.users INSERT (신규 가입) 가 조용히 실패한다. fn_user_in_club (migration 0014) 의
+-- hardening 패턴과 일치시켜 owner 를 postgres 로 고정한다.
+ALTER FUNCTION public.handle_new_user() OWNER TO postgres;
