@@ -1,10 +1,10 @@
 ---
 id: SPEC-FEED-001
 title: "스포일러 방지 진도별 피드 — 인수 기준"
-version: "1.0.0"
-status: draft
+version: "1.1.0"
+status: implemented
 created: 2026-06-14
-updated: 2026-06-14
+updated: 2026-06-20
 author: "강력쇠주먹"
 priority: medium
 issue_number: 0
@@ -18,6 +18,7 @@ labels: [feed, realtime, spoiler, club, supabase, phase-3, acceptance]
 | 날짜 | 버전 | 변경 내용 | 작성자 |
 |------|------|-----------|--------|
 | 2026-06-14 | 1.0.0 | 최초 작성 — 8개 REQ에 대한 Given-When-Then 시나리오, 품질 게이트, 검증 방법 | 강력쇠주먹 |
+| 2026-06-20 | 1.1.0 | F7 블러 안내 문구를 FROZEN `EmotionRecordCard` 기준("이 기록은 내 진도를 넘었어요")으로 정정. SPEC-UI-001 FROZEN 코드가 단일 진실 원천이므로 본 SPEC 문구를 코드에 맞춤. PR #25(SPEC-FEED-001 구현) 머지에 따른 sync 단계 정정. status draft→implemented | 강력쇠주먹 |
 
 ---
 
@@ -89,7 +90,9 @@ labels: [feed, realtime, spoiler, club, supabase, phase-3, acceptance]
 **And** 피드에 `page_number=80`인 감정 기록이 존재한다
 **When** 시스템이 해당 기록을 렌더링한다
 **Then** `EmotionRecordCard`의 스포일러 블러(12px blur)가 활성화된다
-**And** "진도 이후 내용입니다" 안내 문구가 노출된다
+**And** "이 기록은 내 진도를 넘었어요" 안내 문구가 노출된다
+
+> **문구 정정 (2026-06-20)**: 본 시나리오의 블러 라벨 문구를 "진도 이후 내용입니다"에서 FROZEN `EmotionRecordCard`(`src/components/EmotionRecordCard.tsx`, SPEC-UI-001 REQ-FE-024)가 실제 사용하는 "이 기록은 내 진도를 넘었어요"로 정정했다. SPEC-UI-001 FROZEN zone(디자인 헌법 v3.4.0)이 우선하며, 본 SPEC 문서를 코드 기준에 맞추어 일치시켰다. 상세는 HISTORY(2026-06-20, v1.1.0) 참조.
 
 #### 시나리오 F8: 진도 이내 기록 정상 표시
 
