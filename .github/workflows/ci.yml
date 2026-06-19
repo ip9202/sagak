@@ -1,0 +1,85 @@
+name: CI
+
+# @MX:NOTE: [AUTO] SPEC-DEPLOY-001 M2a — PR(develop) / push(develop) 품질 게이트.
+# @MX:SPEC: SPEC-DEPLOY-001 (AC-DEPLOY-009 PR 게이트, AC-DEPLOY-012 develop CI, AC-DEPLOY-013 트리거 분리)
+# M2b(배포/release/hotfix 잡)는 미구현 — EAS+Sentry 자격증명 확보 시 추가.
+
+on:
+  # AC-DEPLOY-009: develop 대상 PR 품질 게이트 (머지 조건)
+  pull_request:
+    branches: [develop]
+  # AC-DEPLOY-012: develop 푸시 시 CI
+  push:
+    branches: [develop]
+
+# 최소 권한: CI 검사는 읽기 전용이면 충분
+permissions:
+  contents: read
+
+# 동일 브랜치/PR 의 중복 실행 자동 취소 (컴퓨팅 낭비 방지)
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # AC-DEPLOY-009 / 012: 정적 분석 — ESLint 규칙 위반 0 건 게이트
+  lint:
+    name: Lint (ESLint)
+    runs-on: ubuntu-latest
+    steps:
+      - name: 저장소 체크아웃
+        uses: actions/checkout@v4
+
+      - name: Node 20 LTS 설정 + npm 캐시
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: 의존성 설치 (lockfile 기준)
+        run: npm ci
+
+      - name: ESLint 실행
+        run: npm run lint
+
+  # AC-DEPLOY-009 / 012: 타입 안정성 — tsc --noEmit 게이트
+  typecheck:
+    name: Typecheck (tsc)
+    runs-on: ubuntu-latest
+    steps:
+      - name: 저장소 체크아웃
+        uses: actions/checkout@v4
+
+      - name: Node 20 LTS 설정 + npm 캐시
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: 의존성 설치 (lockfile 기준)
+        run: npm ci
+
+      - name: TypeScript 타입 검사
+        run: npm run typecheck
+
+  # AC-DEPLOY-009 / 012: 테스트 + 80% 커버리지 게이트
+  # coverageThreshold(jest.config.js)가 80% 미달 시 잡이 실패하며 PR 머지 차단
+  test:
+    name: Test (Jest + coverage)
+    runs-on: ubuntu-latest
+    steps:
+      - name: 저장소 체크아웃
+        uses: actions/checkout@v4
+
+      - name: Node 20 LTS 설정 + npm 캐시
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: 의존성 설치 (lockfile 기준)
+        run: npm ci
+
+      - name: Jest 실행 (커버리지 수집 + 게이트 적용)
+        # text-summary: 콘솔 요약, lcov: Codecov/coverage 액션 연동용
+        run: npm test -- --coverage --coverageReporters=text-summary --coverageReporters=lcov
