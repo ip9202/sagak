@@ -176,7 +176,7 @@ app/(tabs)/_layout.tsx
   ├── index.tsx (Home)
   ├── library.tsx (Library) — 검색 진입 CTA: router.push('/search')
   ├── clubs.tsx (Clubs)
-  ├── my.tsx (My Page)
+  ├── my.tsx (마이페이지 — 사용자 정보 + 로그아웃 진입점)
   ├── search.tsx (href:null — BookSearchScreen 위임, BOOK-001 M4)
   ├── scan.tsx (href:null — BarcodeScanner 위임, 풀스크린, BOOK-001 M3)
   └── [bookId].tsx (동적 — BookDetailScreen 통합, BOOK-001 M4, LIBRARY-001 서재 통합)

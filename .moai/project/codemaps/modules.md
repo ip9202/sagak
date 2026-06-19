@@ -17,7 +17,7 @@
 | Home Tab | `app/(tabs)/index.tsx` | Presentation | 홈 탭 (플레이스홀더) | 빈 컨테이너 | NAV-001 REQ-NAV-002 |
 | Library Tab | `app/(tabs)/library.tsx` | Presentation | 도서관 탭 — 검색 진입 CTA | 검색 진입 `router.push('/search')` | NAV-001 REQ-NAV-002 · BOOK-001 |
 | Clubs Tab | `app/(tabs)/clubs.tsx` | Presentation | 클럽 탭 (플레이스홀더) | 빈 컨테이너 | NAV-001 REQ-NAV-002 |
-| My Page Tab | `app/(tabs)/my.tsx` | Presentation | 마이페이지 탭 (플레이스홀더) | 빈 컨테이너 | NAV-001 REQ-NAV-002 |
+| My Page Tab | `app/(tabs)/my.tsx` | Presentation | 마이페이지 탭 — 사용자 정보 카드 + 로그아웃 | useSession() 기반 프로필 표시(닉네임/프로바이더/이메일) + signOut() 버튼, loading/signed-out 상태 분기, token-only 스타일링, SPEC-UI-002 준수 | AUTH-001 REQ-AUTH-014 · NAV-001 REQ-NAV-002 |
 | Search Route | `app/(tabs)/search.tsx` | Presentation | 검색 라우트(href:null, 탭 비노출) | `BookSearchScreen` 위임 | BOOK-001 REQ-BOOK-005/016 |
 | Scan Route | `app/(tabs)/scan.tsx` | Presentation | 바코드 스캔 라우트(href:null, 풀스크린) | `BarcodeScanner` 위임 | BOOK-001 REQ-BOOK-006~009 |
 | Book Detail | `app/(tabs)/[bookId].tsx` | Presentation | 도서 상세 동적 라우트 — BookDetailScreen 통합 | 동적 세그먼트 `bookId`, SPEC-NAV-001 stub → BookDetailScreen 교체 | NAV-001 REQ-NAV-010 · BOOK-001 REQ-BOOK-015 · LIBRARY-001 REQ-LIB-003 |
