@@ -7,3 +7,4 @@ export * from './types';
 export * from './readersApi';
 export * from './joinRequestApi';
 export * from './processJoinRequest';
+export * from './hooks';
