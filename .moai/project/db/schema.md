@@ -3,8 +3,8 @@ engine: supabase
 orm: supabase-js
 multi_tenant: single-schema-rls
 migration_tool: supabase-cli
-last_synced_at: 2026-06-14
-manifest_hash: synced-from-15-migrations
+last_synced_at: 2026-06-20
+manifest_hash: synced-from-22-migrations
 ---
 
 # Database Schema
@@ -144,4 +144,18 @@ completion_reports(user_book_id).
 
 ---
 
-*Synced 2026-06-14 from supabase/migrations/0001-0015 (SPEC-DB-001 T-001~T-009). Updated 2026-06-18: migration 0004+0005 (SPEC-AUTH-001 naver Custom OIDC — handle_new_user custom: 정규화 + owner 고정 + email COALESCE 폴백). Updated 2026-06-19: migration 0006 (SPEC-CLUB-002 — clubs 진도 계획 컬럼 추가).*
+## Realtime (Supabase Realtime — postgres_changes)
+
+> SPEC-FEED-001(모임 피드 실시간) 지원을 위해 migration `20240620000001_enable_realtime_feed.sql`(2026-06-20)로 활성화.
+
+- **publication**: `supabase_realtime`에 `emotion_records`, `sticker_reactions` 테이블 추가(브로드캐스트 활성화). 이전에는 두 테이블이 publication에 없어 Realtime 이벤트가 발생하지 않았음.
+- **REPLICA IDENTITY FULL**: `emotion_records`, `sticker_reactions` 양 테이블에 적용. INSERT는 기본값으로도 새 행 전체를 전달하지만, 향후 UPDATE/DELETE 실시간 반영 시에도 안정적으로 전체 행 페이로드를 전달하도록 미리 설정.
+- **브로드캐스트 RLS 게이트**: 별도 broadcast 정책을 추가하지 않는다. Supabase Realtime은 `postgres_changes` 브로드캐스트 시 테이블의 SELECT RLS 정책을 그대로 적용 — 구독자는 자신이 SELECT할 수 있는 행에 대한 이벤트만 수신. 따라서 migration 0014의 기존 정책이 브로드캐스트를 자동 게이트:
+  - `emotion_records`: `visibility='public'` OR 본인 OR (`visibility='club'` AND `fn_user_in_club(club_id)`) → 비멤버에게 `visibility='club'` INSERT 이벤트 미전달(SPEC-FEED-001 F13 충족)
+  - `sticker_reactions`: `USING (true)` → 인증된 사용자에게 모두 브로드캐스트
+- **FORCE RLS**: 두 테이블 모두 migration 0014에서 FORCE ROW LEVEL SECURITY 설정됨 → service_role 제외 모든 롤에 RLS 강제 적용. 본 마이그레이션은 정책을 변경하지 않음.
+- **팔로업 검증(필수)**: 외부 시스템(Supabase Realtime) 동작은 실제 검증 필요. 로컬 Supabase에서 ① 멤버 visibility='club' INSERT → 같은 클럽 멤버 수신, ② 비멤버 미수신, ③ visibility='public' INSERT → 모든 인증 사용자 수신을 확인해야 함. SELECT RLS가 브로드캐스트에 자동 적용되지 않는다면 별도 broadcast RLS 정책 추가 팔로업.
+
+---
+
+*Synced 2026-06-14 from supabase/migrations/0001-0015 (SPEC-DB-001 T-001~T-009). Updated 2026-06-18: migration 0004+0005 (SPEC-AUTH-001 naver Custom OIDC — handle_new_user custom: 정규화 + owner 고정 + email COALESCE 폴백). Updated 2026-06-19: migration 0006 (SPEC-CLUB-002 — clubs 진도 계획 컬럼 추가). Updated 2026-06-20: migration 20240620000001 (SPEC-FEED-001 — Realtime publication 활성화 + REPLICA IDENTITY FULL, Realtime 섹션 추가).*
