@@ -49,17 +49,21 @@ export function useActiveReaders(bookId: string) {
   return useQuery<ActiveReader[]>({
     queryKey: ['club', 'readers', bookId],
     enabled: bookId.length > 0,
-    queryFn: async () => {
+    queryFn: async (): Promise<ActiveReader[]> => {
       const rows = await fetchActiveReaders(bookId);
       if (rows.length === 0) return [];
-      const userIds = rows.map((r) => r.user_id);
+      // user_books_public.user_id 는 string | null(gen-types)이나 뷰 정책상 null 이 아님.
+      // null 행은 방어적으로 제외하고 매핑한다.
+      const userIds = rows
+        .map((r) => r.user_id)
+        .filter((id): id is string => id != null);
       const clubMap = await resolveClubIdsForUsers(userIds);
       return rows.map((r) => ({
-        user_id: r.user_id,
-        book_id: r.book_id,
+        user_id: r.user_id ?? '',
+        book_id: r.book_id ?? bookId,
         current_page: r.current_page,
         started_reading_at: r.started_reading_at,
-        club_id: clubMap[r.user_id] ?? null,
+        club_id: r.user_id ? (clubMap[r.user_id] ?? null) : null,
       }));
     },
   });
