@@ -89,8 +89,10 @@ describe('T6: 탭 헤더/placeholder 렌더링', () => {
     expect(screen.getByText('모임 화면')).toBeTruthy();
   });
 
-  it('마이 탭이 "마이 화면" placeholder를 렌더링한다', () => {
+  // SPEC-AUTH-001 PR #19: 마이 탭이 placeholder → 실제 화면으로 교체됨.
+  // 헤더 타이틀 "마이" 렌더링으로 crash 없음 검증.
+  it('마이 탭이 헤더 타이틀 "마이"를 렌더링한다', () => {
     withTheme(<MyTab />);
-    expect(screen.getByText('마이 화면')).toBeTruthy();
+    expect(screen.getByText('마이')).toBeTruthy();
   });
 });

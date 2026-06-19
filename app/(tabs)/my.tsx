@@ -106,6 +106,10 @@ export default function MyTab(): React.JSX.Element {
             setIsSigningOut(true);
             try {
               await signOut();
+            } catch {
+              // @MX:WARN: [AUTO] signOut 실패 시 원인 미노출 — RLS/token 정보 노출 방지.
+              // @MX:REASON: 인증 토큰/RLS 메타가 에러 메시지에 포함될 수 있어 사용자에게 노출 금지.
+              Alert.alert('로그아웃 실패', '잠시 후 다시 시도해주세요.');
             } finally {
               setIsSigningOut(false);
             }
