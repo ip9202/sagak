@@ -185,3 +185,11 @@
 - RLS 격리: 요청자/host 권한 경계 통합 테스트 (로컬 Supabase 실제 정책)
 - 트리거 예외: terminal 상태 재설정 시나리오 R12 검증
 - SPEC-UI-002: 3계층 레이아웃, 타이틀 균일성(fontSize 22/weight 700), 카드 밀도(cornerRadius 16/padding 16-20), 빈/로딩/에러 상태 패턴 준수
+
+## 운영 배포 전 필수 보안 요구사항 (Edge Function T-008 완성 시 — PR #21 expert-security 리뷰)
+
+> 현 PR(#21)은 skeleton — lazy 그룹 생성 + INSERT 로직이 TODO. 아래는 skeleton 이 실제 INSERT 를 수행하기 전에 반드시 구현되어야 함 (M-1/M-2). 현 PR scope 에서는 발화하지 않는 잠재 결함.
+
+- **M-1 (blocker)**: `process-join-request` Edge Function 이 `Authorization` 헤더의 JWT 를 검증해 `sub` 를 추출하고, client-supplied `requester_id` 를 검증된 값으로 **덮어쓸** 것. `verify_jwt=true` 는 인증(유효 JWT 보유)만 보장 — 인가(본인 확인)는 애플리케이션 단 필수.
+- **M-2 (blocker)**: `target_user_id` 가 실제 `user_books_public` 에 노출된 공개 독자인지, 이미 활성 group 클럽이 있는지 조회 후 처리. 위조 시 임의 독자를 host 로 강제 가입시키는 부작용 방지.
+- 부수: UNIQUE(23505) → 409 매핑, lazy 생성 race condition 방어(DB UNIQUE/idempotency key), skeleton `'TODO'` 응답 → 실제 id 교체, CORS Origin 화이트리스트화.

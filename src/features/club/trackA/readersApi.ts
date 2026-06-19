@@ -89,7 +89,7 @@ export async function resolveClubIdsForUsers(
   for (const row of result.data ?? []) {
     // 동일 user 가 여러 활성 group 에 속할 수 있으나, Track A MVP는 첫 매핑을 사용한다.
     const clubId = row.club_id?.id;
-    if (clubId && !map[row.user_id]) {
+    if (typeof clubId === 'string' && clubId.length > 0 && !map[row.user_id]) {
       map[row.user_id] = clubId;
     }
   }

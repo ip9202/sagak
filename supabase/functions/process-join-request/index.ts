@@ -9,7 +9,9 @@
 //
 //   보안:
 //     - service_role 키는 Deno.env 에만 존재 (클라이언트 .env 미포함)
-//     - verify_jwt=true (기본): 호출자의 Supabase JWT 검증 → requester_id 신뢰
+//     - verify_jwt=true (기본): 호출자가 유효한 JWT 를 보유함(인증)만 보장.
+//       주의: requester_id 를 JWT sub 와 일치시키는 인가 검증은 TODO(skeleton).
+//       service_role 이 RLS 를 우회하므로 애플리케이션 단 인가 로직이 필수 (PR #21 리뷰 M-1).
 //     - RLS 우회(service_role)지만 입력 계약(logic.ts)으로 필수 필드 강제
 //
 //   현재 상태: skeleton — lazy 그룹 생성 + INSERT 로직은 TODO.

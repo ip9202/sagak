@@ -36,7 +36,7 @@ import {
 } from 'react-native';
 import { useTheme } from '../../../../theme/theme';
 import { useSession } from '../../../../auth/useSession';
-import { useCreateJoinRequest } from '../hooks';
+import { useCreateJoinRequest, type CreateJoinRequestVariables } from '../hooks';
 import { getUserFriendlyMessage } from '../../../../lib/api/errors';
 import { AppError } from '../../../../errors';
 import { MESSAGE_MAX_LENGTH, validateMessageLength } from '../types';
@@ -73,7 +73,7 @@ export const JoinRequestSheet: React.FC<JoinRequestSheetProps> = ({
 
   const handleSubmit = async () => {
     setLocalError(null);
-    const vars =
+    const vars: CreateJoinRequestVariables =
       reader.club_id != null
         ? {
             clubId: reader.club_id,
@@ -87,7 +87,7 @@ export const JoinRequestSheet: React.FC<JoinRequestSheetProps> = ({
             message: message.trim() || null,
           };
     try {
-      await mutation.mutateAsync(vars as any);
+      await mutation.mutateAsync(vars);
       onClose();
     } catch (e) {
       setLocalError(getUserFriendlyMessage(e as AppError));

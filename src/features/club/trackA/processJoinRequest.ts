@@ -20,7 +20,12 @@ export interface ProcessJoinRequestInput {
   targetUserId: string;
   /** 책 컨텍스트 — lazy 그룹 생성 시 clubs.book_id 로 사용 */
   bookId: string;
-  /** 요청자 = auth.uid() (Edge Function 이 JWT 로 검증) */
+  /**
+   * 요청자 = auth.uid().
+   * TODO(skeleton): Edge Function 구현 시 Authorization 헤더의 JWT sub 로
+   * requester_id 를 검증·덮어써야 함. 현재 skeleton 이므로 client-supplied 값을
+   * 그대로 신뢰하지 않도록 — service_role 이 RLS 를 우회하므로 인가 로직 필수 (PR #21 보안 리뷰 M-1).
+   */
   requesterId: string;
   /** 선택 메시지 (E4: 500자 이중 방어) */
   message: string | null;
