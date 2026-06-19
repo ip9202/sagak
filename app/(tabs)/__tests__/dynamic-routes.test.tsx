@@ -53,6 +53,18 @@ jest.mock('../../../src/features/book/bookDetailApi', () => ({
   getBookDetail: jest.fn(),
 }));
 
+// SPEC-CLUB-002 M4: clubs/[clubId] 가 ClubDetailScreen 으로 교체됨.
+// useClubDetail/useClubMembers 가 supabase client 를 소비하므로 안전망으로 hook 만 mock.
+jest.mock('../../../src/features/club/trackB/hooks', () => ({
+  __esModule: true,
+  useClubDetail: jest.fn(() => ({ isLoading: true, data: undefined, isError: false, error: null })),
+  useClubMembers: jest.fn(() => ({ isLoading: false, data: [], isError: false, error: null })),
+  useUpdateProgress: jest.fn(() => ({ mutate: jest.fn(), isPending: false, isError: false, error: null })),
+  useCloseClub: jest.fn(() => ({ mutate: jest.fn(), isPending: false, isError: false, error: null })),
+  useReactivateClub: jest.fn(() => ({ mutate: jest.fn(), isPending: false, isError: false, error: null })),
+  useLeaveClub: jest.fn(() => ({ mutate: jest.fn(), isPending: false, isError: false, error: null })),
+}));
+
 // SPEC-LIBRARY-001 TASK-010: BookDetailScreen 이 useLibraryItem/mutation hooks 사용.
 // 라우팅 파라미터 수신 테스트이므로 라이브러리 의존성은 안전망으로 mock.
 jest.mock('../../../src/features/library/libraryApi', () => ({
@@ -116,10 +128,12 @@ describe('S1: 도서 상세 [bookId] 파라미터 수신 (SPEC-BOOK-001 M4-6 Boo
 });
 
 describe('S2: 모임 상세 clubs/[clubId] 파라미터 수신', () => {
-  it('useLocalSearchParams()가 clubId를 반환하고 placeholder가 렌더링된다', () => {
+  it('useLocalSearchParams()가 clubId를 반환하고 ClubDetailScreen 이 마운트된다', () => {
     mockSearchParams.clubId = 'club-7';
-    render(<ClubDetailRoute />);
-    expect(screen.getByText(/club-7/)).toBeTruthy();
+    render(wrapWithQueryClient(<ClubDetailRoute />));
+    // SPEC-CLUB-002 M4: route 가 clubId 를 ClubDetailScreen 에 전달.
+    // useClubDetail(clubId) 로딩 상태 → ActivityIndicator(testID club-detail-loading) 렌더링.
+    expect(screen.getByTestId('club-detail-loading')).toBeTruthy();
   });
 });
 

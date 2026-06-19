@@ -26,7 +26,8 @@ export type StickerTypeValue = Database['public']['Enums']['sticker_type'];
 
 /** 작성자 조인 결과 — PostgREST 1:1 조인 users(nickname, avatar_url) */
 export interface EmotionRecordAuthor {
-  nickname: string;
+  // nickname은 users_nickname_nullable 마이그레이션(0003)으로 NULL 허용 — gen-types(linked) 반영
+  nickname: string | null;
   avatar_url: string | null;
 }
 
