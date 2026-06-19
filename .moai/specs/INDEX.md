@@ -123,6 +123,7 @@ Phase 5 (배포)
 #### SPEC-LIBRARY-001: 개인 서재 관리
 - **도메인**: LIBRARY
 - **우선순위**: high
+- **상태**: ✅ 구현 완료 (16/16 REQ, PR #10 b3a5043, 2026-06-16, 545 테스트, 커버리지 85.92%)
 - **핵심 범위**: 내 서재 CRUD, 진도 추적(`current_page` 업데이트 → `last_progress_at` 자동 갱신), 독서 상태 관리(reading/completed/shelved), 공개/비공개 설정(`is_public`), 서재 목록 정렬/필터
 - **DB 엔터티**: `user_books`, `books`
 - **API/Edge Function**: `/library` CRUD 엔드포인트
@@ -159,11 +160,13 @@ Phase 5 (배포)
 #### SPEC-CLUB-001: Track A 합류형 요청
 - **도메인**: CLUB (SOCIAL-A)
 - **우선순위**: high
-- **핵심 범위**: 같은 책 읽는 독자에게 "같이 읽어요" 요청(Track A), `join_requests` 상태 기계(pending → accepted/declined), host 승인/거절 UI, Track A 활성·공개 독자 목록(`user_books_public` 뷰 활용), 요청 메시지
+- **상태**: ✅ 구현 완료 (12/12 REQ, PR #21 1fcf062, 2026-06-19, 789 테스트, 커버리지 93.44%)
+- **핵심 범위**: 같은 책 읽는 독자에게 "같이 읽어요" 요청(Track A), `join_requests` 상태 기계(pending → accepted/declined), host 승인/거절 UI, Track A 활성·공개 독자 목록(`user_books_public` 뷰 활용), 요청 메시지, `process-join-request` Edge Function
 - **DB 엔터티**: `join_requests`, `club_members`, `clubs`, `user_books_public`(뷰)
 - **API/Edge Function**: `/clubs/{id}/join`, `process-join-request` Edge Function
 - **의존성**: SPEC-LIBRARY-001(독자 목록), SPEC-AUTH-001(사용자 식별)
-- **구현 산출물**: `src/features/club/trackA/*.ts`, 독자 목록 화면, 요청/응답 화면
+- **구현 산출물**: `src/features/club/trackA/*.ts`, 독자 목록 화면, 요청/응답 화면, `supabase/functions/process-join-request/`
+- **알려진 제한사항**: Edge Function `process-join-request`는 M-1/M-2 pre-prod 보안 요구사항(RLS 정책, 요청 검증)에 대한 완전한 구현이 아닌 skeleton 상태. 실제 프로덕션 배포 전에 보안 강화 필요. (progress.md M1-M5 섹션 참조)
 - **제외**: Track B 모임 생성(SPEC-CLUB-002), 실시간 피드(SPEC-FEED-001)
 
 #### SPEC-CLUB-002: Track B 개설형 모임 관리
@@ -277,10 +280,10 @@ product.md "비목표" + SPEC-DB-001 "제외 범위" 기반:
 | 1 | SPEC-AUTH-001 | ✅ | ✅ | ✅ | 구현 완료 (18/18 REQ, PR #11 머지 c6630ae, 2026-06-17, OAuth 제공자: kakao/naver/google) |
 | 1 | SPEC-NAV-001 | ✅ | ✅ | ✅ | 구현 완료 (13/13 REQ, PR #7 머지 8fa545b, 317 테스트, 커버리지 82.5%) |
 | 2 | SPEC-BOOK-001 | ✅ | ✅ | ✅ | 구현 완료 (M1~M4 전부, PR #8 852f0ac M1+M2 + PR #9 a293e8d M3+M4, 2026-06-17) |
-| 2 | SPEC-LIBRARY-001 | ✅ | ✅ | ✅ | SPEC 작성 완료 (16 REQ) |
+| 2 | SPEC-LIBRARY-001 | ✅ | ✅ | ✅ | 구현 완료 (16/16 REQ, PR #10 b3a5043, 2026-06-16, 545 테스트, 커버리지 85.92%) |
 | 2 | SPEC-EMOTION-001 | ✅ | ✅ | ✅ | 구현 완료 (10/10 REQ, PR #12 머지 a1ce6cf, 2026-06-17, 커버리지 92.47%) |
 | 2 | SPEC-COMPLETION-001 | ✅ | ✅ | ✅ | 구현 완료 (10/10 REQ, PR #14 머지 463996e, 2026-06-17, 커버리지 91.92%) |
-| 3 | SPEC-CLUB-001 | ✅ | ✅ | ✅ | SPEC 작성 완료 (12 REQ) |
+| 3 | SPEC-CLUB-001 | ✅ | ✅ | ✅ | 구현 완료 (12/12 REQ, PR #21 1fcf062, 2026-06-19, 789 테스트, 커버리지 93.44%) |
 | 3 | SPEC-CLUB-002 | ✅ | ✅ | ✅ | SPEC 작성 완료 (17 REQ) |
 | 3 | SPEC-FEED-001 | ✅ | ✅ | ✅ | SPEC 작성 완료 (8 REQ) |
 | 4 | SPEC-ROUTINE-001 | ✅ | ✅ | ✅ | SPEC 작성 완료 (10 REQ) |
@@ -291,11 +294,11 @@ product.md "비목표" + SPEC-DB-001 "제외 범위" 기반:
 
 **총 REQ 수: 219개 / 15개 SPEC 전체 작성 완료 (2026-06-14)**
 
-> **참고 (2026-06-17)**: SPEC-DEPLOY-001은 부분 진행(M1+M5 머지, PR #15 2514263) 상태이므로 **구현 완료 카운트에서 제외**한다. M2(CI)/M3(Sentry SDK)/M4(Submit)/M6(Edge Function)가 남아있으며, M6은 SPEC-CLUB-001 / SPEC-NOTIF-001 머지 전까지 블로킹된다. 완료 카운트는 DEPLOY가 6개 마일스톤 전부 통과한 시점에만 증가한다.
+> **참고 (2026-06-19)**: SPEC-DEPLOY-001은 부분 진행(M1+M5 머지, PR #15 2514263) 상태이므로 **구현 완료 카운트에서 제외**한다. M2(CI)/M3(Sentry SDK)/M4(Submit)/M6(Edge Function)가 남아있으며, M6은 SPEC-CLUB-001 머지 완료로 블로킹 해제(progress.md M1-M5 섹션 참조). 완료 카운트는 DEPLOY가 6개 마일스톤 전부 통과한 시점에만 증가한다.
 
 ---
 
-## 9. 구현 완료 SPEC 요약 (2026-06-16 기준)
+## 9. 구현 완료 SPEC 요약 (2026-06-19 기준)
 
 ### Phase 1 파운데이션 — 100% 완결
 
@@ -307,19 +310,26 @@ product.md "비목표" + SPEC-DB-001 "제외 범위" 기반:
 | 1 | SPEC-AUTH-001 | 2026-06-17 | #11 | c6630ae | 18/18 (100%) | 317/317 | 85%+ |
 | 1 | SPEC-NAV-001 | 2026-06-16 | #7 | 8fa545b | 13/13 (100%) | 317/317 | 82.5% |
 
-### Phase 2 핵심 도메인 — 진행 중
+### Phase 2 핵심 도메인 — 100% 완결
 
 | Phase | 구현 완료 SPEC | 구현 일자 | PR | 커밋 | REQ 완료율 | 테스트 | 커버리지 |
 |-------|---------------|----------|----|----|-----------|--------|---------|
 | 2 | SPEC-BOOK-001 | 2026-06-17 | #8+#9 | 852f0ac+a293e8d | 16/16 (100%) | 462/462 | 94%+ |
+| 2 | SPEC-LIBRARY-001 | 2026-06-16 | #10 | b3a5043 | 16/16 (100%) | 545/545 | 85.92% |
 | 2 | SPEC-EMOTION-001 | 2026-06-17 | #12 | a1ce6cf | 10/10 (100%) | 627/627 | 92.47% |
 | 2 | SPEC-COMPLETION-001 | 2026-06-17 | #14 | 463996e | 10/10 (100%) | 683/683 | 91.92% |
 
+### Phase 3 소셜 연결 — 진행 중
+
+| Phase | 구현 완료 SPEC | 구현 일자 | PR | 커밋 | REQ 완료율 | 테스트 | 커버리지 |
+|-------|---------------|----------|----|----|-----------|--------|---------|
+| 3 | SPEC-CLUB-001 | 2026-06-19 | #21 | 1fcf062 | 12/12 (100%) | 789/789 | 93.44% |
+
 **Phase 1 완결 상태**: 인프라·인증·네비게이션 파운데이션 100% 완성. 도메인 SPEC(SPEC-BOOK-001, SPEC-LIBRARY-001 등) 구현 준비 완료.
 
-**Phase 2 진행 상태 (2026-06-17 기준)**:
-- **SPEC-BOOK-001**: M1~M4 구현 완료 (Edge Function + Client API + 바코드 스캔 + 화면)
-- **SPEC-EMOTION-001**: 감정 기록 CRUD + 스티커 반응 + 단어 질문지 + 스포일러 블러 + 타임라인 구현 완료 (PostgREST 직접 호출, src/features/emotion/ 8 소스 + 10 테스트)
+**Phase 2 완결 상태 (2026-06-19 기준)**: 개인 독서 경험 4개 SPEC(BOOK, LIBRARY, EMOTION, COMPLETION) 모두 구현 완료. 도메인 기능 + 화면 + 테스트 완비.
+
+**Phase 3 진행 상태 (2026-06-19 기준)**: SPEC-CLUB-001(Track A 합류형 요청) 구현 완료. SPEC-CLUB-002(Track B 개설형 모임), SPEC-FEED-001(진도별 피드) 구현 대기.
 
 ---
 
