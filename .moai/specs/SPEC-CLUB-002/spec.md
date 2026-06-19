@@ -2,7 +2,7 @@
 id: SPEC-CLUB-002
 title: "Track B 개설형 모임 관리"
 version: "1.1.0"
-status: draft
+status: completed
 created: 2026-06-14
 updated: 2026-06-19
 author: "강력쇠주먹"

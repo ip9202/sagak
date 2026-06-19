@@ -172,8 +172,9 @@ Phase 5 (배포)
 #### SPEC-CLUB-002: Track B 개설형 모임 관리
 - **도메인**: CLUB (SOCIAL-B)
 - **우선순위**: high
+- **상태**: ✅ 구현 완료 (17/17 REQ, PR #23 c6920fe, 2026-06-19, 861 테스트)
 - **핵심 범위**: 함께 읽기 모임 생성(0명 출발, host 자동 가입 트리거 연동), 모임 설정(duration_days/daily_pages/trigger_page), 진도 동기화, 참가자 관리(host 권한), 모임 상태 관리(active/closed)
-- **DB 엔터티**: `clubs`, `club_members`(host 자동 가입)
+- **DB 엔터티**: `clubs`(진도 계획 컬럼 daily_pages/trigger_page/duration_days, migration 0006), `club_members`(host 자동 가입)
 - **API/Edge Function**: `/clubs` CRUD, `/clubs/{id}/progress`
 - **의존성**: SPEC-CLUB-001(상태 기계 패턴 공유), SPEC-BOOK-001(모임용 책)
 - **구현 산출물**: `src/features/club/trackB/*.ts`, 모임 생성 화면, 모임 관리 화면(host)
@@ -284,7 +285,7 @@ product.md "비목표" + SPEC-DB-001 "제외 범위" 기반:
 | 2 | SPEC-EMOTION-001 | ✅ | ✅ | ✅ | 구현 완료 (10/10 REQ, PR #12 머지 a1ce6cf, 2026-06-17, 커버리지 92.47%) |
 | 2 | SPEC-COMPLETION-001 | ✅ | ✅ | ✅ | 구현 완료 (10/10 REQ, PR #14 머지 463996e, 2026-06-17, 커버리지 91.92%) |
 | 3 | SPEC-CLUB-001 | ✅ | ✅ | ✅ | 구현 완료 (12/12 REQ, PR #21 1fcf062, 2026-06-19, 789 테스트, 커버리지 93.44%) |
-| 3 | SPEC-CLUB-002 | ✅ | ✅ | ✅ | SPEC 작성 완료 (17 REQ) |
+| 3 | SPEC-CLUB-002 | ✅ | ✅ | ✅ | 구현 완료 (17/17 REQ, PR #23 c6920fe, 2026-06-19, 861 테스트) |
 | 3 | SPEC-FEED-001 | ✅ | ✅ | ✅ | SPEC 작성 완료 (8 REQ) |
 | 4 | SPEC-ROUTINE-001 | ✅ | ✅ | ✅ | SPEC 작성 완료 (10 REQ) |
 | 4 | SPEC-NOTIF-001 | ✅ | ✅ | ✅ | SPEC 작성 완료 (13 REQ) |
@@ -319,17 +320,20 @@ product.md "비목표" + SPEC-DB-001 "제외 범위" 기반:
 | 2 | SPEC-EMOTION-001 | 2026-06-17 | #12 | a1ce6cf | 10/10 (100%) | 627/627 | 92.47% |
 | 2 | SPEC-COMPLETION-001 | 2026-06-17 | #14 | 463996e | 10/10 (100%) | 683/683 | 91.92% |
 
-### Phase 3 소셜 연결 — 진행 중
+### Phase 3 소셜 연결 — 진행 중 (2/3 완료)
 
 | Phase | 구현 완료 SPEC | 구현 일자 | PR | 커밋 | REQ 완료율 | 테스트 | 커버리지 |
 |-------|---------------|----------|----|----|-----------|--------|---------|
 | 3 | SPEC-CLUB-001 | 2026-06-19 | #21 | 1fcf062 | 12/12 (100%) | 789/789 | 93.44% |
+| 3 | SPEC-CLUB-002 | 2026-06-19 | #23 | c6920fe | 17/17 (100%) | 861/861 | - |
 
 **Phase 1 완결 상태**: 인프라·인증·네비게이션 파운데이션 100% 완성. 도메인 SPEC(SPEC-BOOK-001, SPEC-LIBRARY-001 등) 구현 준비 완료.
 
 **Phase 2 완결 상태 (2026-06-19 기준)**: 개인 독서 경험 4개 SPEC(BOOK, LIBRARY, EMOTION, COMPLETION) 모두 구현 완료. 도메인 기능 + 화면 + 테스트 완비.
 
-**Phase 3 진행 상태 (2026-06-19 기준)**: SPEC-CLUB-001(Track A 합류형 요청) 구현 완료. SPEC-CLUB-002(Track B 개설형 모임), SPEC-FEED-001(진도별 피드) 구현 대기.
+**Phase 3 진행 상태 (2026-06-19 기준)**: 2/3 완료 — SPEC-CLUB-001(Track A 합류형 요청) 완료, SPEC-CLUB-002(Track B 개설형 모임) 완료. SPEC-FEED-001(진도별 피드) 구현 대기.
+
+**미구현 SPEC (4개)**: SPEC-FEED-001(Phase 3), SPEC-ROUTINE-001(Phase 4), SPEC-NOTIF-001(Phase 4), SPEC-PROFILE-001(Phase 4).
 
 ---
 

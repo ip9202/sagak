@@ -46,6 +46,7 @@ SPEC-DB-001 구현: 15개 migration (T-001~T-009), 272 pgTAP 테스트 통과.
 | 20240618000003_users_nickname_nullable.sql | SPEC-AUTH-001 | nickname NOT NULL 제거 + handle_new_user nickname=NULL (온보딩 필수 진입) |
 | 20240618000004_handle_new_user_custom_provider_strip.sql | SPEC-AUTH-001 | handle_new_user custom: 접두사 정규화 (REPLACE) + SECURITY DEFINER owner postgres 고정 (naver Custom OIDC 대응, 리뷰 M1) |
 | 20240618000005_handle_new_user_email_fallback.sql | SPEC-AUTH-001 | handle_new_user 트리거에 email COALESCE 폴백 추가 — 네이버 등 email 미제공 provider 가입 시 `public.users.email NOT NULL` 위반(C1, "Database error saving new user") 해결. 형태: `{provider}_{auth.users.id}@noemail.local` (uuid 기반 UNIQUE 보장). kakao/google(email 제공)는 영향 없음. (2026-06-18, SPEC-AUTH-001 REQ-AUTH-001) |
+| 20240618000006_add_club_reading_plan_columns.sql | SPEC-CLUB-002 | clubs 테이블에 진도 계획 컬럼 추가 (daily_pages, trigger_page, duration_days) — NULL 허용, CHECK >= 0 제약. (2026-06-19, SPEC-CLUB-002 REQ-CLUBB-004/009/010/011) |
 
 ---
 
@@ -68,4 +69,4 @@ SPEC-DB-001 구현: 15개 migration (T-001~T-009), 272 pgTAP 테스트 통과.
 
 ---
 
-*Synced 2026-06-14 (SPEC-DB-001).*
+*Synced 2026-06-14 (SPEC-DB-001). Updated 2026-06-19: migration 0006 (SPEC-CLUB-002 진도 컬럼).*
