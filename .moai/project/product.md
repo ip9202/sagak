@@ -51,7 +51,7 @@
 - **감정 아카이브**: 페이지별 감정 기록(단어/한 줄) 누적 및 완독 다이어리 자동 생성
 - **Track A 합류형**: 읽고 있는 사람에게 "같이 읽어요" 요청 보내기
 - **Track B 개설형**: 0명이어도 출발하는 함께 읽기 모임 생성
-- **스포일러 방지 진도별 피드**: 현재 진도 기반으로 블러 처리된 콘텐츠 피드
+- **스포일러 방지 진도별 피드**: 현재 진도 기반으로 블러 처리된 콘텐츠 피드 (SPEC-FEED-001 구현 완료 — 2026-06-20). `GET /clubs/{id}/feed`로 모임(`club_id`) 단위 `visibility='club'` 감정 기록을 커서 페이지네이션(`created_at` DESC, 20행)으로 조회. 클라이언트 `spoilerFilter`가 `page_number` vs `user_books.current_page`를 비교해 `EmotionRecordCard` 블러(12px, "이 기록은 내 진도를 넘었어요")를 적용. Supabase Realtime `postgres_changes`로 새 기록/스티커 반응을 실시간 반영(emotion_records INSERT + sticker_reactions INSERT, 기존 SELECT RLS가 브로드캐스트 게이트 수행). 공개(public) 전체 피드·좋아요/팔로우는 비목표.
 - **안전한 글쓰기 울타리**: 단어 질문지, 공감 스티커 반응을 통한 쉬운 표현
 - **아날로그 루틴 헬퍼**: 다정한 독서 알림, 독서 타이머 등 독서 습관 지원
 - **감정 아카이브 기반 보상**: 기록 누적을 통한 성취감 제공과 재미 요소

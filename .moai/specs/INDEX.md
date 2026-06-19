@@ -183,11 +183,13 @@ Phase 5 (배포)
 #### SPEC-FEED-001: 스포일러 방지 진도별 피드
 - **도메인**: FEED
 - **우선순위**: medium
+- **상태**: ✅ 구현 완료 (8/8 REQ, PR #25 63ddf12, 2026-06-20, 913 테스트 통과, TDD 표준 모드)
 - **핵심 범위**: 진도별 슬라이딩 피드(현재 진도 기준 블러 처리), Supabase Realtime 구독(새 감정 기록/스티커 실시간 반영), 모임원 감정 기록 표시(visibility=club), 스포일러 해제 상호작용
 - **DB 엔터티**: `emotion_records`(visibility=club), `clubs`(진도)
 - **API/Edge Function**: `/clubs/{id}/feed`, Supabase Realtime(postgres_changes)
 - **의존성**: SPEC-CLUB-001/002(모임 컨텍스트), SPEC-EMOTION-001(감정 데이터)
-- **구현 산출물**: `src/features/feed/*.ts`, 모임 피드 화면, Realtime 훅
+- **구현 산출물**: `src/features/feed/{types,spoilerFilter,queries,useClubFeed,useClubFeedRealtime,index}.ts`, `src/features/feed/components/ClubFeedScreen.tsx`, `app/(tabs)/clubs/[clubId]/feed.tsx`, `supabase/migrations/20240620000001_enable_realtime_feed.sql`(Realtime publication + REPLICA IDENTITY FULL)
+- **오픈 항목**: F2/F13 RLS 로컬 통합 테스트, F12 정렬 단언, worker timer 워닝, F14 .pen 사용자 저장 — 후속 이슈 #26/#27
 - **제외**: 실시간 팝업 채팅(비목표), 좋아요/팔로우(비목표)
 
 ---
@@ -286,7 +288,7 @@ product.md "비목표" + SPEC-DB-001 "제외 범위" 기반:
 | 2 | SPEC-COMPLETION-001 | ✅ | ✅ | ✅ | 구현 완료 (10/10 REQ, PR #14 머지 463996e, 2026-06-17, 커버리지 91.92%) |
 | 3 | SPEC-CLUB-001 | ✅ | ✅ | ✅ | 구현 완료 (12/12 REQ, PR #21 1fcf062, 2026-06-19, 789 테스트, 커버리지 93.44%) |
 | 3 | SPEC-CLUB-002 | ✅ | ✅ | ✅ | 구현 완료 (17/17 REQ, PR #23 c6920fe, 2026-06-19, 861 테스트) |
-| 3 | SPEC-FEED-001 | ✅ | ✅ | ✅ | SPEC 작성 완료 (8 REQ) |
+| 3 | SPEC-FEED-001 | ✅ | ✅ | ✅ | 구현 완료 (8/8 REQ, PR #25 63ddf12, 2026-06-20, 913 테스트) |
 | 4 | SPEC-ROUTINE-001 | ✅ | ✅ | ✅ | SPEC 작성 완료 (10 REQ) |
 | 4 | SPEC-NOTIF-001 | ✅ | ✅ | ✅ | SPEC 작성 완료 (13 REQ) |
 | 4 | SPEC-PROFILE-001 | ✅ | ✅ | ✅ | SPEC 작성 완료 (8 REQ) |
@@ -299,7 +301,7 @@ product.md "비목표" + SPEC-DB-001 "제외 범위" 기반:
 
 ---
 
-## 9. 구현 완료 SPEC 요약 (2026-06-19 기준)
+## 9. 구현 완료 SPEC 요약 (2026-06-20 기준)
 
 ### Phase 1 파운데이션 — 100% 완결
 
@@ -320,20 +322,21 @@ product.md "비목표" + SPEC-DB-001 "제외 범위" 기반:
 | 2 | SPEC-EMOTION-001 | 2026-06-17 | #12 | a1ce6cf | 10/10 (100%) | 627/627 | 92.47% |
 | 2 | SPEC-COMPLETION-001 | 2026-06-17 | #14 | 463996e | 10/10 (100%) | 683/683 | 91.92% |
 
-### Phase 3 소셜 연결 — 진행 중 (2/3 완료)
+### Phase 3 소셜 연결 — 100% 완결 (3/3 완료)
 
 | Phase | 구현 완료 SPEC | 구현 일자 | PR | 커밋 | REQ 완료율 | 테스트 | 커버리지 |
 |-------|---------------|----------|----|----|-----------|--------|---------|
 | 3 | SPEC-CLUB-001 | 2026-06-19 | #21 | 1fcf062 | 12/12 (100%) | 789/789 | 93.44% |
 | 3 | SPEC-CLUB-002 | 2026-06-19 | #23 | c6920fe | 17/17 (100%) | 861/861 | - |
+| 3 | SPEC-FEED-001 | 2026-06-20 | #25 | 63ddf12 | 8/8 (100%) | 913/913 | - |
 
 **Phase 1 완결 상태**: 인프라·인증·네비게이션 파운데이션 100% 완성. 도메인 SPEC(SPEC-BOOK-001, SPEC-LIBRARY-001 등) 구현 준비 완료.
 
 **Phase 2 완결 상태 (2026-06-19 기준)**: 개인 독서 경험 4개 SPEC(BOOK, LIBRARY, EMOTION, COMPLETION) 모두 구현 완료. 도메인 기능 + 화면 + 테스트 완비.
 
-**Phase 3 진행 상태 (2026-06-19 기준)**: 2/3 완료 — SPEC-CLUB-001(Track A 합류형 요청) 완료, SPEC-CLUB-002(Track B 개설형 모임) 완료. SPEC-FEED-001(진도별 피드) 구현 대기.
+**Phase 3 완결 상태 (2026-06-20 기준)**: 3/3 완료 — SPEC-CLUB-001(Track A 합류형 요청), SPEC-CLUB-002(Track B 개설형 모임), SPEC-FEED-001(진도별 스포일러 방지 피드 + Realtime) 모두 구현 완료. 소셜 연결 트랙 100% 완성.
 
-**미구현 SPEC (4개)**: SPEC-FEED-001(Phase 3), SPEC-ROUTINE-001(Phase 4), SPEC-NOTIF-001(Phase 4), SPEC-PROFILE-001(Phase 4).
+**미구현 SPEC (3개)**: SPEC-ROUTINE-001(Phase 4), SPEC-NOTIF-001(Phase 4), SPEC-PROFILE-001(Phase 4).
 
 ---
 
@@ -381,9 +384,9 @@ product.md "비목표" + SPEC-DB-001 "제외 범위" 기반:
 
 ---
 
-버전: 1.2.0
+버전: 1.3.0
 분류: SPEC 카탈로그 (인덱스)
-상태: 15개 SPEC 전체 작성 완료 (run 단계 대기)
+상태: 15개 SPEC 전체 작성 완료 / Phase 3 소셜 연결 100% 완결 (CLUB-001, CLUB-002, FEED-001)
 
 ---
 

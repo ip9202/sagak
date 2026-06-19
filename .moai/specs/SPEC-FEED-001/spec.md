@@ -1,10 +1,10 @@
 ---
 id: SPEC-FEED-001
 title: "스포일러 방지 진도별 피드"
-version: "1.0.0"
-status: draft
+version: "1.1.0"
+status: implemented
 created: 2026-06-14
-updated: 2026-06-14
+updated: 2026-06-20
 author: "강력쇠주먹"
 priority: medium
 issue_number: 0
@@ -18,6 +18,7 @@ labels: [feed, realtime, spoiler, club, supabase, phase-3]
 | 날짜 | 버전 | 변경 내용 | 작성자 |
 |------|------|-----------|--------|
 | 2026-06-14 | 1.0.0 | 최초 작성 — 모임 진도별 슬라이딩 피드, 클라이언트 스포일러 블러, Supabase Realtime postgres_changes 구독, visibility=club 감정 기록 표시. SPEC-DB-001 REQ-DB-004/013d/016, SPEC-EMOTION-001 스포일러 패턴, SPEC-UI-001 REQ-FE-024 연동 | 강력쇠주먹 |
+| 2026-06-20 | 1.1.0 | REQ-FEED-004 블러 안내 문구를 FROZEN `EmotionRecordCard` 기준("이 기록은 내 진도를 넘었어요")으로 정정. SPEC-UI-001 FROZEN 코드가 단일 진실 원천(SPEC-UI-001 acceptance.md 및 `src/components/EmotionRecordCard.tsx`와 일치)이므로 본 SPEC 문구를 코드에 맞춤. PR #25(SPEC-FEED-001 구현, squash 63ddf12) 머지에 따른 sync 단계 정정. status draft→implemented. 구현 결과 섹션(§7) 추가 | 강력쇠주먹 |
 
 ---
 
@@ -121,7 +122,9 @@ labels: [feed, realtime, spoiler, club, supabase, phase-3]
 #### REQ-FEED-004: 진도별 스포일러 블러 처리
 
 **WHILE** 모임 피드 화면에서 감정 기록의 `page_number`가 현재 사용자의 진도(`user_books.current_page` — 해당 책)를 초과하면,
-**THEN** 시스템은 `EmotionRecordCard`(SPEC-UI-001 REQ-FE-024)의 스포일러 블러(12px blur)를 활성화해야 한다. 블러 영역에는 "진도 이후 내용입니다" 안내 문구를 노출한다.
+**THEN** 시스템은 `EmotionRecordCard`(SPEC-UI-001 REQ-FE-024)의 스포일러 블러(12px blur)를 활성화해야 한다. 블러 영역에는 "이 기록은 내 진도를 넘었어요" 안내 문구를 노출한다.
+
+> **문구 정정 (2026-06-20, v1.1.0)**: 본 REQ의 블러 라벨 문구를 "진도 이후 내용입니다"에서 FROZEN `EmotionRecordCard`(`src/components/EmotionRecordCard.tsx`, SPEC-UI-001 REQ-FE-024)가 실제 렌더링하는 "이 기록은 내 진도를 넘었어요"로 정정했다. SPEC-UI-001 FROZEN zone(디자인 헌법 v3.4.0)이 우선하므로, 구현 코드(단일 진실 원천)에 본 SPEC 문서를 맞추었다. 상세는 HISTORY(2026-06-20) 참조.
 
 > 서버는 진도 초과 기록도 반환한다 (가정 2.1.1). 클라이언트가 `current_page`와 `page_number`를 비교하여 블러를 적용한다. `current_page`는 `user_books`에서 별도 조회하거나 피드 응답 메타데이터에 포함한다.
 
@@ -221,3 +224,39 @@ labels: [feed, realtime, spoiler, club, supabase, phase-3]
 | SPEC-CLUB-001 | Track A 모임 컨텍스트(`club_id` 식별, 멤버십) |
 | SPEC-CLUB-002 | Track B 모임 생성/관리(`clubs.book_id`, 진도 설정) |
 | SPEC-API-001 | Supabase 클라이언트 싱글톤, Realtime 채널 설정, 인증 헤더 자동 주입 |
+
+---
+
+## 7. 구현 결과 (Implementation Outcome)
+
+> 본 섹션은 PR #25(squash commit `63ddf12`, 2026-06-20 develop 머지) 기준 구현 결과를 기록한다. TDD(RED-GREEN-REFACTOR) 표준 서브에이전트 모드로 진행되었다.
+
+### 7.1 구현 완료 범위 (Phase A/B/C/D)
+
+| Phase | 범위 | 산출물 | 상태 |
+|-------|------|--------|------|
+| Phase A | 피드 데이터 계층 — 타입, 스포일러 필터, 쿼리, 조회 훅 | `src/features/feed/{types,spoilerFilter,queries,useClubFeed}.ts` + 3개 테스트 스위트(32/32 통과, coverage 97%) | ✅ |
+| Phase B | 피드 화면 — FlatList + EmotionRecordCard + 세션 revealed state + 빈/로딩/에러, 라우트 + 모임 상세 CTA, barrel | `src/features/feed/components/ClubFeedScreen.tsx`, `app/(tabs)/clubs/[clubId]/feed.tsx`, `app/(tabs)/clubs/[clubId].tsx`(CTA edit), `src/features/feed/index.ts` (누적 38 tests) | ✅ |
+| Phase C | Realtime 구독 — postgres_changes 2리스너(emotion_records INSERT + sticker_reactions INSERT), invalidate, cleanup, 연결 상태 배지 | `src/features/feed/useClubFeedRealtime.ts`, `ClubFeedScreen.tsx`(상태 배지 통합) (누적 53 tests, 전체 913 tests, tsc EXIT 0) | ✅ |
+| Phase D | F14 .pen 모임 피드 화면 프레임 | `.moai/design/sagak.pen` 프레임(3계층 레이아웃 + 3카드 + 블러, layout 검증 통과) | ✅ (코드 산출물, 사용자 저장 대기 — §7.3) |
+
+### 7.2 백엔드 산출물 (DB migration)
+
+- **`supabase/migrations/20240620000001_enable_realtime_feed.sql`** (머지됨): `supabase_realtime` publication에 `emotion_records`, `sticker_reactions` 추가 + 양 테이블 `REPLICA IDENTITY FULL` 설정. 기존 SELECT RLS 정책(migration 0014)이 브로드캐스트 게이트를 자동 수행하므로(F13), 본 마이그레이션은 정책을 변경하지 않는다. RLS 강제(FORCE ROW LEVEL SECURITY)는 migration 0014에서 이미 적용됨.
+
+### 7.3 오픈 항목 / 후속 작업
+
+| 항목 | 상세 | 후속 |
+|------|------|------|
+| F2/F13 RLS 로컬 통합 테스트 | 비멤버 세션으로 `visibility='club'` 조회 시 빈 결과(F2) 및 Realtime 미수신(F13) 검증이 로컬 Supabase 환경에서 아직 수행되지 않음. 단위 테스트는 통과했으나 외부 시스템(Supabase RLS) 동작은 실제 검증 필요(lessons #4) | 로컬 Supabase 통합 테스트 추가 예정 |
+| F12 정렬 단언 | 새 기록 Realtime 반영이 "상단 추가" 순서로 단위 테스트에서 엄격 단언되지 않음(구현은 동작) | 정렬 순서 단언 강화 |
+| Worker timer warning | Realtime 훅 cleanup 관련 React Native 타이머 워닝이 특정 환경에서 발생 가능(기능 영향 없음) | 환경 재현 후 워닝 소거 |
+| F14 .pen 사용자 저장 | F14 .pen 프레임은 코드로 산출되었으나, 최종 사용자 인증 저장(sign-off) 대기 | 사용자 .pen 확인 후 저장 |
+| 후속 이슈 | 스포일러/정렬/타이머 관련 세부 항목은 GitHub 이슈로 추적 | issue #26, issue #27 |
+
+### 7.4 검증 요약
+
+- 단위/통합 테스트: 53개 FEED 테스트 통과, 전체 913개 테스트 통과
+- 타입 체크: `tsc --noEmit` EXIT 0
+- 품질 게이트: TRUST 5 표준 단계 통과(evaluator-active 최종 통과)
+- 메서둘로지: TDD(RED-GREEN-REFACTOR), Brownfield Enhancement 적용
