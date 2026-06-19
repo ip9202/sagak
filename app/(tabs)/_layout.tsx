@@ -146,6 +146,15 @@ export default function TabsLayout() {
         name="clubs/[clubId]"
         options={{ href: null, headerShown: false }}
       />
+      {/* SPEC-CLUB-001 M3/M5: 독자 목록 / host 수신 요청 — 탭바 미표시 (href:null), 스택 진입용 */}
+      <Tabs.Screen
+        name="readers"
+        options={{ href: null, headerShown: false }}
+      />
+      <Tabs.Screen
+        name="host-requests"
+        options={{ href: null, headerShown: false }}
+      />
     </Tabs>
   );
 }

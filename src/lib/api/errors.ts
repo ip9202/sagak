@@ -308,6 +308,17 @@ const FRIENDLY_MESSAGES: Record<ErrorCategory, string> = {
 const UNIQUE_VIOLATION_MESSAGE = '이미 등록된 항목입니다';
 
 /**
+ * SPEC-CLUB-001 REQ-CLUBA-008: terminal 상태 재설정 트리거 예외 전용 메시지.
+ * guard_join_request_status_trigger(BEFORE UPDATE) 가 RAISE EXCEPTION 한 예외는
+ * PostgREST 를 통해 HTTP 400(VALIDATION) 으로 전달된다. 키워드로 식별해 별도 메시지를 반환한다.
+ */
+const TERMINAL_STATE_MESSAGE = '이미 처리된 요청입니다';
+const TERMINAL_KEYWORDS: readonly RegExp[] = [
+  /이미 처리된/i,
+  /\bterminal\b/i,
+];
+
+/**
  * REQ-API-014: 카테고리 기반 사용자 친화적 메시지 반환
  *
  * @param error - 정규화된 AppError (category 필드 필요)
@@ -319,6 +330,14 @@ export function getUserFriendlyMessage(error: AppError): string {
   // 시나리오 E5: VALIDATION + UNIQUE 위반은 구체적 메시지
   if (category === 'VALIDATION' && error.code === CODE_UNIQUE_VIOLATION) {
     return UNIQUE_VIOLATION_MESSAGE;
+  }
+
+  // SPEC-CLUB-001 REQ-CLUBA-008: VALIDATION + terminal 키워드
+  if (
+    category === 'VALIDATION' &&
+    TERMINAL_KEYWORDS.some((re) => re.test(error.message))
+  ) {
+    return TERMINAL_STATE_MESSAGE;
   }
 
   return FRIENDLY_MESSAGES[category];
