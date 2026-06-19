@@ -11,7 +11,7 @@
  * @jest-environment jsdom
  */
 import React from 'react';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react-native';
+import { render, fireEvent, waitFor } from '@testing-library/react-native';
 import { Alert } from 'react-native';
 import { ThemeProvider } from '../../../src/theme/theme';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
