@@ -140,6 +140,18 @@ describe('SPEC-CLUB-001 T-004: createJoinRequest', () => {
       createJoinRequest({ clubId: 'c1', requesterId: 'u1', message: null }),
     ).rejects.toMatchObject({ name: 'AppError', category: 'RLS_DENIED' });
   });
+
+  it('쿼리 throw(네트워크) 시 normalizeError 를 거쳐 AppError throw', async () => {
+    insertMock.mockReturnValue({
+      select: jest.fn().mockReturnValue({
+        single: jest.fn().mockRejectedValue(new TypeError('Failed to fetch')),
+      }),
+    });
+
+    await expect(
+      createJoinRequest({ clubId: 'c1', requesterId: 'u1', message: null }),
+    ).rejects.toMatchObject({ name: 'AppError', category: 'NETWORK' });
+  });
 });
 
 describe('SPEC-CLUB-001: fetchMyJoinRequests', () => {
@@ -243,6 +255,30 @@ describe('SPEC-CLUB-001 T-006: respondToJoinRequest', () => {
     await expect(
       respondToJoinRequest({ requestId: 'jr-1', status: 'accepted' }),
     ).rejects.toMatchObject({ name: 'AppError', category: 'RLS_DENIED' });
+  });
+
+  it('쿼리 throw(네트워크) 시 normalizeError 를 거쳐 AppError throw', async () => {
+    const eqMock = jest.fn().mockRejectedValue(new TypeError('Failed to fetch'));
+    const updateMock = jest.fn().mockReturnValue({ eq: eqMock });
+    const fromMock2 = jest.fn().mockReturnValue({ update: updateMock });
+    (getSupabaseClient as jest.Mock).mockReturnValue({ from: fromMock2 });
+
+    await expect(
+      respondToJoinRequest({ requestId: 'jr-1', status: 'accepted' }),
+    ).rejects.toMatchObject({ name: 'AppError', category: 'NETWORK' });
+  });
+
+  it('fetchMyJoinRequests 쿼리 throw 시 NETWORK 분류', async () => {
+    const orderMock = jest.fn().mockRejectedValue(new TypeError('Failed to fetch'));
+    const eqMock = jest.fn().mockReturnValue({ order: orderMock });
+    const selectMock2 = jest.fn().mockReturnValue({ eq: eqMock });
+    const fromMock2 = jest.fn().mockReturnValue({ select: selectMock2 });
+    (getSupabaseClient as jest.Mock).mockReturnValue({ from: fromMock2 });
+
+    await expect(fetchMyJoinRequests('u1')).rejects.toMatchObject({
+      name: 'AppError',
+      category: 'NETWORK',
+    });
   });
 });
 

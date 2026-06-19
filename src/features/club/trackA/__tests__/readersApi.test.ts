@@ -123,6 +123,14 @@ describe('SPEC-CLUB-001 T-002: fetchActiveReaders', () => {
     const result = await fetchActiveReaders('b1');
     expect(result).toEqual([]);
   });
+
+  it('쿼리 throw(네트워크) 시 normalizeError 를 거쳐 AppError throw', async () => {
+    orderMock.mockRejectedValue(new TypeError('Failed to fetch'));
+    await expect(fetchActiveReaders('b1')).rejects.toMatchObject({
+      name: 'AppError',
+      category: 'NETWORK',
+    });
+  });
 });
 
 describe('SPEC-CLUB-001 T-003: resolveClubIdsForUsers', () => {
@@ -171,5 +179,19 @@ describe('SPEC-CLUB-001 T-003: resolveClubIdsForUsers', () => {
     (getSupabaseClient as jest.Mock).mockReturnValue({ from: jest.fn() });
     const result = await resolveClubIdsForUsers([]);
     expect(result).toEqual({});
+  });
+
+  it('쿼리 throw(네트워크) 시 normalizeError 를 거쳐 AppError throw', async () => {
+    const inMock = jest.fn().mockRejectedValue(new TypeError('Failed to fetch'));
+    const eqStatus = jest.fn().mockReturnValue({ in: inMock });
+    const eqType = jest.fn().mockReturnValue({ eq: eqStatus });
+    const joinSelect = jest.fn().mockReturnValue({ eq: eqType });
+    const fromMock2 = jest.fn().mockReturnValue({ select: joinSelect });
+    (getSupabaseClient as jest.Mock).mockReturnValue({ from: fromMock2 });
+
+    await expect(resolveClubIdsForUsers(['u1'])).rejects.toMatchObject({
+      name: 'AppError',
+      category: 'NETWORK',
+    });
   });
 });

@@ -26,9 +26,9 @@ import {
   type JoinResponseAction,
 } from './types';
 
-// @MX:NOTE: [AUTO] join_requests SELECT 컬럼 — club_id 조인으로 host_id 노출 (수신 요청 조회용)
+// @MX:NOTE: [AUTO] join_requests SELECT — club_id 임베디드 조인으로 host 필터링 (수신 요청 조회용)
 const JOIN_REQUEST_SELECT =
-  'id, club_id, requester_id, message, status, created_at, responded_at, club_id:host_id';
+  'id, club_id, requester_id, message, status, created_at, responded_at, club_id!inner(host_id)';
 
 /** createJoinRequest 입력 */
 export interface CreateJoinRequestInput {
@@ -119,6 +119,11 @@ export async function fetchMyJoinRequests(
   return result.data ?? [];
 }
 
+/** join_requests 행 + 임베디드 club(host_id). fetchIncomingJoinRequests 전용. */
+type JoinRequestWithClub = Omit<JoinRequestRow, 'club_id'> & {
+  club_id: { host_id: string };
+};
+
 /**
  * host 가 수신한 요청 목록을 조회한다.
  * club_id.host_id 임베디드 필터로 host 본인 클럽의 요청만 노출 (RLS join_requests_update_host 보조).
@@ -127,7 +132,7 @@ export async function fetchIncomingJoinRequests(
   hostId: string,
 ): Promise<JoinRequestRow[]> {
   const client = getSupabaseClient();
-  let result: { data: JoinRequestRow[] | null; error: unknown };
+  let result: { data: JoinRequestWithClub[] | null; error: unknown };
   try {
     result = await client
       .from('join_requests')
@@ -138,7 +143,8 @@ export async function fetchIncomingJoinRequests(
     throw normalizeError(error);
   }
   if (result.error) throw normalizeError(result.error);
-  return result.data ?? [];
+  // 임베디드 club_id 객체는 호출부에 노출하지 않고 평탄화된 JoinRequestRow 만 반환
+  return (result.data ?? []) as unknown as JoinRequestRow[];
 }
 
 /**

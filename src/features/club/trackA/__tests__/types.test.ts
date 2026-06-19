@@ -21,14 +21,14 @@ import {
 describe('SPEC-CLUB-001 T-001: trackA 도메인 타입', () => {
   describe('JoinResponseStatus', () => {
     it('pending, accepted, declined 만 값으로 갖는다', () => {
-      const statuses: JoinResponseStatus[] = JOIN_REQUEST_STATUSES;
+      const statuses: readonly JoinResponseStatus[] = JOIN_REQUEST_STATUSES;
       expect(statuses).toEqual(['pending', 'accepted', 'declined']);
     });
   });
 
   describe('JoinResponseAction', () => {
     it('accepted, declined 만 값으로 갖는다', () => {
-      const actions: JoinResponseAction[] = JOIN_RESPONSE_ACTIONS;
+      const actions: readonly JoinResponseAction[] = JOIN_RESPONSE_ACTIONS;
       expect(actions).toEqual(['accepted', 'declined']);
     });
   });
