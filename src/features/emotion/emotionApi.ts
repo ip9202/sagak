@@ -119,7 +119,7 @@ interface RawStickerRow {
  * PostgREST list 응답 원시 형태 — 클라이언트에서 EmotionRecordWithAuthor 로 환산한다.
  */
 interface RawListRow extends EmotionRecordRow {
-  users: { nickname: string; avatar_url: string | null } | null;
+  users: { nickname: string | null; avatar_url: string | null } | null;
   sticker_reactions: RawStickerRow[];
 }
 

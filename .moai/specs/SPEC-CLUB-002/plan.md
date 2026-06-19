@@ -1,10 +1,10 @@
 ---
 id: SPEC-CLUB-002
 title: "Track B 개설형 모임 관리 — Implementation Plan"
-version: "1.0.0"
+version: "1.1.0"
 status: draft
 created: 2026-06-14
-updated: 2026-06-14
+updated: 2026-06-19
 author: "강력쇠주먹"
 priority: high
 issue_number: 0
@@ -34,19 +34,34 @@ React Native 컴포넌트)으로 구현된다.
 - `typescript` ~5.7.0 (strict 모드)
 - `jest` ^29.7.0, `@testing-library/react-native` ^13.3.0
 
-### 1.3 DB 계층 (SPEC-DB-001 이미 구현 완료)
+### 1.3 DB 계층 (SPEC-DB-001 + 본 SPEC 진도 계획 컬럼 추가)
 
-본 SPEC은 **DB 스키마·트리거·RLS 정책을 새로 작성하지 않는다**. 다음 SPEC-DB-001 산출물을
-그대로 소비한다:
+본 SPEC은 SPEC-DB-001 산출물을 소비하되, **진도 계획 컬럼 3개를 추가하는 마이그레이션을
+본 SPEC 범위에서 작성한다** (`supabase/migrations/20240618000006_add_club_reading_plan_columns.sql`).
+SPEC-DB-001 clubs 스키마에는 진도 계획 컬럼이 누락되어 있어, 1:1 모임 속성이므로 별도
+테이블 대신 clubs에 직접 추가한다.
 
-- `clubs` 테이블 스키마 (REQ-DB-006) — type ENUM, status ENUM, min_members, duration_days 등
+SPEC-DB-001 산출물 (그대로 소비):
+- `clubs` 테이블 스키마 (REQ-DB-006) — `type` CHECK(group/instant), `status` CHECK(active/closed) DEFAULT 'active', `max_members`(상한)
 - `club_members` 테이블 스키마 (REQ-DB-007) — role ENUM, UNIQUE(club_id, user_id)
 - `handle_new_club_host` SECURITY DEFINER 트리거 (REQ-DB-008b) — clubs INSERT 시 host 자동 가입
-- `clubs` RLS 정책 (REQ-DB-018) — SELECT `USING(true)`, INSERT `host_id=auth.uid()`, UPDATE/DELETE host만
+- `clubs` RLS 정책 (REQ-DB-018) — SELECT `USING(true)`, INSERT `host_id=auth.uid()`, UPDATE/DELETE host만 (테이블 수준 — 신규 컬럼 자동 커버)
 - `club_members` RLS 정책 (REQ-DB-019) — `fn_user_in_club` 헬퍼 기반 멤버만 SELECT, 본인 DELETE
 
+본 SPEC 추가 마이그레이션 (2026-06-19):
+- `clubs.daily_pages integer` (NULL 허용, `CHECK >= 0`) — 일일 권장 페이지 (REQ-CLUBB-004, REQ-CLUBB-009)
+- `clubs.trigger_page integer` (NULL 허용, `CHECK >= 0`) — 트리거 페이지 (REQ-CLUBB-004, REQ-CLUBB-010)
+- `clubs.duration_days integer` (NULL 허용, `CHECK >= 0`) — 목표 완독 기간(일) (REQ-CLUBB-004)
+
+> **정합성 복구 (2026-06-19)**: 초기 plan.md는 SPEC-DB-001이 `min_members`·`duration_days` 등을
+> 이미 포함한다고 가정했으나, 실제 clubs 스키마(`src/types/supabase.ts`)에는 해당 컬럼이
+> 없었다. 따라서 진도 계획 컬럼을 본 SPEC 마이그레이션으로 추가하고, `min_members`는
+> 0명 출발 정책(REQ-CLUBB-003)과 상충하여 제거(`max_members` 상한만 유지), `title`은
+> 실제 컬럼명 `name`으로 매핑한다.
+
 > 구현 시 DB 계층 검증은 SPEC-DB-001 pgTAP 테스트에 의존하며, 본 SPEC은 클라이언트
-> 관점의 RLS 동작 검증에 집중한다.
+> 관점의 RLS 동작 검증에 집중한다. 단, 진도 계획 컬럼 추가 마이그레이션은 dev/prod
+> Supabase 적용 후 gen-types 재생성이 선행되어야 한다 (사용자 실행 단계).
 
 ---
 
@@ -101,7 +116,9 @@ SPEC-BOOK-001 완료(book_id 확보).
 
 ### Milestone 2: 진도 동기화 API (Priority High)
 
-**목표**: host 전용 진도 업데이트(daily_pages, trigger_page)와 권한 검증을 구현한다.
+**목표**: host 전용 진도 업데이트(`clubs.daily_pages`, `clubs.trigger_page` UPDATE)와 권한 검증을 구현한다.
+이 컬럼들은 본 SPEC 마이그레이션 `20240618000006_add_club_reading_plan_columns.sql`로 추가되었으며,
+RLS UPDATE 정책(REQ-DB-018, `auth.uid()=host_id`)이 host 전용 접근을 자동 강제한다.
 
 - REQ-CLUBB-009: 진도 업데이트 엔드포인트 (PostgREST `clubs` UPDATE)
 - REQ-CLUBB-010: 비host 진도 업데이트 차단 (RLS)
@@ -151,8 +168,9 @@ SPEC-BOOK-001 완료(book_id 확보).
      │                                         │                              │
      │  supabase.from('clubs').insert({        │                              │
      │    host_id: auth.uid(),                 │                              │
-     │    book_id, title, type: 'group',       │                              │
-     │    description, duration_days, ...      │                              │
+     │    book_id, name, type: 'group',        │                              │
+     │    description, duration_days,          │                              │
+     │    daily_pages, trigger_page, ...       │                              │
      │  }).select().single()                   │                              │
      │ ───────────────────────────────────────>│                              │
      │                                         │                              │
@@ -239,18 +257,27 @@ SPEC-BOOK-001 완료(book_id 확보).
 
 ### 4.4 clubs INSERT 입력 매핑 (REQ-CLUBB-004)
 
+> **정합성 복구 (2026-06-19)**: 실제 `clubs` 스키마(`src/types/supabase.ts` +
+> 마이그레이션 0004/0006) 기준. 초기 초안의 `title`은 실제 컬럼명 `name`으로 매핑,
+> `min_members`는 0명 출발 정책(REQ-CLUBB-003)과 상충하여 제거(`max_members` 상한만 유지),
+> 진도 계획 컬럼 3개는 본 SPEC 마이그레이션 `20240618000006_add_club_reading_plan_columns.sql`로 추가.
+
 | 입력 필드 | clubs 컬럼 | 제약 | 기본값 |
 |----------|-----------|------|--------|
-| 책 선택 | `book_id` | NOT NULL (FK) | — (사용자 선택) |
-| 모임 제목 | `title` | NOT NULL | — (사용자 입력) |
-| 모임 유형 | `type` | CHECK(group/instant) | `'group'` 강제 |
-| 호스트 | `host_id` | NOT NULL (FK) | `auth.uid()` 자동 |
-| 모임 설명 | `description` | NULL 허용 | NULL |
-| 완독 기간 | `duration_days` | NULL 허용 | NULL |
-| 일일 페이지 | `daily_pages` | NULL 허용 | NULL |
-| 트리거 페이지 | `trigger_page` | NULL 허용 | NULL |
-| 최소 인원 | `min_members` | NULL 허용 | NULL (게이트 아님) |
-| 상태 | `status` | CHECK(active/closed) | `'active'` (기본값) |
+| 책 선택 | `book_id` | NOT NULL (FK → books.id, ON DELETE RESTRICT) | — (사용자 선택) |
+| 모임 제목 | `name` | NOT NULL (text) | — (사용자 입력) |
+| 모임 유형 | `type` | NOT NULL, CHECK(group/instant) | `'group'` 강제 (REQ-CLUBB-002) |
+| 호스트 | `host_id` | NOT NULL (FK → users.id) | `auth.uid()` 자동 (RLS WITH CHECK) |
+| 모임 설명 | `description` | NULL 허용 (text) | NULL |
+| 최대 인원(상한) | `max_members` | NULL 허용 (integer) | `10` (스키마 기본값) |
+| 완독 기간 | `duration_days` | NULL 허용, CHECK `>= 0` (integer) | NULL (본 SPEC 마이그레이션 0006 추가) |
+| 일일 페이지 | `daily_pages` | NULL 허용, CHECK `>= 0` (integer) | NULL (본 SPEC 마이그레이션 0006 추가) |
+| 트리거 페이지 | `trigger_page` | NULL 허용, CHECK `>= 0` (integer) | NULL (본 SPEC 마이그레이션 0006 추가) |
+| 상태 | `status` | NOT NULL, CHECK(active/closed) | `'active'` (스키마 기본값) |
+| 생성 시각 | `created_at` | NOT NULL (timestamptz) | `now()` (스키마 기본값) |
+
+> `min_members`(최소 인원) 컬럼은 존재하지 않는다. 0명 출발 정책(REQ-CLUBB-003)에 따라
+> 모임 개설 시 최소 인원 게이트가 없으며, `max_members`는 상한 역할만 수행한다.
 
 ---
 
