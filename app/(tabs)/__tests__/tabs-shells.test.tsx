@@ -48,6 +48,21 @@ jest.mock('../../../src/features/library/libraryApi', () => ({
   updateVisibility: jest.fn(),
 }));
 
+// SPEC-CLUB-002 M4: clubs 탭이 ClubsScreen 으로 교체됨 — useSession/router/hooks 안전망.
+jest.mock('expo-router', () => ({
+  useRouter: jest.fn(() => ({ push: jest.fn(), back: jest.fn(), replace: jest.fn() })),
+}));
+jest.mock('../../../src/features/club/trackB/hooks', () => ({
+  __esModule: true,
+  useHostClubs: jest.fn(() => ({
+    data: [],
+    isLoading: false,
+    isError: false,
+    error: null,
+    refetch: jest.fn(),
+  })),
+}));
+
 import HomeTab from '../index';
 import LibraryTab from '../library';
 import ClubsTab from '../clubs';
@@ -84,9 +99,10 @@ describe('T6: 탭 헤더/placeholder 렌더링', () => {
     expect(await findByText('책 검색하기')).toBeTruthy();
   });
 
-  it('모임 탭이 "모임 화면" placeholder를 렌더링한다', () => {
+  it('모임 탭이 ClubsScreen 헤더 타이틀 "모임"을 렌더링한다', () => {
+    // SPEC-CLUB-002 M4: clubs 탭이 ClubsScreen 으로 교체됨 (placeholder 셸 → 실제 화면).
     withTheme(<ClubsTab />);
-    expect(screen.getByText('모임 화면')).toBeTruthy();
+    expect(screen.getByText('모임')).toBeTruthy();
   });
 
   // SPEC-AUTH-001 PR #19: 마이 탭이 placeholder → 실제 화면으로 교체됨.

@@ -1,24 +1,24 @@
 /**
- * 모임 탭 placeholder 셸
- * SPEC-NAV-001 — REQ-NAV-002 (T6)
- * 실제 콘텐츠는 SPEC-CLUB-001에서 구현.
+ * 모임 탭 — clubs
+ * SPEC-CLUB-002 M4 — ClubsScreen 통합
+ *
+ * ClubsScreen 은 userId(useSession) 로 host 모임 목록을 조회하고,
+ * plus 아이콘 / NewClubCTA 누름 시 생성 폼(clubs/new)으로 이동한다.
  */
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
-import { useTheme } from '../../src/theme/theme';
+import { useRouter } from 'expo-router';
+import { ClubsScreen } from '../../src/features/club/trackB/components/ClubsScreen';
+import { useSession } from '../../src/auth/useSession';
 
 export default function ClubsTab() {
-  const theme = useTheme();
+  const session = useSession();
+  const router = useRouter();
+  const userId = session?.user?.id ?? '';
+
   return (
-    <View style={[styles.container, { backgroundColor: theme.colors.bg.base }]}>
-      <Text style={[styles.placeholder, { color: theme.colors.text.tertiary }]}>
-        모임 화면
-      </Text>
-    </View>
+    <ClubsScreen
+      userId={userId}
+      onCreateClub={() => router.push('/clubs/new')}
+    />
   );
 }
-
-const styles = StyleSheet.create({
-  container: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  placeholder: { fontSize: 16 },
-});
