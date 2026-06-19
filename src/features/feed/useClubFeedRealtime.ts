@@ -5,9 +5,11 @@
  * INSERT 이벤트를 구독하고, 이벤트 수신 시 모임 피드 쿼리를 invalidate 한다.
  *
  * 전략 (SPEC plan.md §2.3 리스크1 — 전체 새로고침으로 단순화):
- * - 모든 INSERT 이벤트를 동일 queryKey ['feed','club',clubId] 로 invalidate.
+ * - 모든 INSERT 이벤트를 동일 queryKey FEED_QUERY_KEY(clubId) 로 invalidate.
  * - sticker_reactions 의 매핑 실패(F15) 는 전체 재조회 후 피드에 없으면 자연 무시된다.
  * - 클라이언트 멤버십 필터 금지 — 비멤버 이벤트 미수신은 RLS(REQ-DB-016) 에 의존 (F13).
+ *   (supabase/migrations/20240620000001_enable_realtime_feed.sql 이 publication 구성 +
+ *    기존 select-visible RLS 정책이 broadcast 를 게이트한다.)
  *
  * 정리 (acceptance §2 LSP gate):
  * - useEffect cleanup 이 channel.unsubscribe() 와 supabase.removeChannel(channel) 을 호출한다.
@@ -17,6 +19,7 @@
 import { useEffect, useState } from 'react';
 import { getSupabaseClient } from '../../lib/supabase/client';
 import { getQueryClient } from '../../lib/query/queryClient';
+import { FEED_QUERY_KEY } from './useClubFeed';
 
 export interface UseClubFeedRealtimeArgs {
   /** clubs.id */
@@ -33,10 +36,6 @@ export interface UseClubFeedRealtimeResult {
   /** 최근 에러 메시지 (status='error' 인 경우) */
   lastError?: string;
 }
-
-/** feed 쿼리 캐시 키 (useClubFeed 와 동일 — F9: currentPage 미포함) */
-const FEED_QUERY_KEY = (clubId: string): readonly unknown[] =>
-  ['feed', 'club', clubId] as const;
 
 /**
  * 모임 피드 Realtime 구독 훅.

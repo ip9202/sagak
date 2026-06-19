@@ -98,8 +98,7 @@ function toCardProps(
  * 모임 피드 화면. 라우트(app/(tabs)/clubs/[clubId]/feed) 가 마운트하며,
  * clubId/bookId/currentPage/userId 를 prop 으로 주입받는다.
  *
- * @MX:ANCHOR: [AUTO] 모임 피드 화면(SPEC-FEED-001 Phase B/C) 의 단일 진입점 — fan_in >= 3 예상 (feed 라우트, 부모 모임 상세 CTA, 향후 푸시 딥링크)
- * @MX:REASON: F9/F10/F11 계약(진도 재평가, 블러 토글, 언마운트 복원)이 깨지면 스포일러 UX 일관성이 무너진다.
+ * @MX:NOTE: [AUTO] 모임 피드 화면 단일 진입점 — 현재 fan_in 1(feed 라우트). F9/F10/F11 계약(진도 재평가, 블러 토글, 언마운트 복원) 유지. fan_in 3 도달 시 ANCHOR 승격.
  */
 /**
  * F16: Realtime 연결 끊김 안내 바.

@@ -18,6 +18,14 @@ import { useInfiniteQuery, type InfiniteData } from '@tanstack/react-query';
 import { fetchClubFeedPage } from './queries';
 import type { FeedCursor, FeedPageResult } from './types';
 
+/**
+ * feed 쿼리 캐시 키 (useClubFeedRealtime 과 공유 — F9: currentPage 미포함).
+ * 단일 진실 원천: 이 키 형태가 바뀌면 Realtime invalidate 대상과 캐시가 어긋나
+ * 실시간 반영(F12/F14)과 진도 재평가(F9)가 모두 깨진다.
+ */
+export const FEED_QUERY_KEY = (clubId: string): readonly unknown[] =>
+  ['feed', 'club', clubId] as const;
+
 export interface UseClubFeedArgs {
   clubId: string;
   bookId: string;
@@ -32,8 +40,7 @@ export interface UseClubFeedArgs {
  *
  * @returns useInfiniteQuery 결과 — data.pages 는 FeedPageResult[], pageParam 은 FeedCursor
  */
-// @MX:ANCHOR: [AUTO] 모임 피드 화면(SPEC-FEED-001 Phase B) 의 단일 진입점 — fan_in >= 3 예상 (ClubFeedScreen, 부모 모임 화면, 향후 푸시 딥링크)
-// @MX:REASON: 쿼리 키/커서/활성화 조건 계약이 바뀌면 무한 스크롤 일관성과 F9 진도 재평가가 깨진다.
+// @MX:NOTE: [AUTO] 모임 피드 데이터 조회 훅 — 현재 fan_in 1(ClubFeedScreen). fan_in 3 도달 시 ANCHOR 승격.
 // @MX:NOTE: [AUTO] useInfiniteQuery 제네릭 — <TData, TError, TQueryData, TQueryKey, TPageParam>. TPageParam=FeedCursor 로 고정하여 pageParam/initialPageParam/getNextPageParam 타입이 일치한다.
 export function useClubFeed(args: UseClubFeedArgs) {
   return useInfiniteQuery<
@@ -43,7 +50,7 @@ export function useClubFeed(args: UseClubFeedArgs) {
     readonly unknown[],
     FeedCursor
   >({
-    queryKey: ['feed', 'club', args.clubId],
+    queryKey: FEED_QUERY_KEY(args.clubId),
     queryFn: ({ pageParam }) =>
       fetchClubFeedPage({
         clubId: args.clubId,
