@@ -30,7 +30,23 @@ import { useRouter } from 'expo-router';
 import { useTheme } from '../../src/theme/theme';
 import { useSession } from '../../src/auth/useSession';
 import { useUnreadCount } from '../../src/features/notification';
+import {
+  useUserStats,
+  usePointLogs,
+  computeBadges,
+  StatCard,
+  BadgeCard,
+} from '../../src/features/profile';
 import type { AuthProvider } from '../../src/auth/types';
+
+/** 초를 "Nh" 또는 "Nm" 표기로 변환 (통계 카드 표시용) */
+function formatReadingTime(totalSeconds: number): string {
+  if (totalSeconds <= 0) return '0m';
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  if (hours > 0) return `${hours}h`;
+  return `${minutes}m`;
+}
 
 // @MX:NOTE: [AUTO] 제공자 표시 라벨 매핑 — DB 값(naver/kakao/google) → 한국어 표시.
 const PROVIDER_LABEL: Record<AuthProvider, string> = {
@@ -69,6 +85,27 @@ export default function MyTab(): React.JSX.Element {
   }
 
   const { user, profile, signOut } = session;
+
+  // SPEC-PROFILE-001: 통계 / 포인트 / 배지 데이터
+  // hooks 는 rules-of-hooks 준수를 위해 무조건 호출 — user 가 없으면 userId '' 로
+  // 내부 enabled: false 가 되어 쿼리 미실행. user null 가드는 hooks 이후.
+  const userId = user?.id ?? '';
+  const statsQuery = useUserStats(userId);
+  const pointLogsQuery = usePointLogs(userId);
+  const stats = statsQuery.data;
+  const pointLogs = pointLogsQuery.data ?? [];
+  const pointBalance = pointLogs.reduce((sum, log) => sum + log.amount, 0);
+  const badges = computeBadges({
+    stats: {
+      completed_books: stats?.completed_books ?? 0,
+      emotion_records_count: stats?.emotion_records_count ?? 0,
+    },
+    current_streak: 0, // streak 연동은 routine 도메인 위임 영역 (미결정 5.4)
+    point_reasons: {
+      completion: pointLogs.filter((l) => l.reason === 'completion').length,
+      reaction: pointLogs.filter((l) => l.reason === 'reaction').length,
+    },
+  });
 
   // 미인증 상태 (세션/유저 없음) — 카카오 회귀 테스트 직전 로그아웃 후에도 crash 없어야 함.
   if (!user) {
@@ -208,6 +245,150 @@ export default function MyTab(): React.JSX.Element {
               </Text>
             </View>
           ) : null}
+
+          {/* SPEC-PROFILE-001: 프로필 수정 진입점 (REQ-PROF-002) */}
+          <Pressable
+            testID="my-edit-button"
+            onPress={() => router.push('/my/edit')}
+            accessibilityRole="button"
+            accessibilityLabel="프로필 수정"
+            accessibilityHint="닉네임과 아바타를 수정합니다."
+            style={[
+              styles.editButton,
+              {
+                borderRadius: theme.radius.md,
+                borderColor: theme.colors.border.default,
+              },
+            ]}
+          >
+            <Text
+              style={[
+                styles.editText,
+                { color: theme.colors.text.secondary },
+              ]}
+            >
+              프로필 수정
+            </Text>
+          </Pressable>
+        </View>
+
+        {/* SPEC-PROFILE-001: 통계 섹션 (.pen F15-My "Stats" — 3-stat horizontal) */}
+        <View style={styles.sectionLabelWrap}>
+          <Text
+            style={[styles.sectionLabel, { color: theme.colors.text.tertiary }]}
+          >
+            나의 독서 발자국
+          </Text>
+        </View>
+        <View style={styles.statsRow}>
+          <StatCard
+            testID="stat-completed"
+            value={stats?.completed_books ?? 0}
+            label="완독"
+          />
+          <StatCard
+            testID="stat-seconds"
+            value={formatReadingTime(stats?.total_reading_seconds ?? 0)}
+            label="독서시간"
+          />
+          <StatCard
+            testID="stat-emotion"
+            value={stats?.emotion_records_count ?? 0}
+            label="감정기록"
+          />
+        </View>
+
+        {/* SPEC-PROFILE-001: 배지 섹션 (REQ-PROF-007 클라이언트 산정) */}
+        <View style={styles.sectionLabelWrap}>
+          <Text
+            style={[styles.sectionLabel, { color: theme.colors.text.tertiary }]}
+          >
+            배지
+          </Text>
+        </View>
+        <View
+          style={[
+            styles.badgesWrap,
+            {
+              backgroundColor: theme.colors.bg.surface,
+              borderRadius: theme.radius.lg,
+              borderWidth: 1,
+              borderColor: theme.colors.border.default,
+            },
+          ]}
+        >
+          <View style={styles.badgesRow}>
+            {badges.map((badge) => (
+              <BadgeCard
+                key={badge.id}
+                testID={`badge-${badge.id}`}
+                label={badge.label}
+                earned={badge.earned}
+              />
+            ))}
+          </View>
+        </View>
+
+        {/* SPEC-PROFILE-001: 포인트 내역 섹션 (REQ-PROF-006 MVP 조회 전용) */}
+        <View style={styles.sectionLabelWrap}>
+          <Text
+            style={[styles.sectionLabel, { color: theme.colors.text.tertiary }]}
+          >
+            포인트
+          </Text>
+          <Text
+            style={[styles.pointBalance, { color: theme.colors.brand[500] }]}
+          >
+            {pointBalance}
+          </Text>
+        </View>
+
+        {/* SPEC-PROFILE-001: 설정 링크 섹션 (REQ-PROF-008 — P25/P26/P27 "준비 중") */}
+        <View style={styles.sectionLabelWrap}>
+          <Text
+            style={[styles.sectionLabel, { color: theme.colors.text.tertiary }]}
+          >
+            설정
+          </Text>
+        </View>
+        <View
+          style={[
+            styles.menuCard,
+            {
+              backgroundColor: theme.colors.bg.surface,
+              borderRadius: theme.radius.lg,
+              borderWidth: 1,
+              borderColor: theme.colors.border.default,
+            },
+          ]}
+        >
+          <View style={[styles.menuRow, { borderRadius: theme.radius.md }]}>
+            <Text
+              style={[styles.menuLabel, { color: theme.colors.text.primary }]}
+            >
+              이용약관
+            </Text>
+            <Text
+              style={[styles.chevron, { color: theme.colors.text.tertiary }]}
+            >
+              준비 중
+            </Text>
+          </View>
+          <View
+            style={[styles.menuDivider, { backgroundColor: theme.colors.border.default }]}
+          />
+          <View style={[styles.menuRow, { borderRadius: theme.radius.md }]}>
+            <Text
+              style={[styles.menuLabel, { color: theme.colors.text.primary }]}
+            >
+              개인정보 처리방침
+            </Text>
+            <Text
+              style={[styles.chevron, { color: theme.colors.text.tertiary }]}
+            >
+              준비 중
+            </Text>
+          </View>
         </View>
 
         {/* 독서 루틴 메뉴 (SPEC-ROUTINE-001 — 타이머/알림 진입점) */}
@@ -426,6 +607,45 @@ const styles = StyleSheet.create({
   menuDivider: {
     height: 1,
     marginHorizontal: 16,
+  },
+  // SPEC-PROFILE-001 섹션 스타일
+  sectionLabelWrap: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 4,
+  },
+  sectionLabel: {
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  pointBalance: {
+    fontSize: 18,
+    fontWeight: '700',
+  },
+  statsRow: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  badgesWrap: {
+    overflow: 'hidden',
+    padding: 12,
+  },
+  badgesRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  editButton: {
+    paddingVertical: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    marginTop: 4,
+  },
+  editText: {
+    fontSize: 14,
+    fontWeight: '600',
   },
   bodyCenter: {
     flex: 1,
