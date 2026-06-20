@@ -17,6 +17,7 @@ labels: [profile, stats, reward, badges, settings, supabase, phase-4, acceptance
 
 | 날짜 | 버전 | 변경 내용 | 작성자 |
 |------|------|-----------|--------|
+| 2026-06-20 | 1.0.1 | sync: DB 실제 스키마/코드 기준 SPEC 정정 (ref_id 제거, 감정 배지 총건수, 경로 my/, Profile 타입, 하이브리드 집계) | sync |
 | 2026-06-14 | 1.0.0 | 최초 작성 — 8개 REQ에 대한 Given-When-Then 시나리오, 품질 게이트, 검증 방법 | 강력쇠주먹 |
 
 ---
@@ -163,6 +164,7 @@ labels: [profile, stats, reward, badges, settings, supabase, phase-4, acceptance
 **When** 사용자가 마이페이지 포인트 내역 섹션을 조회한다
 **Then** 시스템은 T2 행(reason='reaction')을 최상단으로, T1 행(reason='completion')을 그 다음으로 반환한다 (`created_at DESC`)
 **And** 잔여 포인트 합계 110이 표시된다
+**Note**: `point_logs` 테이블에 `ref_id` 컬럼은 실제 스키마에 존재하지 않음 (sync 정정)
 
 #### 시나리오 P16: 포인트 내역이 없는 사용자
 
@@ -204,6 +206,7 @@ labels: [profile, stats, reward, badges, settings, supabase, phase-4, acceptance
 **When** 사용자가 마이페이지 배지 섹션을 조회한다
 **Then** 시스템은 "10개" 배지를 "획득" 상태로 표시한다
 **And** "50개", "100개" 배지는 "잠김" 상태로 표시된다
+**Note**: emotion_records 테이블에 감정 종류 컬럼이 없으므로 배지는 총 건수 기준만 (종류별 배지 불가, sync 정정)
 
 #### 시나리오 P21: 배지 실시간 재산정
 

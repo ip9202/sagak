@@ -221,12 +221,14 @@ Phase 5 (배포)
 #### SPEC-PROFILE-001: 마이페이지, 통계 및 보상
 - **도메인**: PROFILE
 - **우선순위**: medium
-- **핵심 범위**: 사용자 프로필 조회/수정(`user_profiles` 뷰), 독서 통계(완독 수·누적 시간·감정 기록 수), 포인트 내역 조회(`point_logs`, MVP 조회 전용), 성취 배지 시각화, 설정(알림/공개범위), 이용약관·개인정보 처리방침 링크
-- **DB 엔터티**: `users`, `point_logs`, `reading_sessions`(통계)
+- **상태**: ✅ 구현 완료 (8/8 REQ, PR #36 e616614, 2026-06-20, 98.82% coverage)
+- **핵심 범위**: 사용자 프로필 조회/수정(Profile 타입 전체 컬럼), 독서 통계(완독 수·누적 시간·감정 기록 수, 하이브리드 집계), 포인트 내역 조회(`point_logs` ref_id 제외, MVP 조회 전용), 성취 배지 시각화(총건수 기준), 설정(알림/공개범위), 이용약관·개인정보 처리방침 링크, 로그아웃(SPEC-AUTH-001 위임)
+- **DB 엔터티**: `users`, `point_logs`, `reading_sessions`(통계), `emotion_records`
 - **API/Edge Function**: `/users/{id}`, `/users/{id}/stats`, `/users/{id}/points`
 - **의존성**: SPEC-AUTH-001(프로필), SPEC-ROUTINE-001(통계), SPEC-EMOTION-001(기록 수)
-- **구현 산출물**: `src/features/profile/*.ts`, 마이페이지 화면, 통계 대시보드
+- **구현 산출물**: `src/features/profile/*.ts` (queries/mutations/useProfile/useUserStats/usePointLogs/badges/types), `app/(tabs)/my.tsx`, `app/(tabs)/my/edit.tsx`, 통계 대시보드
 - **제외**: 포인트 사용(굿즈 교환, 후순위), 프리미엄 유료화(비목표), 데이터 내보내기(확장)
+- **SPEC 정정 사항 (sync 2026-06-20)**: point_logs.ref_id 제거(실제 스키마), 감정 배지 총건수(emotion_records 종류 컬럼 없음), 화면 경로 my.tsx(Profile 타입 vs auth UserProfile), 통계 하이브리드 집계(COUNT head:true + JS SUM)
 
 ---
 
@@ -293,7 +295,7 @@ product.md "비목표" + SPEC-DB-001 "제외 범위" 기반:
 | 3 | SPEC-FEED-001 | ✅ | ✅ | ✅ | 구현 완료 (8/8 REQ, PR #25 63ddf12, 2026-06-20, 913 테스트) |
 | 4 | SPEC-ROUTINE-001 | ✅ | ✅ | ✅ | 구현 완료 (10/10 REQ, PR #31 9ddd1a4, 2026-06-20, 2881 LOC 추가) |
 | 4 | SPEC-NOTIF-001 | ✅ | ✅ | ✅ | 구현 완료 (9/13 REQ, PR #34 5db38e7, 2026-06-20; Optional 4개[REQ-001~004 Expo Push 실기기] 후속) |
-| 4 | SPEC-PROFILE-001 | ✅ | ✅ | ✅ | SPEC 작성 완료 (8 REQ) |
+| 4 | SPEC-PROFILE-001 | ✅ | ✅ | ✅ | 구현 완료 (8/8 REQ, PR #36 e616614, 2026-06-20) |
 | 5 | SPEC-DEPLOY-001 | ✅ | ✅ | ✅ | 진행 중 (M1+M5 머지, PR #15 2514263, 2026-06-17; M2/M3/M4/M6 미완료 — M6 블로킹: CLUB/NOTIF 의존) |
 | 0 | SPEC-UI-002 | ✅ | ✅ | ✅ | SPEC 작성 완료 (25 REQ) — 화면 패턴, 14개 도메인 SPEC 선행 의존성 |
 
@@ -338,9 +340,7 @@ product.md "비목표" + SPEC-DB-001 "제외 범위" 기반:
 
 **Phase 3 완결 상태 (2026-06-20 기준)**: 3/3 완료 — SPEC-CLUB-001(Track A 합류형 요청), SPEC-CLUB-002(Track B 개설형 모임), SPEC-FEED-001(진도별 스포일러 방지 피드 + Realtime) 모두 구현 완료. 소셜 연결 트랙 100% 완성.
 
-**Phase 4 진행 상태 (2026-06-20 기준)**: 1/3 완료 — SPEC-ROUTINE-001(독서 루틴 및 타이머) 구현 완료. SPEC-NOTIF-001, SPEC-PROFILE-001 미구현.
-
-**미구현 SPEC (2개)**: SPEC-NOTIF-001(Phase 4), SPEC-PROFILE-001(Phase 4).
+**Phase 4 진행 상태 (2026-06-20 기준)**: 3/3 완료 — SPEC-ROUTINE-001(독서 루틴 및 타이머), SPEC-NOTIF-001(푸시 알림 및 알림 센터), SPEC-PROFILE-001(마이페이지/통계/보상) 모두 구현 완료.
 
 ---
 

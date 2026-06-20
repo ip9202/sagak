@@ -17,6 +17,7 @@ labels: [profile, stats, reward, badges, settings, supabase, phase-4, plan]
 
 | 날짜 | 버전 | 변경 내용 | 작성자 |
 |------|------|-----------|--------|
+| 2026-06-20 | 1.0.1 | sync: DB 실제 스키마/코드 기준 SPEC 정정 (ref_id 제거, 감정 배지 총건수, 경로 my/, Profile 타입, 하이브리드 집계) | sync |
 | 2026-06-14 | 1.0.0 | 최초 작성 — 3개 마일스톤, 기술 접근, 아키텍처 방향, 리스크 대응 | 강력쇠주먹 |
 
 ---
@@ -98,10 +99,10 @@ labels: [profile, stats, reward, badges, settings, supabase, phase-4, plan]
 
 ### 2.2 독서 통계 집계 계층
 
-- **실시간 집계 쿼리**: `GET /users/{id}/stats`는 3개 지표를 각각 PostgREST 집계 쿼리로 산출한다 (가정 2.1.1):
-  - 완독 수: `user_books` SELECT COUNT where `user_id=eq.{auth.uid()}` AND `status=eq.completed`
-  - 누적 독서 시간: `reading_sessions` SELECT SUM(`duration_seconds`) where `user_id=eq.{auth.uid()}`
-  - 감정 기록 수: `emotion_records` SELECT COUNT where `user_id=eq.{auth.uid()}`
+- **하이브리드 집계 방식** (실제 구현 기준 정정): `GET /users/{id}/stats`는 3개 지표를 혼합 방식으로 산출:
+  - 완독 수: `user_books` SELECT COUNT where `user_id=eq.{auth.uid()}` AND `status=eq.completed` (PostgREST head:true)
+  - 누적 독서 시간: `reading_sessions` 전체 행 fetch → 클라이언트 JS에서 `duration_seconds` SUM 계산 (PostgREST는 SUM 없음, routine 패턴)
+  - 감정 기록 수: `emotion_records` SELECT COUNT where `user_id=eq.{auth.uid()}` (PostgREST head:true)
 - **인덱스 활용**: `reading_sessions (user_id, book_id)` 인덱스로 집계 최적화. `emotion_records (user_id, created_at DESC)` 인덱스 활용.
 - **캐싱**: 클라이언트 측 React Query(staleTime 5분 임시값)로 네트워크 요청 빈도 감소 (미결정 5.2). 서버 측 캐시는 MVP에서 도입하지 않는다.
 
@@ -152,9 +153,8 @@ src/features/profile/
 
 화면:
 ```
-app/(tabs)/profile/
-  index.tsx               # 마이페이지 메인 (프로필 카드 + 통계 + 배지 + 포인트 내역 + 설정 진입점)
-  edit.tsx                # 프로필 수정 (nickname, avatar_url)
+app/(tabs)/my.tsx        # 마이페이지 메인 (프로필 카드 + 통계 + 배지 + 포인트 내역 + 설정 진입점) — NOTE: profile/ 경로 아님
+app/(tabs)/my/edit.tsx   # 프로필 수정 (nickname, avatar_url)
 ```
 
 ### 3.2 데이터 흐름

@@ -17,6 +17,7 @@ labels: [profile, stats, reward, badges, settings, supabase, phase-4]
 
 | 날짜 | 버전 | 변경 내용 | 작성자 |
 |------|------|-----------|--------|
+| 2026-06-20 | 1.0.1 | sync: DB 실제 스키마/코드 기준 SPEC 정정 (ref_id 제거, 감정 배지 총건수, 경로 my/, Profile 타입, 하이브리드 집계) | sync |
 | 2026-06-14 | 1.0.0 | 최초 작성 — 마이페이지 프로필 조회/수정(user_profiles 뷰 + users UPDATE), 독서 통계(reading_sessions/emotion_records 집계), 포인트 내역 조회(point_logs MVP 조회 전용), 성취 배지 클라이언트 산정, 설정(알림·공개 범위), 이용약관·개인정보 처리방침 링크, 로그아웃(SPEC-AUTH-001 연동). SPEC-DB-001 REQ-DB-001/011/013e/014/021, SPEC-AUTH-001/ROUTINE-001/EMOTION-001/NOTIF-001 의존 | 강력쇠주먹 |
 
 ---
@@ -28,7 +29,7 @@ labels: [profile, stats, reward, badges, settings, supabase, phase-4]
 - **데이터 엔터티**:
   - `users` (SPEC-DB-001 REQ-DB-001) — 사용자 프로필 원본 테이블. 컬럼: `id`, `email`, `nickname`, `avatar_url`, `provider`, `reading_alarm_time`, `reading_alarm_enabled`, `role(default 'member')`, `created_at`, `updated_at`. 자기 행은 RLS(REQ-DB-014)로 전체 컬럼 조회/수정 허용
   - `user_profiles` 보안 뷰 (SPEC-DB-001 REQ-DB-013e) — `SELECT id, nickname, avatar_url FROM users`. 타인 공개 프로필 노출용. 본 SPEC은 **자기 프로필**이 주 대상이며, 타인 노출은 Track A(SPEC-CLUB-001)에서 처리
-  - `point_logs` (SPEC-DB-001 REQ-DB-011) — 포인트 적립/사용 내역. 컬럼: `id`, `user_id`, `amount`, `reason(ENUM completion/reaction/exchange)`, `ref_id`, `created_at`. MVP **조회 전용**, 사용(exchange) 로직은 후순위
+  - `point_logs` (SPEC-DB-001 REQ-DB-011) — 포인트 적립/사용 내역. 컬럼: `id`, `user_id`, `amount`, `reason(ENUM completion/reaction/exchange)`, `created_at`. MVP **조회 전용**, 사용(exchange) 로직은 후순위. **Note**: `ref_id` 컬럼은 실제 스키마에 존재하지 않음 (sync 단계 DB 실제 코드 기준 정정)
   - `reading_sessions` (SPEC-DB-001 REQ-DB-009) — 독서 세션 로그. `duration_seconds`, `pages_read`. 누적 독서 시간 집계원
   - `emotion_records` (SPEC-DB-001 REQ-DB-004) — 감정 기록. 감정 기록 수 집계원
   - `user_books` (SPEC-DB-001 REQ-DB-003) — 서재. `status='completed'` 행 수 = 완독 수 집계원
@@ -67,6 +68,13 @@ labels: [profile, stats, reward, badges, settings, supabase, phase-4]
 ## 2. 가정 (Assumptions)
 
 ### 2.1 아키텍처 가정
+
+**Note**: 본 섹션의 일부 가정은 실제 구현과 다릅니다. DB 실제 스키마/코드 기준으로 정정됨 (sync 2026-06-20):
+- 가정 2.1.1: 통계 집계는 **하이브리드** 방식 (COUNT는 head:true, SUM은 클라이언트 JS)
+- 가정 2.1.2: point_logs.ref_id는 실제 스키마에 존재하지 않음
+- 가정 2.1.3: 배지는 종류별이 아닌 **총건수** 기반 (emotion_records에 종류 컬럼 없음)
+- 화면 경로는 `app/(tabs)/profile/`이 아닌 `app/(tabs)/my.tsx` (실제 구현)
+- auth/types.ts UserProfile은 auth 전용이며, Profile 도메인은 별도 Profile 타입 사용
 
 1. **독서 통계는 실시간 집계 쿼리로 산출**: 별도 캐시/집계 테이블(`user_stats` 등)을 두지 않는다. `GET /users/{id}/stats` 요청 시 `reading_sessions`(누적 `duration_seconds` SUM), `emotion_records`(본인 기록 COUNT), `user_books`(`status='completed'` COUNT)를 PostgREST 집계 쿼리로 산출한다. MVP 규모(product.md "니치 시장 집중")에서는 실시간 집계 비용이 허용 범위 내이다. 캐싱 전략은 미결정 5.2로 연기.
 2. **포인트 내역은 MVP 조회 전용**: `GET /users/{id}/points`는 `point_logs` SELECT만 수행한다. 포인트 차감/사용(exchange reason) 로직은 product.md 수익화 전략 "포인트 사용 후순위"에 따라 본 SPEC 범위 밖이다. `point_logs` INSERT는 서버 측(`service_role` 또는 SECURITY DEFINER 트리거)에서만 발생하며, 완독(completion)/스티커 반응(reaction) 시 자동 적립된다 (적립 트리거는 SPEC-DB-001 영역이 아닌 각 도메인 SPEC에서 처리).
@@ -148,7 +156,7 @@ labels: [profile, stats, reward, badges, settings, supabase, phase-4]
 #### REQ-PROF-006: 포인트 내역 조회 (MVP 조회 전용)
 
 **WHEN** 인증된 사용자가 마이페이지 포인트 내역 섹션을 조회하면,
-**THEN** 시스템은 RLS 정책(REQ-DB-021 — `auth.uid()=user_id`)에 의해 자기 `point_logs` 행을 `created_at DESC` 순으로 반환해야 한다. 각 행은 `amount`, `reason(ENUM completion/reaction/exchange)`, `ref_id`, `created_at`을 포함한다.
+**THEN** 시스템은 RLS 정책(REQ-DB-021 — `auth.uid()=user_id`)에 의해 자기 `point_logs` 행을 `created_at DESC` 순으로 반환해야 한다. 각 행은 `amount`, `reason(ENUM completion/reaction/exchange)`, `created_at`을 포함한다.
 
 **WHILE** 포인트 내역을 구성할 때,
 **THEN** 시스템은 `amount`의 합계(잔여 포인트)를 표시해야 한다. MVP에서 `reason='exchange'` 행은 존재하지 않으나 (가정 2.2.2), ENUM은 전방향 호환을 위해 유지된다.
@@ -158,10 +166,10 @@ labels: [profile, stats, reward, badges, settings, supabase, phase-4]
 #### REQ-PROF-007: 성취 배지 시각화 (클라이언트 산정)
 
 **WHERE** 마이페이지 배지 섹션이 존재하면,
-**THEN** 시스템은 REQ-PROF-004 통계 데이터와 REQ-PROF-006 포인트 reason별 집계를 기반으로 배지 획득 여부를 클라이언트 측에서 산정해야 한다 (가정 2.1.3 — 별도 테이블 없음). 배지 카테고리 예시:
+**THEN** 시스템은 REQ-PROF-004 통계 데이터와 REQ-PROF-006 포인트 reason별 집계를 기반으로 배지 획득 여부를 클라이언트 측에서 산정해야 한다 (가정 2.1.3 — 별도 테이블 없음). **Note**: emotion_records 테이블에 감정 종류 컬럼이 없으므로 감정 배지는 총 누적 수 기준만 산정 가능. 배지 카테고리 예시:
 - **완독 배지**: 완독 수 기준 (예: 1권, 5권, 10권 — thresholds는 미결정 5.1)
 - **연속 독서 배지**: 연속 독서일 기준 (예: 7일, 30일 — 산정 로직은 미결정 5.4)
-- **감정 기록 배지**: 감정 기록 수 기준 (예: 10개, 50개, 100개)
+- **감정 기록 배지**: 감정 기록 **총 수** 기준 (예: 10개, 50개, 100개). 종류별 배지는 DB 스키마 제한으로 불가
 - **포인트 배지**: 포인트 reason별 집계 기준 (completion 횟수, reaction 받은 횟수)
 
 **IF** 사용자가 배지 기준을 충족하면,
