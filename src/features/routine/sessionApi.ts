@@ -120,9 +120,10 @@ export async function endSession(
 ): Promise<void> {
   const client = getSupabaseClient();
 
-  const args: { p_session_id: string; p_pages_read: number | null } = {
+  // p_pages_read 는 optional — undefined 전달 시 RPC DEFAULT NULL 적용 (gen-types 시그니처 p_pages_read?: number 준수).
+  const args: { p_session_id: string; p_pages_read?: number } = {
     p_session_id: sessionId,
-    p_pages_read: pagesRead ?? null,
+    ...(pagesRead !== undefined ? { p_pages_read: pagesRead } : {}),
   };
 
   let result: { error: unknown };

@@ -120,7 +120,7 @@ describe('SPEC-ROUTINE-001 REQ-ROUT-001/002: sessionApi (RPC)', () => {
   });
 
   describe('endSession — REQ-ROT-002', () => {
-    it('R4/R5: pagesRead 미전달 시 p_pages_read=null 로 end_reading_session RPC 호출', async () => {
+    it('R4/R5: pagesRead 미전달 시 p_pages_read 생략 (RPC DEFAULT NULL 적용)', async () => {
       const { rpc } = createRpcMock({ data: null, error: null });
       (getSupabaseClient as jest.Mock).mockReturnValue({ rpc });
 
@@ -129,7 +129,6 @@ describe('SPEC-ROUTINE-001 REQ-ROUT-001/002: sessionApi (RPC)', () => {
       expect(rpc).toHaveBeenCalledTimes(1);
       expect(rpc).toHaveBeenCalledWith('end_reading_session', {
         p_session_id: 'session-A',
-        p_pages_read: null,
       });
     });
 

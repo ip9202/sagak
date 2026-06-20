@@ -120,10 +120,13 @@ VALUES ('00000000-0000-0000-0000-000000000030',
 SET ROLE authenticated;
 SELECT set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-000000000001","role":"authenticated"}', false);
 
--- user A 가 user B 세션 종료 시도
+-- user A 가 user B 세션 종료 시도 (user_id 불일치 → WHERE user_id=auth.uid() 가 0행 → 차단)
 SELECT end_reading_session('00000000-0000-0000-0000-000000000030', NULL);
 
--- R3: user B 세션은 ended_at 여전히 NULL (수정 안 됨)
+-- R3: user B 세션은 ended_at 여전히 NULL (RPC 가 user_id=auth.uid() 가드로 차단).
+-- @MX:NOTE: [AUTO] 검증은 RESET ROLE(postgres, RLS 우회)로 수행해야 한다 — authenticated(user A) 로
+-- 조회하면 RLS 가 user B 행을 숨겨 서브쿼리가 0행이 되어 ended_at IS NULL 결과가 NULL 이 된다.
+RESET ROLE;
 SELECT is(
     (SELECT ended_at IS NULL FROM reading_sessions
       WHERE id = '00000000-0000-0000-0000-000000000030'),
