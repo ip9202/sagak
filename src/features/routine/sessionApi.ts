@@ -72,7 +72,7 @@ export async function startSession(bookId: string): Promise<void> {
         .from('reading_sessions')
         .update({
           ended_at: new Date().toISOString(),
-          duration_seconds: DURATION_EXPRESSION,
+          duration_seconds: DURATION_EXPRESSION as unknown as number,
         })
         .eq('id', active.id);
       endResult = await updateChain;
@@ -84,13 +84,12 @@ export async function startSession(bookId: string): Promise<void> {
     }
   }
 
-  // 3) 새 세션 INSERT — user_id/started_at 은 DB 기본값/RLS 컨텍스트
+  // 3) 새 세션 INSERT — user_id/started_at 은 DB 기본값/RLS 컨텍스트가 채운다.
+  // TS Insert 타입은 user_id 를 요구하지만, RLS 가 auth.uid() 를 주입하므로 클라이언트는 생략한다.
   let insertResult: { error: unknown };
   try {
-    const insertChain = client.from('reading_sessions').insert({
-      book_id: bookId,
-      ended_at: null,
-    });
+    const insertPayload = { book_id: bookId, ended_at: null } as never;
+    const insertChain = client.from('reading_sessions').insert(insertPayload);
     insertResult = await (insertChain as unknown as Promise<{ error: unknown }>);
   } catch (error) {
     throw normalizeError(error);
@@ -120,11 +119,11 @@ export async function endSession(
 
   const update: {
     ended_at: string;
-    duration_seconds: string;
+    duration_seconds: number;
     pages_read?: number;
   } = {
     ended_at: new Date().toISOString(),
-    duration_seconds: DURATION_EXPRESSION,
+    duration_seconds: DURATION_EXPRESSION as unknown as number,
   };
   if (pagesRead !== undefined) {
     update.pages_read = pagesRead;

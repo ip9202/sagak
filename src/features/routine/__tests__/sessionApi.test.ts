@@ -50,13 +50,8 @@ function createChainableMock(
   builder.update = jest.fn(returnBuilder);
   builder.insert = jest.fn(returnBuilder);
   builder.maybeSingle = jest.fn().mockResolvedValue(terminal);
-  // update/insert 체인의 최종 await 결과
-  builder.then = undefined;
   // update/insert/eq/is/... 의 최종 resolve — PostgREST 는 await 시 {data,error} 반환
   // maybeSingle/single 이 붙지 않은 체인도 await 가능해야 함
-  const awaitable = Promise.resolve(terminal);
-  // builder 자체를 thenable 로 만들기 — 하지만 jest.Mock 은 then 을 가질 수 없으므로
-  // 별도 proxy 대신, 최종 호출에서 thenable 반환하도록 insert/update 에 한해 처리
   return builder;
 }
 
