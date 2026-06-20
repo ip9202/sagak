@@ -17,7 +17,10 @@
     ],
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.sagak.app"
+      "bundleIdentifier": "com.sagak.app",
+      "infoPlist": {
+        "NSUserNotificationsUsageDescription": "읽기 시간 알림과 모임 소식을 받기 위해 알림 권한이 필요합니다."
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -40,7 +43,8 @@
       ],
       "expo-secure-store",
       "expo-font",
-      "expo-web-browser"
+      "expo-web-browser",
+      "expo-notifications"
     ]
   }
 }
