@@ -48,6 +48,16 @@ jest.mock('../../../src/auth/useSession', () => ({
   useSession: jest.fn(),
 }));
 
+// SPEC-PROFILE-001: my.tsx 가 통계/포인트 훅을 호출 — 렌더링 분기 테스트용 stub.
+// (실제 데이터 검증은 my-profile.test.tsx 가 담당)
+jest.mock('../../../src/features/profile', () => ({
+  useUserStats: jest.fn(() => ({ data: undefined })),
+  usePointLogs: jest.fn(() => ({ data: [] })),
+  computeBadges: jest.fn(() => []),
+  StatCard: () => null,
+  BadgeCard: () => null,
+}));
+
 import { useSession } from '../../../src/auth/useSession';
 import MyTab from '../my';
 
