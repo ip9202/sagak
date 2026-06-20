@@ -8,7 +8,8 @@
  *
  * @MX:NOTE: [AUTO] idempotency ref — re-render 시 중복 등록 방지. StrictMode(double-invoke) 대비.
  * @MX:NOTE: [AUTO] silent failure — registerForPush/registerPushToken throw 시 catch+swallow.
- *   알림 센터(REQ-NOTIF-005~008)는 푸시 등록 실패와 무관하게 동작한다.
+ *   PROD: 완전 silent (REQ-NOTIF-001/002 silent failure). DEV: __DEV__ 게이트로 console.warn 출력해
+ *   프로그래밍 버그 가시성 확보. 알림 센터(REQ-NOTIF-005~008)는 푸시 등록 실패와 무관하게 동작한다.
  * @MX:SPEC SPEC-NOTIF-001
  */
 import { useEffect, useRef } from 'react';
@@ -43,8 +44,12 @@ export function usePushTokenRegistration(): void {
           return;
         }
         await registerPushToken(token);
-      } catch {
-        // silent swallow — 알림 센터 unaffected
+      } catch (error) {
+        // PROD silent swallow — 알림 센터 unaffected (REQ-NOTIF-001/002 silent failure).
+        // DEV 에서는 console.warn 으로 프로그래밍 버그(예: mock 누락, 권한 race) 가시성 확보.
+        if (__DEV__) {
+          console.warn('[usePushTokenRegistration] 푸시 등록 실패:', error);
+        }
       }
     })();
   }, [session]);

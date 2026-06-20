@@ -109,4 +109,46 @@ describe('SPEC-NOTIF-001 REQ-NOTIF-001~003: usePushTokenRegistration', () => {
     // 에러가 swallow 되었으므로 테스트 통과 = throw 가 밖으로 새어나가지 않음
     expect(mockRegisterToken).toHaveBeenCalled();
   });
+
+  it('registerForPush throw 시 __DEV__===true 면 console.warn 호출', async () => {
+    const originalDev = (global as unknown as { __DEV__?: boolean }).__DEV__;
+    (global as unknown as { __DEV__?: boolean }).__DEV__ = true;
+    const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => undefined);
+    mockSessionReturn = { isAuthenticated: true, loading: false };
+    mockRegisterForPush.mockRejectedValue(new Error('permission race'));
+    mockRegisterToken.mockResolvedValue(undefined);
+
+    try {
+      renderHook(() => usePushTokenRegistration());
+      await flushPromises();
+
+      // DEV 모드에서는 프로그래밍 버그 가시성 확보를 위해 warn 출력
+      expect(warnSpy).toHaveBeenCalled();
+      expect(warnSpy.mock.calls[0]?.[0]).toContain('usePushTokenRegistration');
+    } finally {
+      warnSpy.mockRestore();
+      (global as unknown as { __DEV__?: boolean }).__DEV__ = originalDev;
+    }
+  });
+
+  it('registerPushToken throw 시 __DEV__===false 면 console.warn 미호출 (silent)', async () => {
+    const originalDev = (global as unknown as { __DEV__?: boolean }).__DEV__;
+    (global as unknown as { __DEV__?: boolean }).__DEV__ = false;
+    const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => undefined);
+    mockSessionReturn = { isAuthenticated: true, loading: false };
+    mockRegisterForPush.mockResolvedValue('ExponentPushToken[t1]');
+    mockRegisterToken.mockRejectedValue(new Error('rls denied'));
+
+    try {
+      renderHook(() => usePushTokenRegistration());
+      await flushPromises();
+
+      // PROD 에서는 완전 silent — 알림 센터 unaffected (REQ-NOTIF-001/002 silent failure)
+      expect(mockRegisterToken).toHaveBeenCalled();
+      expect(warnSpy).not.toHaveBeenCalled();
+    } finally {
+      warnSpy.mockRestore();
+      (global as unknown as { __DEV__?: boolean }).__DEV__ = originalDev;
+    }
+  });
 });

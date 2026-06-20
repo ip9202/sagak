@@ -79,4 +79,69 @@ describe('SPEC-NOTIF-001 REQ-NOTIF-004: useNotificationResponse', () => {
 
     expect(MockControl.getResponseListeners()).toHaveLength(0);
   });
+
+  // --- malformed notification data 방어 가드 (evaluator S2 + branch coverage) ---
+
+  it('content.data === undefined(페이로드 누락) 시 NOTIFICATION_CENTER_ROUTE 폴백', () => {
+    renderHook(() => useNotificationResponse());
+
+    // data 키 자체가 없는 알림 — guard 의 data ?? {} 분기
+    MockControl.emitNotificationResponse({
+      notification: {
+        request: {
+          content: {},
+        },
+      },
+    });
+
+    expect(mockRouterReplace).toHaveBeenCalledWith('/my/notifications');
+  });
+
+  it('content.data.type 이 문자열이 아닌(number 123) 경우 센터 폴백 (guard 가 non-string type 거부)', () => {
+    renderHook(() => useNotificationResponse());
+
+    MockControl.emitNotificationResponse({
+      notification: {
+        request: {
+          // type 을 number 로 변조 — typeof data.type === 'string' 가드가 reject
+          content: { data: { type: 123, ref_id: 'r1' } },
+        },
+      },
+    });
+
+    expect(mockRouterReplace).toHaveBeenCalledWith('/my/notifications');
+  });
+
+  it('content.data.ref_id === null(또는 누락) + 유효 type 시 routeForNotification(type, null) 경로로 라우팅', () => {
+    renderHook(() => useNotificationResponse());
+
+    // join_request_received + null refId → routeMapper 가 /host-requests (null-refId 폴백) 반환.
+    // 본 테스트는 routeMapper 실제 동작(routeMapper.ts line 41-45)에 의존 — lesson #3: 실제 서명 검증.
+    MockControl.emitNotificationResponse({
+      notification: {
+        request: {
+          content: { data: { type: 'join_request_received', ref_id: null } },
+        },
+      },
+    });
+
+    // routeForNotification('join_request_received', null) === '/host-requests' (null-refId 폴백)
+    expect(mockRouterReplace).toHaveBeenCalledWith('/host-requests');
+  });
+
+  it('유효 type 이지만 refId null 시 null 반환하는 type(reading_reminder)은 센터 폴백', () => {
+    renderHook(() => useNotificationResponse());
+
+    // reading_reminder + null refId → routeMapper 가 null 반환 → 센터 폴백.
+    // routeForNotification('reading_reminder', null) === null (routeMapper.ts line 37-39)
+    MockControl.emitNotificationResponse({
+      notification: {
+        request: {
+          content: { data: { type: 'reading_reminder', ref_id: null } },
+        },
+      },
+    });
+
+    expect(mockRouterReplace).toHaveBeenCalledWith('/my/notifications');
+  });
 });
