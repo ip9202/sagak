@@ -2,14 +2,16 @@
 id: SPEC-NOTIF-001
 title: "푸시 알림 및 알림 센터 — 구현 계획"
 version: "1.0.0"
-status: draft
+status: implemented
 created: 2026-06-14
-updated: 2026-06-14
+updated: 2026-06-21
 author: "강력쇠주먹"
 priority: medium
 issue_number: 0
 labels: [notif, push, expo-push, notification-center, edge-function, supabase, phase-4, plan]
 ---
+
+> **업데이트 (2026-06-21)**: Optional Goal (3순위) 구현 완료. PR #38에서 REQ-NOTIF-001~004 (Expo Push Token 획득·권한·서버 등록·포그라운드 핸들러) 병격. 4개 신규 소스 파일(`registerToken.ts`, `registerForPush.ts`, `usePushTokenRegistration.ts`, `useNotificationResponse.ts`) + 4개 테스트 + mock 추가. tsc 0 errors, jest 1136/1136 pass, lint 0 errors, TRUST 5 5/5. Primary Goal (CENTER/SEND)는 PR #34에서 이미 완료됨.
 
 # SPEC-NOTIF-001: 구현 계획 (plan.md)
 
@@ -92,6 +94,13 @@ labels: [notif, push, expo-push, notification-center, edge-function, supabase, p
 - 미결정 사항 3건이 해결 상태로 업데이트된다
 
 **의존성 완료 조건**: Secondary Goal 완료, 실기기 테스트 환경(Expo Go 또는 development build)
+
+**구현 완료 (2026-06-21 PR #38)**:
+- 4개 신규 소스 파일 구현 완료: `registerToken.ts`, `registerForPush.ts`, `usePushTokenRegistration.ts`, `useNotificationResponse.ts`
+- 4개 테스트 파일 + mock 추가
+- 자동화 검증 N1(token 성공), N2(token 실패 silent), N5(서버 등록), N8(탭 라우팅) 통과
+- 수동 검증 N3(권한 허용), N4(권한 거부), N7(포그라운드 수신) 대기 중 (실기기 필요)
+- TRUST 5 5/5, tsc 0 errors, jest 1136/1136 pass, lint 0 errors
 
 ---
 

@@ -210,12 +210,13 @@ Phase 5 (배포)
 #### SPEC-NOTIF-001: 푸시 알림 및 알림 센터
 - **도메인**: NOTIF
 - **우선순위**: medium
-- **상태**: ✅ 구현 완료 (9/13 REQ — Primary 알림 센터 + Secondary Edge Function, PR #34 5db38e7, 2026-06-20; Optional 4개[Expo Push 실기기] 후속)
+- **상태**: ✅ 구현 완료 (13/13 REQ — Primary/Secondary/Optional 모두 완료. PR #34 5db38e7 (Primary/Secondary, 2026-06-20) + PR #38 8f532d6 (Optional Expo Push, 2026-06-21))
 - **핵심 범위**: Expo Push Notifications 통합(토큰 관리), 알림 센터(`notifications` 테이블 읽음 처리), 알림 타입별 처리(reading_reminder/join_request_received/join_accepted/sticker_received/completion/club_signal), 알림 설정 UI, `send-notification` Edge Function
 - **DB 엔터티**: `notifications`
 - **API/Edge Function**: `/users/{id}/notifications`, `send-notification` Edge Function
 - **의존성**: SPEC-API-001, SPEC-AUTH-001(토큰-사용자 매핑)
-- **구현 산출물**: `src/features/notification/*.ts`, 알림 센터 화면, `supabase/functions/send-notification/`
+- **구현 산출물**: `src/features/notification/*.ts` (13 modules), 알림 센터 화면, `supabase/functions/send-notification/`
+- **검증 상태**: 자동화 N1/N2/N5/N8 통과, 수동 N3/N4/N7 대기 중 (실기기, dev client 재빌드 필요)
 - **제외**: SMS/이메일 채널, 마케팅 푸시
 
 #### SPEC-PROFILE-001: 마이페이지, 통계 및 보상
