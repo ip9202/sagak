@@ -44,11 +44,15 @@ export function usePushTokenRegistration(): void {
           return;
         }
         await registerPushToken(token);
-      } catch (error) {
+      } catch {
         // PROD silent swallow — 알림 센터 unaffected (REQ-NOTIF-001/002 silent failure).
         // DEV 에서는 console.warn 으로 프로그래밍 버그(예: mock 누락, 권한 race) 가시성 확보.
+        // @MX:WARN: [AUTO] 토큰 누출 방지 — error 객체/필드 어느 것도 직렬화 금지.
+        //   @MX:REASON: expert-security M2 — PostgREST constraint 위반 메시지(error.message 포함)가
+        //   push_token 값을 echo 할 수 있어, error 파생 어떤 문자열도 warn 하면 DEV Metro/Flipper
+        //   로그에 토큰이 노출된다. 정적 메시지만 출력한다 (상세는 DEV 도구에서 수동 추적).
         if (__DEV__) {
-          console.warn('[usePushTokenRegistration] 푸시 등록 실패:', error);
+          console.warn('[usePushTokenRegistration] 푸시 등록 실패 (자세한 내용은 디버거 확인)');
         }
       }
     })();

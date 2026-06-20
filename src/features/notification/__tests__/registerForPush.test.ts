@@ -9,6 +9,7 @@
  * @MX:SPEC SPEC-NOTIF-001
  */
 import { Platform } from 'react-native';
+import Constants from 'expo-constants';
 // jest.config.js moduleNameMapper 가 expo-notifications 를 본 __mocks__ 로 매핑.
 // 실제 코드가 쓰는 import 경로 그대로 import 하면 자동으로 mock 이 주입된다.
 import * as Notifications from 'expo-notifications';
@@ -95,5 +96,45 @@ describe('SPEC-NOTIF-001 REQ-NOTIF-001/002: registerForPushNotifications', () =>
     const channelIndex = (Notifications.setNotificationChannelAsync as jest.Mock).mock.invocationCallOrder[0];
     const tokenIndex = (Notifications.getExpoPushTokenAsync as jest.Mock).mock.invocationCallOrder[0];
     expect(channelIndex).toBeLessThan(tokenIndex);
+  });
+
+  it('W1: __DEV__에서 projectId 누락 시 console.warn 호출 (EAS 설정 누락 가시성)', async () => {
+    setPlatform('ios');
+    const originalDev = (global as unknown as { __DEV__?: boolean }).__DEV__;
+    (global as unknown as { __DEV__?: boolean }).__DEV__ = true;
+    const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => undefined);
+    MockControl.setPermissionResponse({
+      status: 'granted',
+      granted: true,
+      canAskAgain: true,
+      expires: 'never',
+    });
+    MockControl.setTokenResult({ type: 'expo', data: 'ExponentPushToken[noProjectId]' });
+
+    // expoConfig.extra.eas 누락 상황 시뮬레이션
+    const original = Constants.expoConfig;
+    Object.defineProperty(Constants, 'expoConfig', {
+      value: { extra: {} },
+      configurable: true,
+    });
+
+    try {
+      const token = await registerForPushNotifications();
+
+      // silent-failure 반환 동작은 유지 (요구사항: 동작 변경 금지)
+      expect(token).toBe('ExponentPushToken[noProjectId]');
+      // DEV 경고가 발생해야 함
+      expect(warnSpy).toHaveBeenCalled();
+      const serialized = warnSpy.mock.calls.map((c) => c.join(' ')).join('\n');
+      expect(serialized).toContain('projectId');
+      expect(serialized).toContain('registerForPush');
+    } finally {
+      warnSpy.mockRestore();
+      (global as unknown as { __DEV__?: boolean }).__DEV__ = originalDev;
+      Object.defineProperty(Constants, 'expoConfig', {
+        value: original,
+        configurable: true,
+      });
+    }
   });
 });

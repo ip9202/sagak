@@ -30,11 +30,19 @@ describe('SPEC-NOTIF-001 REQ-NOTIF-004: useNotificationResponse', () => {
     mockRouterReplace.mockClear();
   });
 
-  it('setNotificationHandler 가 handleNotification → shouldShowAlert:true 로 1회 등록', async () => {
-    renderHook(() => useNotificationResponse());
+  it('W2: setNotificationHandler 가 모듈 로드 시(import) 1회 등록 — Fast Refresh 안전', async () => {
+    // handler 는 이제 module scope 에서 import 시 1회 등록된다 (effect lifecycle 에서 분리).
+    // resetModules 로 fresh registry 를 만들고 동일 registry 의 mock 을 require 해서 검증.
+    jest.resetModules();
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const freshNotifications = require('expo-notifications') as typeof Notifications;
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const freshMockControl = require('./__mocks__/expo-notifications') as typeof MockControl;
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    require('../useNotificationResponse');
 
-    expect(Notifications.setNotificationHandler).toHaveBeenCalledTimes(1);
-    const handler = MockControl.getNotificationHandler() as {
+    expect(freshNotifications.setNotificationHandler).toHaveBeenCalledTimes(1);
+    const handler = freshMockControl.getNotificationHandler() as {
       handleNotification: () => Promise<{ shouldShowAlert: boolean }>;
     };
     expect(handler).not.toBeNull();

@@ -131,6 +131,40 @@ describe('SPEC-NOTIF-001 REQ-NOTIF-001~003: usePushTokenRegistration', () => {
     }
   });
 
+  it('M2: registration reject 시 warn 인자는 정적 문자열만 (error 파생 값/토큰 누출 방지)', async () => {
+    // expert-security M2: PostgREST constraint 위반 메시지(error.message 포함)가 push_token 값을
+    // echo 할 수 있으므로, warn 에 error 파생 어떤 값도 전달해선 안 된다 (DEV Metro/Flipper 로그).
+    // 구현은 정적 메시지 1개만 인자로 전달해야 한다.
+    const SECRET_TOKEN = 'ExponentPushToken[leak_secret_xyz_987]';
+    const originalDev = (global as unknown as { __DEV__?: boolean }).__DEV__;
+    (global as unknown as { __DEV__?: boolean }).__DEV__ = true;
+    const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => undefined);
+    mockSessionReturn = { isAuthenticated: true, loading: false };
+    // 토큰을 message 에 echo 하는 PostgREST 형태의 에러 시뮬레이션
+    mockRegisterForPush.mockRejectedValue(
+      new Error(`duplicate key value violates unique constraint: (${SECRET_TOKEN})`),
+    );
+    mockRegisterToken.mockResolvedValue(undefined);
+
+    try {
+      renderHook(() => usePushTokenRegistration());
+      await flushPromises();
+
+      expect(warnSpy).toHaveBeenCalledTimes(1);
+      const callArgs = warnSpy.mock.calls[0] ?? [];
+      // 정확히 1개의 string 인자만 전달되어야 한다 (원본 객체/추가 인자 금지)
+      expect(callArgs).toHaveLength(1);
+      expect(typeof callArgs[0]).toBe('string');
+      const serialized = callArgs.map((arg) => String(arg)).join(' ');
+      // 토큰 문자열이 어떤 형태로든 포함되어선 안 된다
+      expect(serialized).not.toContain(SECRET_TOKEN);
+      expect(serialized).toContain('usePushTokenRegistration');
+    } finally {
+      warnSpy.mockRestore();
+      (global as unknown as { __DEV__?: boolean }).__DEV__ = originalDev;
+    }
+  });
+
   it('registerPushToken throw 시 __DEV__===false 면 console.warn 미호출 (silent)', async () => {
     const originalDev = (global as unknown as { __DEV__?: boolean }).__DEV__;
     (global as unknown as { __DEV__?: boolean }).__DEV__ = false;

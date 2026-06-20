@@ -42,6 +42,14 @@ export async function registerForPushNotifications(): Promise<string | null> {
 
   // REQ-NOTIF-001: 토큰 획득. projectId 명시 전달 (EAS Build 환경 일관성).
   const projectId = Constants.expoConfig?.extra?.eas?.projectId as string | undefined;
+  // manager-quality W1: DEV 전용 가시성 경고 — projectId 누락 시 Expo Push 서버가 400 응답하며
+  // 토큰 획득이 silent 실패하므로, 개발자가 EAS 설정 누락을 즉시 인지하도록 warn 출력.
+  // silent-failure 반환 동작은 변경하지 않는다 (PROD silent 유지).
+  if (__DEV__ && !projectId) {
+    console.warn(
+      '[registerForPush] expoConfig.extra.eas.projectId 누락 — 토큰 획득이 실패할 수 있습니다.',
+    );
+  }
   try {
     const tokenRes = await Notifications.getExpoPushTokenAsync(
       projectId ? { projectId } : undefined,
