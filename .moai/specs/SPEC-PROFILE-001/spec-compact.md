@@ -1,10 +1,10 @@
 ---
 id: SPEC-PROFILE-001
 title: "마이페이지, 통계 및 보상 — Compact"
-version: "1.0.0"
+version: "1.0.1"
 status: draft
 created: 2026-06-14
-updated: 2026-06-14
+updated: 2026-06-20
 author: "강력쇠주먹"
 priority: medium
 issue_number: 0
@@ -62,8 +62,8 @@ labels: [profile, stats, reward, badges, settings, supabase, phase-4, compact]
 
 | REQ | 요약 |
 |-----|------|
-| REQ-PROF-006 | `GET /users/{id}/points`로 point_logs 최신순 조회 (RLS 본인만). 잔여 포인트 합계 표시. MVP 조회 전용(클라이언트 INSERT 불가) |
-| REQ-PROF-007 | 배지 클라이언트 측 산정(별도 테이블 없음). 통계+포인트 reason 집계 기반. thresholds 임시값(완독 1/5/10권, 연속 3/7/30일, 감정 10/50/100개). 획득(컬러)/잠김(그레이스케일) 시각화 |
+| REQ-PROF-006 | `GET /users/{id}/points`로 point_logs 최신순 조회 (RLS 본인만). 잔여 포인트 합계 표시. MVP 조회 전용(클라이언트 INSERT 불가). Note: `ref_id` 컬럼은 실제 스키마에 없음 |
+| REQ-PROF-007 | 배지 클라이언트 측 산정(별도 테이블 없음). 통계+포인트 reason 집계 기반. thresholds 임시값(완독 1/5/10권, 연속 3/7/30일, 감정 **총수** 10/50/100개). 종류별 배지는 DB 제한으로 불가. 획득(컬러)/잠김(그레이스케일) 시각화 |
 | REQ-PROF-008 | 설정 진입점: 알림 설정(SPEC-NOTIF-001 이동), 공개 범위(진입점만, SPEC-EMOTION-001), 이용약관·개인정보 처리방침(링크/플레이스홀더), 로그아웃(SPEC-AUTH-001 signOut 호출) |
 
 ## 핵심 가정

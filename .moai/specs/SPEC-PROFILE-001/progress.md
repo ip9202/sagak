@@ -14,3 +14,11 @@
   - 화면: app/(tabs)/my.tsx 이미 존재 (plan.md의 profile/ 경로와 불일치 → my.tsx 우선)
   - 테스트: jest-expo, jest.mock supabase client, @testing-library/react-native, QueryClientProvider wrapper
 - Path discrepancy noted: plan.md `app/(tabs)/profile/` vs actual `app/(tabs)/my.tsx` → strategy에서 실제 코드 기준 정립
+- Phase 1 complete: manager-strategy 전략 분석 (SPEC↔코드 불일치 4건 발견 — ref_id 미존재/UserProfile 필드 부족/감정 종류별 배지 불가/경로 profile/→my/, Decision A-E 확정)
+- Decision Point 1: 사용자 승인 (추천 전략 + DB 코드 우선·sync에서 SPEC 정정)
+- Phase 1.5-1.8 complete: tasks.md (9 TDD 사이클 + RLS), feature/SPEC-PROFILE-001-mypage 브랜치 생성
+- Phase 2 complete: manager-tdd TDD 구현 — 13 신규 + 3 수정 파일, 46 신규 테스트
+- Phase 2.5 complete: 품질 게이트 통과 — tsc 0 에러 / lint exit 0 / jest 1110/1110 (회귀 없음) / coverage 98.82% lines · 81.81% branches. queries.ts catch 분기 테스트 직접 보강. evaluator-active COMMIT_OK (critical 결함 0, warning 2: streak=0·RLS 통합테스트 pgTAP 인프라 부재)
+- Phase 3 complete: commit 4034a1a (23 파일 +2285), PR #36 feature→develop OPEN, local==origin 검증 완료, working tree clean
+- /moai run scope 완료 (PR 생성 종료). Post-PR 수동: review → fix → merge(squash) → branch delete → /moai sync SPEC-PROFILE-001
+- 2026-06-20: PR #36 squash-merged (commit e616614). Sync 시작 — SPEC 정정 5건(ref_id 제거, 감정 배지 총건수, 경로 my/, Profile 타입, 하이브리드 집계)
