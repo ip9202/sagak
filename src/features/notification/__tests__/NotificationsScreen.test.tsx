@@ -23,6 +23,25 @@ jest.mock('../queries', () => ({
   markAllNotificationsRead: jest.fn(),
 }));
 
+// @MX:NOTE: [AUTO] SPEC-NOTIF-001 Optional: barrel 이 registerToken(registerForPush/usePushTokenRegistration)
+//   을 추가하면서 supabase/client → storageAdapter → AsyncStorage 네이티브 의존성이 평가된다.
+//   본 화면 테스트는 UI 동작만 검증하므로 스토리지 어댑터/secure-store 를 no-op 로 mock.
+jest.mock('@react-native-async-storage/async-storage', () => ({
+  default: {
+    getItem: jest.fn(),
+    setItem: jest.fn(),
+    removeItem: jest.fn(),
+    clear: jest.fn(),
+  },
+}));
+jest.mock('expo-secure-store', () => ({
+  default: {
+    getItemAsync: jest.fn(),
+    setItemAsync: jest.fn(),
+    deleteItemAsync: jest.fn(),
+  },
+}));
+
 // expo-router router mock
 jest.mock('expo-router', () => ({ router: { push: jest.fn() } }));
 

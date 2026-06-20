@@ -25,3 +25,9 @@ export {
 export { useUnreadCount, UNREAD_COUNT_KEY } from './useUnreadCount';
 export { useMarkAsRead } from './useMarkAsRead';
 export { useMarkAllAsRead } from './useMarkAllAsRead';
+
+// SPEC-NOTIF-001 Optional (REQ-NOTIF-001~004): client Expo Push integration
+export { registerPushToken } from './registerToken';
+export { registerForPushNotifications } from './registerForPush';
+export { usePushTokenRegistration } from './usePushTokenRegistration';
+export { useNotificationResponse } from './useNotificationResponse';
