@@ -346,31 +346,34 @@ export type Database = {
         Row: {
           body: string
           created_at: string
+          data: Json | null
           id: string
           is_read: boolean | null
           ref_id: string | null
           title: string
-          type: string
+          type: Database["public"]["Enums"]["notification_type"]
           user_id: string
         }
         Insert: {
           body: string
           created_at?: string
+          data?: Json | null
           id?: string
           is_read?: boolean | null
           ref_id?: string | null
           title: string
-          type: string
+          type: Database["public"]["Enums"]["notification_type"]
           user_id: string
         }
         Update: {
           body?: string
           created_at?: string
+          data?: Json | null
           id?: string
           is_read?: boolean | null
           ref_id?: string | null
           title?: string
-          type?: string
+          type?: Database["public"]["Enums"]["notification_type"]
           user_id?: string
         }
         Relationships: [
@@ -599,6 +602,7 @@ export type Database = {
           id: string
           nickname: string | null
           provider: string
+          push_token: string | null
           reading_alarm_enabled: boolean | null
           reading_alarm_time: string | null
           role: string | null
@@ -611,6 +615,7 @@ export type Database = {
           id?: string
           nickname?: string | null
           provider: string
+          push_token?: string | null
           reading_alarm_enabled?: boolean | null
           reading_alarm_time?: string | null
           role?: string | null
@@ -623,6 +628,7 @@ export type Database = {
           id?: string
           nickname?: string | null
           provider?: string
+          push_token?: string | null
           reading_alarm_enabled?: boolean | null
           reading_alarm_time?: string | null
           role?: string | null
@@ -703,6 +709,13 @@ export type Database = {
       start_reading_session: { Args: { p_book_id: string }; Returns: string }
     }
     Enums: {
+      notification_type:
+        | "reading_reminder"
+        | "join_request_received"
+        | "join_accepted"
+        | "sticker_received"
+        | "completion"
+        | "club_signal"
       sticker_type: "empathy" | "touching" | "comforted"
     }
     CompositeTypes: {
@@ -831,6 +844,14 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      notification_type: [
+        "reading_reminder",
+        "join_request_received",
+        "join_accepted",
+        "sticker_received",
+        "completion",
+        "club_signal",
+      ],
       sticker_type: ["empathy", "touching", "comforted"],
     },
   },

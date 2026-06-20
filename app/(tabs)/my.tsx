@@ -29,6 +29,7 @@ import {
 import { useRouter } from 'expo-router';
 import { useTheme } from '../../src/theme/theme';
 import { useSession } from '../../src/auth/useSession';
+import { useUnreadCount } from '../../src/features/notification';
 import type { AuthProvider } from '../../src/auth/types';
 
 // @MX:NOTE: [AUTO] 제공자 표시 라벨 매핑 — DB 값(naver/kakao/google) → 한국어 표시.
@@ -42,6 +43,8 @@ export default function MyTab(): React.JSX.Element {
   const theme = useTheme();
   const router = useRouter();
   const session = useSession();
+  const unreadQuery = useUnreadCount();
+  const unreadCount = unreadQuery.data ?? 0;
   const [isSigningOut, setIsSigningOut] = useState(false);
 
   // 로딩 상태 (useSession이 null 반환 = AuthContext.loading)
@@ -269,6 +272,48 @@ export default function MyTab(): React.JSX.Element {
             >
               ›
             </Text>
+          </Pressable>
+          <View
+            style={[styles.menuDivider, { backgroundColor: theme.colors.border.default }]}
+          />
+          <Pressable
+            testID="my-notifications"
+            onPress={() => router.push('/my/notifications')}
+            accessibilityRole="button"
+            accessibilityLabel="알림"
+            accessibilityHint="알림 센터로 이동합니다."
+            style={[styles.menuRow, { borderRadius: theme.radius.md }]}
+          >
+            <Text
+              style={[styles.menuLabel, { color: theme.colors.text.primary }]}
+            >
+              알림
+            </Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+              {unreadCount > 0 ? (
+                <View
+                  testID="my-notifications-badge"
+                  style={{
+                    minWidth: 20,
+                    height: 20,
+                    borderRadius: 10,
+                    paddingHorizontal: 6,
+                    backgroundColor: theme.colors.brand[500],
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                  }}
+                >
+                  <Text style={{ color: '#FFFFFF', fontSize: 12, fontWeight: '700' }}>
+                    {unreadCount}
+                  </Text>
+                </View>
+              ) : null}
+              <Text
+                style={[styles.chevron, { color: theme.colors.text.tertiary }]}
+              >
+                ›
+              </Text>
+            </View>
           </Pressable>
         </View>
 

@@ -64,7 +64,7 @@ INSERT INTO point_logs (user_id, amount, reason) VALUES
     ('00000000-0000-0000-0000-000000000001', 100, 'test');
 
 INSERT INTO notifications (user_id, type, title, body) VALUES
-    ('00000000-0000-0000-0000-000000000001', 'system', 'Test', 'Body');
+    ('00000000-0000-0000-0000-000000000001', 'completion', 'Test', 'Body');
 
 INSERT INTO completion_reports (user_id, book_id, user_book_id, report_data)
 SELECT '00000000-0000-0000-0000-000000000001',
