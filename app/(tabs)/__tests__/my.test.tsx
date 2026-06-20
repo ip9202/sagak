@@ -38,6 +38,11 @@ jest.mock('expo-secure-store', () => ({
   default: { getItemAsync: jest.fn(), setItemAsync: jest.fn(), deleteItemAsync: jest.fn() },
 }));
 
+// SPEC-ROUTINE-001: my.tsx 가 독서 루틴 메뉴 진입을 위해 useRouter 사용 — 테스트 환경용 최소 mock.
+jest.mock('expo-router', () => ({
+  useRouter: () => ({ push: jest.fn() }),
+}));
+
 // useSession mock
 jest.mock('../../../src/auth/useSession', () => ({
   useSession: jest.fn(),

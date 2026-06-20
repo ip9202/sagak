@@ -26,6 +26,7 @@ import {
   ActivityIndicator,
   Alert,
 } from 'react-native';
+import { useRouter } from 'expo-router';
 import { useTheme } from '../../src/theme/theme';
 import { useSession } from '../../src/auth/useSession';
 import type { AuthProvider } from '../../src/auth/types';
@@ -39,6 +40,7 @@ const PROVIDER_LABEL: Record<AuthProvider, string> = {
 
 export default function MyTab(): React.JSX.Element {
   const theme = useTheme();
+  const router = useRouter();
   const session = useSession();
   const [isSigningOut, setIsSigningOut] = useState(false);
 
@@ -205,6 +207,71 @@ export default function MyTab(): React.JSX.Element {
           ) : null}
         </View>
 
+        {/* 독서 루틴 메뉴 (SPEC-ROUTINE-001 — 타이머/알림 진입점) */}
+        <View
+          style={[
+            styles.menuCard,
+            {
+              backgroundColor: theme.colors.bg.surface,
+              borderRadius: theme.radius.lg,
+              borderWidth: 1,
+              borderColor: theme.colors.border.default,
+            },
+          ]}
+        >
+          <Pressable
+            testID="my-routine-timer"
+            onPress={() => router.push('/my/timer')}
+            accessibilityRole="button"
+            accessibilityLabel="독서 타이머"
+            accessibilityHint="독서 타이머 화면으로 이동합니다."
+            style={[
+              styles.menuRow,
+              {
+                borderRadius: theme.radius.md,
+              },
+            ]}
+          >
+            <Text
+              style={[styles.menuLabel, { color: theme.colors.text.primary }]}
+            >
+              독서 타이머
+            </Text>
+            <Text
+              style={[styles.chevron, { color: theme.colors.text.tertiary }]}
+            >
+              ›
+            </Text>
+          </Pressable>
+          <View
+            style={[styles.menuDivider, { backgroundColor: theme.colors.border.default }]}
+          />
+          <Pressable
+            testID="my-routine-alarm"
+            onPress={() => router.push('/my/alarm')}
+            accessibilityRole="button"
+            accessibilityLabel="알림 설정"
+            accessibilityHint="독서 알림 설정 화면으로 이동합니다."
+            style={[
+              styles.menuRow,
+              {
+                borderRadius: theme.radius.md,
+              },
+            ]}
+          >
+            <Text
+              style={[styles.menuLabel, { color: theme.colors.text.primary }]}
+            >
+              알림 설정
+            </Text>
+            <Text
+              style={[styles.chevron, { color: theme.colors.text.tertiary }]}
+            >
+              ›
+            </Text>
+          </Pressable>
+        </View>
+
         {/* 로그아웃 버튼 */}
         <Pressable
           testID="my-logout-button"
@@ -292,6 +359,28 @@ const styles = StyleSheet.create({
   logoutText: {
     fontSize: 15,
     fontWeight: '600',
+  },
+  menuCard: {
+    overflow: 'hidden',
+  },
+  menuRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+  },
+  menuLabel: {
+    fontSize: 15,
+    fontWeight: '500',
+  },
+  chevron: {
+    fontSize: 20,
+    fontWeight: '600',
+  },
+  menuDivider: {
+    height: 1,
+    marginHorizontal: 16,
   },
   bodyCenter: {
     flex: 1,
