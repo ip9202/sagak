@@ -4,8 +4,8 @@
     {
       "type": "frame",
       "id": "k9pvZQ",
-      "x": -32,
-      "y": 173,
+      "x": 459,
+      "y": 130,
       "name": "StatusBar",
       "reusable": true,
       "width": 390,
@@ -69,8 +69,8 @@
     {
       "type": "frame",
       "id": "jPc6s",
-      "x": -16,
-      "y": 263,
+      "x": 969,
+      "y": 133,
       "name": "TabBar",
       "reusable": true,
       "width": 358,
@@ -243,8 +243,8 @@
     {
       "type": "frame",
       "id": "P5cRv",
-      "x": -32,
-      "y": 373,
+      "x": 1455,
+      "y": 117,
       "name": "BookCard",
       "reusable": true,
       "gap": 12,
@@ -341,8 +341,8 @@
     {
       "type": "frame",
       "id": "fMvNU",
-      "x": 0,
-      "y": 680,
+      "x": 444,
+      "y": 418,
       "name": "PrimaryButton",
       "reusable": true,
       "height": 48,
@@ -371,8 +371,8 @@
     {
       "type": "frame",
       "id": "V8WysK",
-      "x": 220,
-      "y": 680,
+      "x": 595,
+      "y": 426,
       "name": "GhostButton",
       "reusable": true,
       "height": 40,
@@ -402,8 +402,8 @@
     {
       "type": "frame",
       "id": "YwqBx",
-      "x": 0,
-      "y": 770,
+      "x": 914,
+      "y": 395,
       "name": "EmotionRecordCard",
       "reusable": true,
       "width": 326,
@@ -1775,8 +1775,8 @@
     {
       "type": "frame",
       "id": "pxhqO",
-      "x": -32,
-      "y": -147,
+      "x": 13,
+      "y": 52,
       "name": "EmptyState",
       "reusable": true,
       "width": 326,
@@ -1842,8 +1842,8 @@
     {
       "type": "frame",
       "id": "p3eKnn",
-      "x": -32,
-      "y": 1927,
+      "x": -11,
+      "y": 2016,
       "name": "F04-Library-Empty",
       "clip": true,
       "width": 390,
@@ -2066,8 +2066,8 @@
     {
       "type": "frame",
       "id": "N6FmT4",
-      "x": 438,
-      "y": 1927,
+      "x": 508,
+      "y": 2016,
       "name": "F11-Clubs-Empty",
       "clip": true,
       "width": 390,
@@ -2399,8 +2399,8 @@
     {
       "type": "frame",
       "id": "x8zuOu",
-      "x": -32,
-      "y": 523,
+      "x": 13,
+      "y": 395,
       "name": "SearchResultCard",
       "reusable": true,
       "width": 326,
@@ -2475,8 +2475,8 @@
     {
       "type": "frame",
       "id": "E44G9",
-      "x": 490,
-      "y": 2811,
+      "x": 1002,
+      "y": 2016,
       "name": "F06-Search",
       "clip": true,
       "width": 390,
@@ -2744,8 +2744,8 @@
     {
       "type": "frame",
       "id": "acwCA",
-      "x": 920,
-      "y": 2811,
+      "x": 1483,
+      "y": 2016,
       "name": "F07-Scan",
       "clip": true,
       "width": 390,
@@ -2854,6 +2854,222 @@
                   "fill": "$text-inverse"
                 }
               }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "ChXne",
+      "x": 1940,
+      "y": 1003,
+      "name": "F14-ClubFeed",
+      "clip": true,
+      "width": 390,
+      "height": 844,
+      "fill": "$bg-base",
+      "layout": "vertical",
+      "children": [
+        {
+          "id": "W5n6yP",
+          "type": "ref",
+          "ref": "k9pvZQ",
+          "name": "StatusBar",
+          "width": "fill_container"
+        },
+        {
+          "type": "frame",
+          "id": "gl673",
+          "name": "Header",
+          "width": "fill_container",
+          "padding": [
+            8,
+            20,
+            0,
+            20
+          ],
+          "justifyContent": "space_between",
+          "alignItems": "center",
+          "children": [
+            {
+              "type": "text",
+              "id": "d9VsgT",
+              "name": "Title",
+              "fill": "$text-primary",
+              "content": "모임 피드",
+              "fontFamily": "Noto Sans KR",
+              "fontSize": 22,
+              "fontWeight": "700"
+            },
+            {
+              "type": "frame",
+              "id": "RcLiD",
+              "name": "Icons",
+              "gap": 12,
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "icon",
+                  "id": "QPl7f",
+                  "name": "Back",
+                  "width": 24,
+                  "height": 24,
+                  "icon": "chevron-left",
+                  "library": "lucide",
+                  "fill": "$text-primary"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "m4P2ed",
+          "name": "Content",
+          "width": "fill_container",
+          "layout": "vertical",
+          "gap": 16,
+          "padding": [
+            16,
+            20,
+            20,
+            20
+          ],
+          "children": [
+            {
+              "id": "L33G5",
+              "type": "ref",
+              "ref": "YwqBx",
+              "name": "Feed-Card1",
+              "width": "fill_container",
+              "descendants": {
+                "NyTPu": {
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "bnWpK",
+                      "name": "Nick",
+                      "fill": "$text-primary",
+                      "content": "지은",
+                      "fontFamily": "Noto Sans KR",
+                      "fontSize": 13,
+                      "fontWeight": "600"
+                    },
+                    {
+                      "type": "text",
+                      "id": "DOVua",
+                      "name": "Page",
+                      "fill": "$text-tertiary",
+                      "content": "p.142",
+                      "fontFamily": "Inter",
+                      "fontSize": 11,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                },
+                "AhYsW": {
+                  "content": "이 문장에서 마음이 찡해졌어요."
+                }
+              }
+            },
+            {
+              "id": "k8AOz",
+              "type": "ref",
+              "ref": "YwqBx",
+              "name": "Feed-Card2-Spoiler",
+              "width": "fill_container",
+              "effect": {
+                "type": "blur",
+                "radius": 6
+              },
+              "descendants": {
+                "NyTPu": {
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "D8Rb3m",
+                      "name": "Nick",
+                      "fill": "$text-primary",
+                      "content": "민준",
+                      "fontFamily": "Noto Sans KR",
+                      "fontSize": 13,
+                      "fontWeight": "600"
+                    },
+                    {
+                      "type": "text",
+                      "id": "ag3Vg",
+                      "name": "Page",
+                      "fill": "$text-tertiary",
+                      "content": "p.58",
+                      "fontFamily": "Inter",
+                      "fontSize": 11,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                },
+                "AhYsW": {
+                  "content": "스포일러가 포함된 감상입니다."
+                }
+              }
+            },
+            {
+              "id": "oR0Kx",
+              "type": "ref",
+              "ref": "YwqBx",
+              "name": "Feed-Card3",
+              "width": "fill_container",
+              "descendants": {
+                "NyTPu": {
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "s9nxS",
+                      "name": "Nick",
+                      "fill": "$text-primary",
+                      "content": "수아",
+                      "fontFamily": "Noto Sans KR",
+                      "fontSize": 13,
+                      "fontWeight": "600"
+                    },
+                    {
+                      "type": "text",
+                      "id": "aAPXP",
+                      "name": "Page",
+                      "fill": "$text-tertiary",
+                      "content": "p.210",
+                      "fontFamily": "Inter",
+                      "fontSize": 11,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                },
+                "AhYsW": {
+                  "content": "함께 읽으니 더 깊이 와닿았어요."
+                }
+              }
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "w4bDm",
+          "name": "TabBarWrap",
+          "width": "fill_container",
+          "layout": "vertical",
+          "padding": [
+            0,
+            16,
+            12,
+            16
+          ],
+          "children": [
+            {
+              "id": "N1mZ4",
+              "type": "ref",
+              "ref": "jPc6s",
+              "name": "TabBar",
+              "width": "fill_container"
             }
           ]
         }
