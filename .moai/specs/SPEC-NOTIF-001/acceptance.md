@@ -2,14 +2,16 @@
 id: SPEC-NOTIF-001
 title: "푸시 알림 및 알림 센터 — 인수 기준"
 version: "1.0.0"
-status: draft
+status: implemented
 created: 2026-06-14
-updated: 2026-06-14
+updated: 2026-06-21
 author: "강력쇠주먹"
 priority: medium
 issue_number: 0
 labels: [notif, push, expo-push, notification-center, edge-function, supabase, phase-4, acceptance]
 ---
+
+> **업데이트 (2026-06-21)**: Optional Goal (REQ-NOTIF-001~004) 구현 완료 및 PR #38 병격. 자동화 검증 N1/N2/N5/N8 통과. 수동 검증 N3/N4/N7 대기 중 (실기기, dev client 재빌드 필요). Primary Goal (CENTER/SEND)는 PR #34에서 이미 완료됨.
 
 # SPEC-NOTIF-001: 인수 기준 (acceptance.md)
 
