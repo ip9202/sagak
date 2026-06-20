@@ -148,6 +148,17 @@ completion_reports(user_book_id).
 
 > SPEC-FEED-001(모임 피드 실시간) 지원을 위해 migration `20240620000001_enable_realtime_feed.sql`(2026-06-20)로 활성화.
 
+---
+
+## RPC Functions (2, SPEC-ROUTINE-001)
+
+| Function | 목적 | SECURITY DEFINER | 인자 | 반환 | Note |
+|----------|------|------------------|------|------|------|
+| start_reading_session | 독서 타이머 시작 (자동종료+INSERT) | Yes (user_id=auth.uid() 가드) | p_user_book_id uuid | uuid | started_at=now(), ended_at=NULL |
+| end_reading_session | 독서 타이머 종료 (서버 duration 계산) | Yes (user_id=auth.uid() 가드) | p_session_id uuid, p_pages_read int? | void | duration_seconds = EXTRACT(EPOCH FROM (ended_at - started_at)) |
+
+**SECURITY DEFINER 보안:** RPC 함수는 RLS를 우회하므로 `user_id=auth.uid()` 가드(COERCE 기본값)로 명시적으로 본인 행만 조작. pgTAP 0018 테스트로 RLS 차단 검증 완료.
+
 - **publication**: `supabase_realtime`에 `emotion_records`, `sticker_reactions` 테이블 추가(브로드캐스트 활성화). 이전에는 두 테이블이 publication에 없어 Realtime 이벤트가 발생하지 않았음.
 - **REPLICA IDENTITY FULL**: `emotion_records`, `sticker_reactions` 양 테이블에 적용. INSERT는 기본값으로도 새 행 전체를 전달하지만, 향후 UPDATE/DELETE 실시간 반영 시에도 안정적으로 전체 행 페이로드를 전달하도록 미리 설정.
 - **브로드캐스트 RLS 게이트**: 별도 broadcast 정책을 추가하지 않는다. Supabase Realtime은 `postgres_changes` 브로드캐스트 시 테이블의 SELECT RLS 정책을 그대로 적용 — 구독자는 자신이 SELECT할 수 있는 행에 대한 이벤트만 수신. 따라서 migration 0014의 기존 정책이 브로드캐스트를 자동 게이트:

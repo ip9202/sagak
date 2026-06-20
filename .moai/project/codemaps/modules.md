@@ -102,6 +102,26 @@
 | Celebration Header | `src/features/completion/CelebrationHeader.tsx` | Presentation | 축하 헤더 (정적 배지 + 축하 메시지 MVP) | CelebrationHeader({totalRecords}) — 정적 MVP, 축하 메시지 | COMPLETION-001 REQ-COMP-008 |
 | Completion Diary Screen | `src/features/completion/CompletionDiaryScreen.tsx` | Presentation | 완독 다이어리 메인 화면 (6상태 분기 렌더링: loading/success/empty/error/data-error/auth) | CompletionDiaryScreen({userBookId}) — useCompletionReport + 6상태 분기 | COMPLETION-001 REQ-COMP-005 |
 
+### Routine Domain (`src/features/routine/`)
+
+| 모듈 | 경로 | 계층 | 목적 | 주요 익스포트 | SPEC 참조 |
+|------|------|------|------|-------------|-----------|
+| Routine Barrel | `src/features/routine/index.ts` | Business | Routine 도메인 barrel (공개 API) | sessionApi, alarmApi, statsApi, useReadingTimer, useActiveSession, useAlarmSettings, useReadingStats, types | ROUTINE-001 |
+| Routine Types | `src/features/routine/types.ts` | Business | Routine 도메인 타입 (DB Row derived) | ReadingSessionRow, ReadingStats(total_duration/sessions/today/streak), AlarmSettings, DailyGoalSeconds | ROUTINE-001 REQ-ROUT-001~010 |
+| Session API | `src/features/routine/sessionApi.ts` | Business | 독서 타이머 RPC 호출 (start/end + getActiveSession) | startSession(userBookId) → uuid, endSession(sessionId, pagesRead?) → void, getActiveSession(userBookId) → ReadingSessionRow | ROUTINE-001 REQ-ROUT-001~004 |
+| Alarm API | `src/features/routine/alarmApi.ts` | Business | 다정한 알람 설정 API (get/update/toggle, HH:MM→HH:MM:SS 정규화) | getAlarmSettings(userId), updateAlarmTime(userId, HH:MM), toggleAlarmEnabled(userId, boolean), normalizeAlarmTime (VALIDATION 에러 throw) | ROUTINE-001 REQ-ROUT-005~007 |
+| Stats API | `src/features/routine/statsApi.ts` | Business | 독서 습관 추적 API (클라이언트 집계: total_duration/sessions/today/streak) | getReadingStats(userId) → ReadingStats (클라이언트 집계, RPC 회피) | ROUTINE-001 REQ-ROUT-008~010 |
+| Streak Calculator | `src/features/routine/streakCalculator.ts` | Business (순수함수) | 자정 기준 streak 계산 (미결정 6.1 임시방침) | calculateStreak(sessions: ReadingSessionRow[]) → number (연속 일수) | ROUTINE-001 REQ-ROUT-008 |
+| Goal Storage | `src/features/routine/goalStorage.ts` | Business | AsyncStorage 일일 목표 (기본 900초=15분, 미결정 6.2) | getDailyGoal(), setDailyGoal(seconds), DEFAULT_GOAL_SECONDS=900 | ROUTINE-001 REQ-ROUT-010 |
+| Reading Timer Hook | `src/features/routine/useReadingTimer.ts` | Business | 독서 타이머 훅 (started_at 기반 setInterval 1초 + AppState 복귀 재동기화 + cleanup + formatElapsed HH:MM:SS) | useReadingTimer(userBookId) → {elapsed, start, pause, end}, cleanup on unmount, AppState change resume | ROUTINE-001 REQ-ROUT-001/006/007 |
+| Active Session Hook | `src/features/routine/useActiveSession.ts` | Business | 활성 세션 React Query 훅 | queryKey ['activeSession', userBookId], getActiveSession 호출, staleTime 0 | ROUTINE-001 REQ-ROUT-001~003 |
+| Alarm Settings Hook | `src/features/routine/useAlarmSettings.ts` | Business | 알람 설정 React Query 훅 | queryKey ['alarmSettings', userId], getAlarmSettings 호출, mutations (updateTime/toggleEnabled), cache invalidation | ROUTINE-001 REQ-ROUT-005~007 |
+| Reading Stats Hook | `src/features/routine/useReadingStats.ts` | Business | 독서 통계 React Query 훅 | queryKey ['readingStats', userId], getReadingStats 호출, staleTime 5min | ROUTINE-001 REQ-ROUT-008~010 |
+| Copy Constants | `src/features/routine/copy.ts` | Business | 다정한 메시지 상수 (START_PROMPT/END_ENCOURAGEMENT/STREAK_ACHIEVEMENT/GOAL_ACHIEVED) + pickEndEncouragement(duration별) | pickEndEncouragement(durationSeconds) → string (다정한 격려 메시지) | ROUTINE-001 REQ-ROUT-009/010/021/023 |
+| Timer Screen Component | `src/features/routine/components/TimerScreen.tsx` | Presentation | 독서 타이머 화면 (token-only 스타일링) | useReadingTimer + useActiveSession 통합, 타이머 표시 + 일시정지/종료 버튼, copy 메시지 노출 | ROUTINE-001 REQ-ROUT-001/006/007/009 |
+| Alarm Screen Component | `src/features/routine/components/AlarmScreen.tsx` | Presentation | 알람 설정 화면 (token-only 스타일링) | useAlarmSettings 통합, HH:MM 입력 + 토글 스위치, VALIDATION 에러 표시 | ROUTINE-001 REQ-ROUT-005~007 |
+| Routine Stats Widget | `src/features/routine/components/RoutineStatsWidget.tsx` | Presentation | 루틴 통계 위젯 (token-only 스타일링) | useReadingStats 통합, 연속 일수·누적 시간·세션 수 표시, 목표 달성 메시지 | ROUTINE-001 REQ-ROUT-008~010 |
+
 ### Emotion Domain (`src/features/emotion/`)
 
 | 모듈 | 경로 | 계층 | 목적 | 주요 익스포트 | SPEC 참조 |
