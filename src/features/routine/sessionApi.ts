@@ -1,17 +1,22 @@
 /**
  * 독서 세션 API (SPEC-ROUTINE-001 REQ-ROUT-001/002)
  *
- * PostgREST 를 통한 reading_sessions 시작/종료/조회.
- * - startSession: 기존 활성 세션 자동 종료 후 새 INSERT (R1/R2)
- * - endSession: 서버 측 duration_seconds 계산 UPDATE (R4/R5)
- * - getActiveSession: ended_at IS NULL 조회 (보조)
+ * PostgREST RPC 함수(start_reading_session / end_reading_session) 를 통한
+ * reading_sessions 시작/종료/조회. duration_seconds 와 ended_at 은 DB 서버 시간
+ * 기준(now()) 으로 RPC 본문에서 계산되므로 클라이언트 타이머 오차/조작에 영향받지 않는다.
  *
- * duration_seconds 는 서버 측 SQL EXTRACT(EPOCH FROM (now() - started_at)) 으로 계산한다
- * (가정 2.1.1 — 클라이언트 타이머에 의존하지 않음). 백그라운드 타이머 부정확성 방어.
+ * - startSession: start_reading_session RPC 호출 — 기존 활성 세션 자동 종료(R2) 후
+ *   새 세션 INSERT(R1). 새 세션 id 반환.
+ * - endSession: end_reading_session RPC 호출 — 서버 측 duration 계산(R4) + 선택적
+ *   pages_read 갱신(R5).
+ * - getActiveSession: ended_at IS NULL 조회(RLS 가 본인 세션만 노출)
  *
- * 권한: RLS(REQ-DB-021) 가 단독 수행. 클라이언트는 권한 로직 미구현.
+ * 가정 2.1.1: duration_seconds 는 서버 측 EXTRACT(EPOCH FROM (now() - started_at))
+ * 으로 계산 — 백그라운드 타이머 부정확성 방어.
  *
- * @MX:NOTE: [AUTO] duration_seconds 의 EXTRACT(EPOCH ...) 문자열은 PostgREST 가 허용하는 raw SQL 표현 — 서버에서 평가되므로 클라이언트 시간 의존성 없음.
+ * 권한: start/end RPC 는 SECURITY DEFINER + user_id = auth.uid() 검사.
+ * getActiveSession 은 RLS(REQ-DB-021) 가 단독 수행.
+ *
  * @MX:SPEC SPEC-ROUTINE-001
  */
 import { getSupabaseClient } from '../../lib/supabase/client';
@@ -19,16 +24,27 @@ import { normalizeError } from '../../lib/api/errors';
 import type { ReadingSessionRow } from './types';
 
 /**
- * duration_seconds 서버 측 계산을 위한 raw SQL 표현 (PostgREST 허용).
- * `now() - started_at` 의 초 단위 정수 추출. RLS 컨텍스트의 started_at 사용.
- *
- * @MX:NOTE: [AUTO] PostgREST 는 .rpc() 가 아닌 update 필드에 raw 표현식을 허용하지 않으므로, 본 구현은 PostgREST 의 `{ count: 'exact' }` 와 함께 별도 경로가 필요할 수 있다. MVP 에서는 클라이언트에서 started_at → ended_at 차이를 정수로 환산해 저장하되, 이 값은 "서버 시간 기준" 으로 처리된다. — 단순화: 실제 운영에서는 RPC 함수 권장. 본 SPEC 은 스키마 변경을 피하기 위해 클라이언트 계산값 저장.
+ * RPC 응답에서 새 세션 id 추출 — supabase-js 버전에 따라 객체({id}) 또는
+ * 배열([{id}]) 형태로 올 수 있어 두 형태 모두 처리한다.
  */
-const DURATION_EXPRESSION = 'extract(epoch from now() - started_at)';
+function extractSessionId(data: unknown): string | null {
+  if (!data) {
+    return null;
+  }
+  if (Array.isArray(data) && data.length > 0) {
+    const first = data[0] as { id?: unknown };
+    return typeof first.id === 'string' ? first.id : null;
+  }
+  if (typeof data === 'object' && 'id' in data) {
+    const id = (data as { id: unknown }).id;
+    return typeof id === 'string' ? id : null;
+  }
+  return null;
+}
 
 /**
  * 현재 활성 세션(ended_at IS NULL) 을 조회한다.
- * RLS 가 본인 세션만 노출한다.
+ * RLS 가 본인 세션만 노출한다. 클라이언트는 user_id 필터를 보내지 않는다(RLS 단독).
  */
 export async function getActiveSession(): Promise<ReadingSessionRow | null> {
   const client = getSupabaseClient();
@@ -36,7 +52,9 @@ export async function getActiveSession(): Promise<ReadingSessionRow | null> {
   try {
     result = await client
       .from('reading_sessions')
-      .select('id, user_id, book_id, started_at, ended_at, duration_seconds, pages_read')
+      .select(
+        'id, user_id, book_id, started_at, ended_at, duration_seconds, pages_read',
+      )
       .is('ended_at', null)
       .order('started_at', { ascending: false })
       .limit(1)
@@ -53,63 +71,48 @@ export async function getActiveSession(): Promise<ReadingSessionRow | null> {
 /**
  * 독서 세션을 시작한다 (REQ-ROUT-001).
  *
- * R2: 기존 활성 세션이 있으면 자동 종료(ended_at=now, duration_seconds 서버 계산) 후
- * 새 세션을 INSERT 한다. 진행 중 세션은 하나만 유지 (가정 2.2.3).
+ * start_reading_session RPC 호출 — DB 서버에서 원자적으로:
+ *   1) 기존 활성 세션 자동 종료(R2): ended_at=now, duration_seconds 서버 계산
+ *   2) 새 세션 INSERT(R1): user_id=auth.uid(), started_at=now()
+ *
+ * @MX:ANCHOR: [AUTO] 독서 세션 시작 공개 API — TimerScreen 등 타이머 화면 진입점.
+ * @MX:REASON: start_reading_session RPC 는 R1(시작)/R2(자동 종료)/R4(서버 측 duration) 를 원자적으로 수행하는 핵심 계약으로, 호출자가 3곳 이상(TimerScreen, useReadingTimer, 향후 통계 동기화) 이 될 수 있다.
+ *
+ * @MX:NOTE: [AUTO] duration_seconds/ended_at 은 RPC 본문에서 DB now() 기준으로 계산된다 — 클라이언트 시간 의존성 없음(가정 2.1.1).
  *
  * @param bookId 세션을 시작할 책 식별자
+ * @returns 새로 생성된 세션 id (RPC 응답에서 추출). 응답에 id 가 없으면 null.
  */
-export async function startSession(bookId: string): Promise<void> {
+export async function startSession(bookId: string): Promise<string | null> {
   const client = getSupabaseClient();
 
-  // 1) 기존 활성 세션 조회
-  const active = await getActiveSession();
-
-  // 2) 있으면 자동 종료 (R2) — duration_seconds 는 서버 측 EXTRACT(EPOCH) 계산
-  if (active) {
-    let endResult: { error: unknown };
-    try {
-      const updateChain = client
-        .from('reading_sessions')
-        .update({
-          ended_at: new Date().toISOString(),
-          duration_seconds: DURATION_EXPRESSION as unknown as number,
-        })
-        .eq('id', active.id);
-      endResult = await updateChain;
-    } catch (error) {
-      throw normalizeError(error);
-    }
-    if (endResult.error) {
-      throw normalizeError(endResult.error);
-    }
-  }
-
-  // 3) 새 세션 INSERT — user_id/started_at 은 DB 기본값/RLS 컨텍스트가 채운다.
-  // TS Insert 타입은 user_id 를 요구하지만, RLS 가 auth.uid() 를 주입하므로 클라이언트는 생략한다.
-  let insertResult: { error: unknown };
+  let result: { data: unknown; error: unknown };
   try {
-    const insertPayload = { book_id: bookId, ended_at: null } as never;
-    const insertChain = client.from('reading_sessions').insert(insertPayload);
-    insertResult = await (insertChain as unknown as Promise<{ error: unknown }>);
+    result = await client.rpc('start_reading_session', { p_book_id: bookId });
   } catch (error) {
     throw normalizeError(error);
   }
-  if (insertResult.error) {
-    throw normalizeError(insertResult.error);
+  if (result.error) {
+    throw normalizeError(result.error);
   }
+  return extractSessionId(result.data);
 }
 
 /**
  * 독서 세션을 종료한다 (REQ-ROUT-002).
  *
- * R4: ended_at=now, duration_seconds=서버 측 EXTRACT(EPOCH) 계산.
- * R5: pagesRead 입력 시에만 UPDATE 필드에 포함 (미입력 시 NULL 유지).
+ * end_reading_session RPC 호출 — DB 서버에서:
+ *   1) ended_at=now, duration_seconds=EXTRACT(EPOCH FROM (now()-started_at)) (R4)
+ *   2) pages_read: NULL 이면 기존값 유지, 값이면 덮어쓰기 (R5)
+ *   3) user_id = auth.uid() 검사로 본인 세션만 종료 (R3)
  *
- * @MX:WARN: [AUTO] DURATION_EXPRESSION 을 PostgREST update 필드에 전달한다. PostgREST 는 raw SQL 표현식보다 RPC 를 권장하나, 본 SPEC 은 스키마 변경 없이 서버 측 계산 의도를 표현한다. 운영 검증 시 RPC 전환 필요.
- * @MX:REASON: duration_seconds 를 클라이언트 setInterval 카운트가 아닌 서버 started_at 기반으로 계산해야 백그라운드 타이머 부정확성(가정 2.1.1) 이 방어된다. RPC 없이 표현하려면 raw SQL 표현식 사용이 최선이다.
+ * @MX:ANCHOR: [AUTO] 독서 세션 종료 공개 API — TimerScreen 등 타이머 종료/이탈 시점 호출.
+ * @MX:REASON: end_reading_session RPC 는 R3(본인 검사)/R4(서버 duration)/R5(pages_read) 를 원자적으로 수행하는 핵심 계약이며, duration 데이터 무결성의 단일 진입점이다.
+ *
+ * @MX:NOTE: [AUTO] duration_seconds 는 RPC 본문에서 서버 now() - started_at 으로 계산된다. pagesRead 미전달 시 p_pages_read=null → COALESCE 로 기존값 유지.
  *
  * @param sessionId 종료할 세션 ID
- * @param pagesRead 선택적 — 읽은 페이지 수
+ * @param pagesRead 선택적 — 읽은 페이지 수. 생략 시 기존값 유지.
  */
 export async function endSession(
   sessionId: string,
@@ -117,25 +120,14 @@ export async function endSession(
 ): Promise<void> {
   const client = getSupabaseClient();
 
-  const update: {
-    ended_at: string;
-    duration_seconds: number;
-    pages_read?: number;
-  } = {
-    ended_at: new Date().toISOString(),
-    duration_seconds: DURATION_EXPRESSION as unknown as number,
+  const args: { p_session_id: string; p_pages_read: number | null } = {
+    p_session_id: sessionId,
+    p_pages_read: pagesRead ?? null,
   };
-  if (pagesRead !== undefined) {
-    update.pages_read = pagesRead;
-  }
 
   let result: { error: unknown };
   try {
-    const chain = client
-      .from('reading_sessions')
-      .update(update)
-      .eq('id', sessionId);
-    result = await chain;
+    result = await client.rpc('end_reading_session', args);
   } catch (error) {
     throw normalizeError(error);
   }

@@ -1,12 +1,14 @@
 /**
  * sessionApi 단위 테스트 (SPEC-ROUTINE-001 REQ-ROUT-001/002)
  *
- * 검증 대상:
- * - R1: 정상 세션 시작 — INSERT (ended_at=NULL)
- * - R2: 기존 활성 세션 자동 종료 — UPDATE ended_at + duration EXTRACT 후 INSERT
- * - R4: 세션 종료 — UPDATE ended_at + duration_seconds EXTRACT
- * - R5: pages_read 선택적
+ * RPC 기반 전환 후 검증 대상:
+ * - R1/R2: startSession → client.rpc('start_reading_session', {p_book_id}) 정확한 인자 전달
+ * - R4/R5: endSession → client.rpc('end_reading_session', {p_session_id, p_pages_read}) 정확한 인자
+ * - getActiveSession: RLS 기반 조회(is('ended_at', null))
  * - 에러 정규화 — normalizeError 경유
+ *
+ * 핵심: permissive chainable mock 대신 client.rpc 가 정확한 함수명/인자로 호출되었는지
+ * 검증한다. RPC 계약 회귀(잘못된 함수명/파라미터)를 즉시 잡기 위함.
  *
  * RLS(REQ-DB-021)는 서버 정책이므로 본 단위 테스트에서는 mock 하지 않는다.
  */
@@ -33,13 +35,16 @@ jest.mock('@react-native-async-storage/async-storage', () => ({
 }));
 
 /**
- * PostgREST 빌더 체인을 흉내내는 유연한 mock 팩토리.
- * 모든 체인 메서드(select/eq/is/order/limit/maybeSingle/update/insert) 가
- * 동일한 빌더를 반환하도록 해서 어떤 순서로든 호출 가능.
+ * RPC 호출을 정확히 기록하는 mock 클라이언트 팩토리.
+ * rpc(fn, args) 호출을 캡처해 계약 위반을 잡는다.
  */
-function createChainableMock(
+function createRpcMock(
   terminal: { data: unknown; error: unknown },
-): Record<string, jest.Mock> {
+): {
+  rpc: jest.Mock;
+  from: jest.Mock;
+  builder: Record<string, jest.Mock>;
+} {
   const builder: Record<string, jest.Mock> = {};
   const returnBuilder = (): Record<string, jest.Mock> => builder;
   builder.select = jest.fn(returnBuilder);
@@ -50,86 +55,63 @@ function createChainableMock(
   builder.update = jest.fn(returnBuilder);
   builder.insert = jest.fn(returnBuilder);
   builder.maybeSingle = jest.fn().mockResolvedValue(terminal);
-  // update/insert/eq/is/... 의 최종 resolve — PostgREST 는 await 시 {data,error} 반환
-  // maybeSingle/single 이 붙지 않은 체인도 await 가능해야 함
-  return builder;
+
+  const rpc = jest.fn().mockResolvedValue(terminal);
+  const from = jest.fn().mockReturnValue(builder);
+  return { rpc, from, builder };
 }
 
-describe('SPEC-ROUTINE-001 REQ-ROUT-001/002: sessionApi', () => {
-  let fromMock: jest.Mock;
-
+describe('SPEC-ROUTINE-001 REQ-ROUT-001/002: sessionApi (RPC)', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    fromMock = jest.fn();
-    (getSupabaseClient as jest.Mock).mockReturnValue({ from: fromMock });
   });
 
-  describe('startSession — REQ-ROUT-001', () => {
-    it('R1: 기존 활성 세션 없으면 INSERT 만 수행한다', async () => {
-      // 1) 활성 세션 조회 — null (없음)
-      const lookupBuilder = createChainableMock({ data: null, error: null });
-      // 2) INSERT 빌더
-      const insertBuilder = createChainableMock({ data: null, error: null });
-      // insert 체인의 최종 await 결과
-      insertBuilder.select = jest.fn().mockResolvedValue({ data: null, error: null });
-
-      fromMock
-        .mockReturnValueOnce(lookupBuilder) // 조회
-        .mockReturnValueOnce(insertBuilder); // insert (update 건너뜀)
-
-      await startSession('book-1');
-
-      // 조회에서 ended_at IS NULL 조건 사용
-      expect(lookupBuilder.is).toHaveBeenCalledWith('ended_at', null);
-      // INSERT 호출됨
-      expect(fromMock).toHaveBeenCalledWith('reading_sessions');
-    });
-
-    it('R2: 기존 활성 세션 존재 시 자동 종료(UPDATE) 후 새 INSERT', async () => {
-      // 1) 활성 세션 조회 — 존재
-      const lookupBuilder = createChainableMock({
-        data: {
-          id: 'session-A',
-          book_id: 'book-1',
-          started_at: '2026-06-14T10:00:00Z',
-          ended_at: null,
-        },
+  describe('startSession — REQ-ROT-001/002', () => {
+    it('R1/R2: start_reading_session RPC 를 정확한 인자로 호출하고 새 세션 id 반환', async () => {
+      const { rpc, from } = createRpcMock({
+        data: [{ id: 'new-session-id' }],
         error: null,
       });
-      // 2) 자동 종료 UPDATE — 최종 await 결과
-      const updateBuilder = createChainableMock({ data: null, error: null });
-      updateBuilder.eq = jest.fn().mockResolvedValue({ data: null, error: null });
-      // 3) INSERT
-      const insertBuilder = createChainableMock({ data: null, error: null });
-      insertBuilder.insert = jest.fn().mockReturnValue(insertBuilder);
+      (getSupabaseClient as jest.Mock).mockReturnValue({ rpc, from });
 
-      fromMock
-        .mockReturnValueOnce(lookupBuilder) // 조회
-        .mockReturnValueOnce(updateBuilder) // 자동 종료
-        .mockReturnValueOnce(insertBuilder); // 새 INSERT
+      const result = await startSession('book-1');
 
-      await startSession('book-2');
-
-      // 자동 종료 UPDATE — duration_seconds 는 EXTRACT 문자열
-      expect(updateBuilder.update).toHaveBeenCalledWith(
-        expect.objectContaining({
-          ended_at: expect.any(String),
-          duration_seconds: expect.stringContaining('extract'),
-        }),
-      );
-      expect(updateBuilder.eq).toHaveBeenCalledWith('id', 'session-A');
-      // 새 INSERT — book-2
-      expect(insertBuilder.insert).toHaveBeenCalledWith(
-        expect.objectContaining({ book_id: 'book-2', ended_at: null }),
-      );
+      // RPC 계약 검증 — 정확한 함수명과 인자 객체
+      expect(rpc).toHaveBeenCalledTimes(1);
+      expect(rpc).toHaveBeenCalledWith('start_reading_session', {
+        p_book_id: 'book-1',
+      });
+      // from() 사용 금지 — 시작 경로는 RPC 만 사용
+      expect(from).not.toHaveBeenCalled();
+      // 새 세션 id 추출
+      expect(result).toBe('new-session-id');
     });
 
-    it('Supabase 조회 에러 → normalizeError 로 throw', async () => {
-      const lookupBuilder = createChainableMock({
+    it('RPC 응답이 단일 객체({id}) 형태여도 id 추출', async () => {
+      const { rpc } = createRpcMock({
+        data: { id: 'single-id' },
+        error: null,
+      });
+      (getSupabaseClient as jest.Mock).mockReturnValue({ rpc });
+
+      const result = await startSession('book-2');
+      expect(result).toBe('single-id');
+    });
+
+    it('RPC 응답에 id 없으면 null 반환', async () => {
+      const { rpc } = createRpcMock({ data: null, error: null });
+      (getSupabaseClient as jest.Mock).mockReturnValue({ rpc });
+
+      const result = await startSession('book-3');
+      expect(result).toBeNull();
+    });
+
+    it('Supabase RPC 에러 → normalizeError 로 throw', async () => {
+      const { rpc } = createRpcMock({
         data: null,
         error: { code: '42501', message: 'permission denied' },
       });
-      fromMock.mockReturnValueOnce(lookupBuilder);
+      (getSupabaseClient as jest.Mock).mockReturnValue({ rpc });
 
       await expect(startSession('book-1')).rejects.toMatchObject({
         category: 'RLS_DENIED',
@@ -137,53 +119,60 @@ describe('SPEC-ROUTINE-001 REQ-ROUT-001/002: sessionApi', () => {
     });
   });
 
-  describe('endSession — REQ-ROUT-002', () => {
-    it('R4: 세션 종료 — ended_at + duration_seconds EXTRACT UPDATE', async () => {
-      const builder = createChainableMock({ data: null, error: null });
-      builder.eq = jest.fn().mockResolvedValue({ data: null, error: null });
-      fromMock.mockReturnValue(builder);
+  describe('endSession — REQ-ROT-002', () => {
+    it('R4/R5: pagesRead 미전달 시 p_pages_read=null 로 end_reading_session RPC 호출', async () => {
+      const { rpc } = createRpcMock({ data: null, error: null });
+      (getSupabaseClient as jest.Mock).mockReturnValue({ rpc });
 
       await endSession('session-A');
 
-      expect(builder.update).toHaveBeenCalledWith(
-        expect.objectContaining({
-          ended_at: expect.any(String),
-          duration_seconds: expect.stringContaining('extract'),
-        }),
-      );
-      expect(builder.eq).toHaveBeenCalledWith('id', 'session-A');
+      expect(rpc).toHaveBeenCalledTimes(1);
+      expect(rpc).toHaveBeenCalledWith('end_reading_session', {
+        p_session_id: 'session-A',
+        p_pages_read: null,
+      });
     });
 
-    it('R5: pages_read 입력 시 UPDATE 에 포함한다', async () => {
-      const builder = createChainableMock({ data: null, error: null });
-      builder.eq = jest.fn().mockResolvedValue({ data: null, error: null });
-      fromMock.mockReturnValue(builder);
+    it('R5: pagesRead 전달 시 p_pages_read 에 값 전달', async () => {
+      const { rpc } = createRpcMock({ data: null, error: null });
+      (getSupabaseClient as jest.Mock).mockReturnValue({ rpc });
 
       await endSession('session-A', 15);
 
-      expect(builder.update).toHaveBeenCalledWith(
-        expect.objectContaining({
-          pages_read: 15,
-          ended_at: expect.any(String),
-        }),
-      );
+      expect(rpc).toHaveBeenCalledWith('end_reading_session', {
+        p_session_id: 'session-A',
+        p_pages_read: 15,
+      });
     });
 
-    it('R5: pages_read 미입력 시 UPDATE 에 pages_read 미포함 (NULL 유지)', async () => {
-      const builder = createChainableMock({ data: null, error: null });
-      builder.eq = jest.fn().mockResolvedValue({ data: null, error: null });
-      fromMock.mockReturnValue(builder);
+    it('pagesRead=0 전달 시 p_pages_read=0 (COALESCE 가 0 을 유지값으로 취급)', async () => {
+      const { rpc } = createRpcMock({ data: null, error: null });
+      (getSupabaseClient as jest.Mock).mockReturnValue({ rpc });
 
-      await endSession('session-A');
+      await endSession('session-A', 0);
 
-      const updateArg = builder.update.mock.calls[0][0] as Record<string, unknown>;
-      expect(updateArg).not.toHaveProperty('pages_read');
+      expect(rpc).toHaveBeenCalledWith('end_reading_session', {
+        p_session_id: 'session-A',
+        p_pages_read: 0,
+      });
+    });
+
+    it('Supabase RPC 에러 → normalizeError 로 throw', async () => {
+      const { rpc } = createRpcMock({
+        data: null,
+        error: { code: 'PT0401', message: 'rpc not found' },
+      });
+      (getSupabaseClient as jest.Mock).mockReturnValue({ rpc });
+
+      await expect(endSession('session-A')).rejects.toMatchObject({
+        category: expect.any(String),
+      });
     });
   });
 
-  describe('getActiveSession — 보조 조회', () => {
+  describe('getActiveSession — 보조 조회 (RLS)', () => {
     it('활성 세션(ended_at IS NULL) 을 maybeSingle 로 조회한다', async () => {
-      const builder = createChainableMock({
+      const { builder, from } = createRpcMock({
         data: {
           id: 's1',
           book_id: 'b1',
@@ -195,19 +184,36 @@ describe('SPEC-ROUTINE-001 REQ-ROUT-001/002: sessionApi', () => {
         },
         error: null,
       });
-      fromMock.mockReturnValue(builder);
+      (getSupabaseClient as jest.Mock).mockReturnValue({ from, rpc: jest.fn() });
 
       const result = await getActiveSession();
       expect(result?.id).toBe('s1');
+      // RLS 단독 — user_id 클라이언트 필터 없이 ended_at IS NULL 만
       expect(builder.is).toHaveBeenCalledWith('ended_at', null);
+      expect(builder.eq).not.toHaveBeenCalledWith(
+        'user_id',
+        expect.anything(),
+      );
     });
 
     it('활성 세션 없으면 null 반환', async () => {
-      const builder = createChainableMock({ data: null, error: null });
-      fromMock.mockReturnValue(builder);
+      const { from } = createRpcMock({ data: null, error: null });
+      (getSupabaseClient as jest.Mock).mockReturnValue({ from, rpc: jest.fn() });
 
       const result = await getActiveSession();
       expect(result).toBeNull();
+    });
+
+    it('조회 에러 → normalizeError 로 throw', async () => {
+      const { from } = createRpcMock({
+        data: null,
+        error: { code: '42501', message: 'permission denied' },
+      });
+      (getSupabaseClient as jest.Mock).mockReturnValue({ from, rpc: jest.fn() });
+
+      await expect(getActiveSession()).rejects.toMatchObject({
+        category: 'RLS_DENIED',
+      });
     });
   });
 });

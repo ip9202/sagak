@@ -701,6 +701,14 @@ export type Database = {
     }
     Functions: {
       fn_user_in_club: { Args: { p_club_id: string }; Returns: boolean }
+      start_reading_session: {
+        Args: { p_book_id: string }
+        Returns: string // 새 세션 id (uuid)
+      }
+      end_reading_session: {
+        Args: { p_session_id: string; p_pages_read?: number | null }
+        Returns: undefined // void
+      }
     }
     Enums: {
       sticker_type: "empathy" | "touching" | "comforted"
