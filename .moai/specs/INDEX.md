@@ -199,11 +199,12 @@ Phase 5 (배포)
 #### SPEC-ROUTINE-001: 독서 루틴 및 타이머
 - **도메인**: ROUTINE
 - **우선순위**: medium
-- **핵심 범위**: 다정한 독서 알림 설정(`reading_alarm_time`, `reading_alarm_enabled`), 독서 타이머(`reading_sessions` 시작/종료, `duration_seconds` 기록), 독서 습관 추적(연속 일수·누적 시간), 목표 설정
-- **DB 엔터티**: `reading_sessions`, `users`(alarm 설정)
-- **API/Edge Function**: `/sessions`, `/sessions/stats`
+- **상태**: ✅ 구현 완료 (10/10 REQ, PR #31 9ddd1a4, 2026-06-20, 2881 LOC 추가, 83개 테스트 통과 + pgTAP 9/9 통합테스트)
+- **핵심 범위**: 다정한 독서 알림 설정(`reading_alarm_time`, `reading_alarm_enabled`), 독서 타이머(`reading_sessions` 시작/종료, `duration_seconds` 서버 RPC 계산), 독서 습관 추적(연속 일수·누적 시간, 자정 기준 streak), 목표 설정(AsyncStorage 일일 목표)
+- **DB 엔터티**: `reading_sessions`(타이머 로그), `users`(alarm 설정)
+- **API/Edge Function**: `start_reading_session(uuid)→uuid`, `end_reading_session(uuid,int?)→void` RPC 함수 (SECURITY DEFINER, 서버 duration 계산), `/sessions` 조회
 - **의존성**: SPEC-LIBRARY-001(책 컨텍스트)
-- **구현 산출물**: `src/features/routine/*.ts`, 독서 타이머 화면, 루틴 통계 위젯
+- **구현 산출물**: `src/features/routine/` (13 modules: types, copy, sessionApi, alarmApi, statsApi, streakCalculator, goalStorage, useReadingTimer, useActiveSession, useAlarmSettings, useReadingStats, index, components/), `app/(tabs)/my/timer.tsx`, `app/(tabs)/my/alarm.tsx`, `app/(tabs)/my.tsx` (루틴 메뉴), `supabase/migrations/20240620000002_create_reading_session_rpc.sql`
 - **제외**: 백그라운드 타이머 정확도 한계 문서화, 로컬 알림 스케줄링은 SPEC-NOTIF-001과 협력
 
 #### SPEC-NOTIF-001: 푸시 알림 및 알림 센터
@@ -289,7 +290,7 @@ product.md "비목표" + SPEC-DB-001 "제외 범위" 기반:
 | 3 | SPEC-CLUB-001 | ✅ | ✅ | ✅ | 구현 완료 (12/12 REQ, PR #21 1fcf062, 2026-06-19, 789 테스트, 커버리지 93.44%) |
 | 3 | SPEC-CLUB-002 | ✅ | ✅ | ✅ | 구현 완료 (17/17 REQ, PR #23 c6920fe, 2026-06-19, 861 테스트) |
 | 3 | SPEC-FEED-001 | ✅ | ✅ | ✅ | 구현 완료 (8/8 REQ, PR #25 63ddf12, 2026-06-20, 913 테스트) |
-| 4 | SPEC-ROUTINE-001 | ✅ | ✅ | ✅ | SPEC 작성 완료 (10 REQ) |
+| 4 | SPEC-ROUTINE-001 | ✅ | ✅ | ✅ | 구현 완료 (10/10 REQ, PR #31 9ddd1a4, 2026-06-20, 2881 LOC 추가) |
 | 4 | SPEC-NOTIF-001 | ✅ | ✅ | ✅ | SPEC 작성 완료 (13 REQ) |
 | 4 | SPEC-PROFILE-001 | ✅ | ✅ | ✅ | SPEC 작성 완료 (8 REQ) |
 | 5 | SPEC-DEPLOY-001 | ✅ | ✅ | ✅ | 진행 중 (M1+M5 머지, PR #15 2514263, 2026-06-17; M2/M3/M4/M6 미완료 — M6 블로킹: CLUB/NOTIF 의존) |
@@ -336,7 +337,9 @@ product.md "비목표" + SPEC-DB-001 "제외 범위" 기반:
 
 **Phase 3 완결 상태 (2026-06-20 기준)**: 3/3 완료 — SPEC-CLUB-001(Track A 합류형 요청), SPEC-CLUB-002(Track B 개설형 모임), SPEC-FEED-001(진도별 스포일러 방지 피드 + Realtime) 모두 구현 완료. 소셜 연결 트랙 100% 완성.
 
-**미구현 SPEC (3개)**: SPEC-ROUTINE-001(Phase 4), SPEC-NOTIF-001(Phase 4), SPEC-PROFILE-001(Phase 4).
+**Phase 4 진행 상태 (2026-06-20 기준)**: 1/3 완료 — SPEC-ROUTINE-001(독서 루틴 및 타이머) 구현 완료. SPEC-NOTIF-001, SPEC-PROFILE-001 미구현.
+
+**미구현 SPEC (2개)**: SPEC-NOTIF-001(Phase 4), SPEC-PROFILE-001(Phase 4).
 
 ---
 

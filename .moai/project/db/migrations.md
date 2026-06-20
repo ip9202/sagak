@@ -48,6 +48,7 @@ SPEC-DB-001 구현: 15개 migration (T-001~T-009), 272 pgTAP 테스트 통과.
 | 20240618000005_handle_new_user_email_fallback.sql | SPEC-AUTH-001 | handle_new_user 트리거에 email COALESCE 폴백 추가 — 네이버 등 email 미제공 provider 가입 시 `public.users.email NOT NULL` 위반(C1, "Database error saving new user") 해결. 형태: `{provider}_{auth.users.id}@noemail.local` (uuid 기반 UNIQUE 보장). kakao/google(email 제공)는 영향 없음. (2026-06-18, SPEC-AUTH-001 REQ-AUTH-001) |
 | 20240618000006_add_club_reading_plan_columns.sql | SPEC-CLUB-002 | clubs 테이블에 진도 계획 컬럼 추가 (daily_pages, trigger_page, duration_days) — NULL 허용, CHECK >= 0 제약. (2026-06-19, SPEC-CLUB-002 REQ-CLUBB-004/009/010/011) |
 | 20240620000001_enable_realtime_feed.sql | SPEC-FEED-001 | Supabase Realtime postgres_changes 활성화 — `supabase_realtime` publication에 `emotion_records`, `sticker_reactions` ADD + 양 테이블 `REPLICA IDENTITY FULL`. 기존 SELECT RLS(migration 0014)가 브로드캐스트 게이트 자동 수행(F13 비멤버 미수신). 정책 변경 없음. (2026-06-20, SPEC-FEED-001 REQ-FEED-006~008) |
+| 20240620000002_create_reading_session_rpc.sql | SPEC-ROUTINE-001 | 독서 타이머 RPC 함수 — `start_reading_session(uuid)→uuid`(자동종료+INSERT), `end_reading_session(uuid,int?)→void`(서버 EXTRACT duration, SECURITY DEFINER). `user_id=auth.uid()` 가드(COERCE 기본값). pgTAP 0018 9/9 PASS (R4 서버계산/R2 자동종료/R3 RLS차단/R5 COALESCE 실증). (2026-06-20, SPEC-ROUTINE-001 REQ-ROUT-001~004) |
 
 ---
 
