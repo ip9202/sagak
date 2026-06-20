@@ -210,6 +210,7 @@ Phase 5 (배포)
 #### SPEC-NOTIF-001: 푸시 알림 및 알림 센터
 - **도메인**: NOTIF
 - **우선순위**: medium
+- **상태**: ✅ 구현 완료 (9/13 REQ — Primary 알림 센터 + Secondary Edge Function, PR #34 5db38e7, 2026-06-20; Optional 4개[Expo Push 실기기] 후속)
 - **핵심 범위**: Expo Push Notifications 통합(토큰 관리), 알림 센터(`notifications` 테이블 읽음 처리), 알림 타입별 처리(reading_reminder/join_request_received/join_accepted/sticker_received/completion/club_signal), 알림 설정 UI, `send-notification` Edge Function
 - **DB 엔터티**: `notifications`
 - **API/Edge Function**: `/users/{id}/notifications`, `send-notification` Edge Function
@@ -291,7 +292,7 @@ product.md "비목표" + SPEC-DB-001 "제외 범위" 기반:
 | 3 | SPEC-CLUB-002 | ✅ | ✅ | ✅ | 구현 완료 (17/17 REQ, PR #23 c6920fe, 2026-06-19, 861 테스트) |
 | 3 | SPEC-FEED-001 | ✅ | ✅ | ✅ | 구현 완료 (8/8 REQ, PR #25 63ddf12, 2026-06-20, 913 테스트) |
 | 4 | SPEC-ROUTINE-001 | ✅ | ✅ | ✅ | 구현 완료 (10/10 REQ, PR #31 9ddd1a4, 2026-06-20, 2881 LOC 추가) |
-| 4 | SPEC-NOTIF-001 | ✅ | ✅ | ✅ | SPEC 작성 완료 (13 REQ) |
+| 4 | SPEC-NOTIF-001 | ✅ | ✅ | ✅ | 구현 완료 (9/13 REQ, PR #34 5db38e7, 2026-06-20; Optional 4개[REQ-001~004 Expo Push 실기기] 후속) |
 | 4 | SPEC-PROFILE-001 | ✅ | ✅ | ✅ | SPEC 작성 완료 (8 REQ) |
 | 5 | SPEC-DEPLOY-001 | ✅ | ✅ | ✅ | 진행 중 (M1+M5 머지, PR #15 2514263, 2026-06-17; M2/M3/M4/M6 미완료 — M6 블로킹: CLUB/NOTIF 의존) |
 | 0 | SPEC-UI-002 | ✅ | ✅ | ✅ | SPEC 작성 완료 (25 REQ) — 화면 패턴, 14개 도메인 SPEC 선행 의존성 |

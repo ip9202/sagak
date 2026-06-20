@@ -49,6 +49,7 @@ SPEC-DB-001 구현: 15개 migration (T-001~T-009), 272 pgTAP 테스트 통과.
 | 20240618000006_add_club_reading_plan_columns.sql | SPEC-CLUB-002 | clubs 테이블에 진도 계획 컬럼 추가 (daily_pages, trigger_page, duration_days) — NULL 허용, CHECK >= 0 제약. (2026-06-19, SPEC-CLUB-002 REQ-CLUBB-004/009/010/011) |
 | 20240620000001_enable_realtime_feed.sql | SPEC-FEED-001 | Supabase Realtime postgres_changes 활성화 — `supabase_realtime` publication에 `emotion_records`, `sticker_reactions` ADD + 양 테이블 `REPLICA IDENTITY FULL`. 기존 SELECT RLS(migration 0014)가 브로드캐스트 게이트 자동 수행(F13 비멤버 미수신). 정책 변경 없음. (2026-06-20, SPEC-FEED-001 REQ-FEED-006~008) |
 | 20240620000002_create_reading_session_rpc.sql | SPEC-ROUTINE-001 | 독서 타이머 RPC 함수 — `start_reading_session(uuid)→uuid`(자동종료+INSERT), `end_reading_session(uuid,int?)→void`(서버 EXTRACT duration, SECURITY DEFINER). `user_id=auth.uid()` 가드(COERCE 기본값). pgTAP 0018 9/9 PASS (R4 서버계산/R2 자동종료/R3 RLS차단/R5 COALESCE 실증). (2026-06-20, SPEC-ROUTINE-001 REQ-ROUT-001~004) |
+| 20240620000003_enrich_notifications_for_notif.sql | SPEC-NOTIF-001 | notifications 보완 — `notification_type` ENUM 6종(reading_reminder/join_request_received/join_accepted/sticker_received/completion/club_signal) 생성 + `notifications.type` text→ENUM 변환(기존 placeholder 매핑: club_invite→join_request_received, reaction→sticker_received; mention/system은 대응 없어 삭제), `notifications.data jsonb` 추가(REQ-NOTIF-013 템플릿 변수), `users.push_token text` 추가(미결정 6.1 임시 방침, 등록 로직은 Optional). pgTAP 0012 28/28 + 0014 회귀 복구. (2026-06-20, SPEC-NOTIF-001 REQ-NOTIF-011/013) |
 
 ---
 
