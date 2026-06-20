@@ -136,6 +136,19 @@
 | Emotion Input Screen | `src/features/emotion/EmotionInputScreen.tsx` | Presentation | 감정 기록 입력 화면 | input screen (page/content/question/visibility toggle, pageNumber validation) | EMOTION-001 REQ-EMO-001/005/010 |
 | Timeline Screen | `src/features/emotion/TimelineScreen.tsx` | Presentation | 타임라인 화면 (EmotionRecordCard list) | EmotionRecordCard list, sort toggle (time/page), spoiler blur via isSpoiler prop | EMOTION-001 REQ-EMO-002/008/009 |
 
+### Notification Domain (`src/features/notification/`)
+SPEC-NOTIF-001 — 알림 센터(조회/읽음/라우팅) + 6종 type별 딥링크. Optional(Expo Push 실기기)은 후속.
+
+| 모듈 | 경로 | 계층 | 목적 | 주요 익스포트 | SPEC 참조 |
+|------|------|------|------|---------------|-----------|
+| Notification Barrel | `src/features/notification/index.ts` | Business | Notification 도메인 barrel | useNotifications, useUnreadCount, useMarkAsRead, useMarkAllAsRead, routeForNotification | NOTIF-001 |
+| Queries | `src/features/notification/queries.ts` | Business | PostgREST 조회/카운트/읽음 변이 (RLS 의존) | getNotifications, getUnreadCount, markNotificationRead, markAllNotificationsRead | NOTIF-001 REQ-NOTIF-005~008 |
+| Route Mapper | `src/features/notification/routeMapper.ts` | Business (순수함수) | 6종 type별 딥링크 + 미구현 폴백 | routeForNotification(type, refId) → path\|null | NOTIF-001 REQ-NOTIF-009 |
+| Hooks | `src/features/notification/use{Notifications,UnreadCount,MarkAsRead,MarkAllAsRead}.ts` | Business | React Query 훅 (invalidate 접두사 `notification`) | useNotifications, useUnreadCount(N 배지), useMarkAsRead/useMarkAllAsRead(mutation) | NOTIF-001 REQ-NOTIF-005~008 |
+| Notifications Screen | `src/features/notification/components/NotificationsScreen.tsx` | Presentation | 알림 센터 화면 | 목록 + 미읽음 배지 + 모두 읽음 + 탭(읽음/라우팅) + 로딩/에러/빈 (SPEC-UI-002) | NOTIF-001 REQ-NOTIF-005~009 |
+| Notifications Route | `app/(tabs)/my/notifications.tsx` | Presentation | 알림 센터 라우트 셸 | NotificationsScreen 래핑 | NOTIF-001 |
+| send-notification Edge Function | `supabase/functions/send-notification/` | Infrastructure (Deno) | 서버 알림 발송 (service_role) — `index.ts`(엔드포인트) + `logic.ts`(ENUM 검증/파서) + `templates.ts`(6종 다정한 톤) + `expo-push.ts`(Expo Push API) | notifications INSERT(RLS 우회) + push_token 조회 + 푸시 발송 | NOTIF-001 REQ-NOTIF-010~013 |
+
 ### Query Infrastructure (`src/lib/query/`)
 
 | 모듈 | 경로 | 계층 | 목적 | 주요 익스포트 | SPEC 참조 |
