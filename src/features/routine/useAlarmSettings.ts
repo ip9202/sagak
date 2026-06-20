@@ -24,12 +24,12 @@ export function useAlarmSettings(): ReturnType<
 
 /**
  * 알림 시간/토글 변경 후 캐시를 무효화한다.
+ *
+ * @MX:NOTE: [AUTO] Promise<void> 반환 — AlarmScreen 의 await 가 실제로 refetch 스케줄링을 기다리도록 void 래퍼 제거. 이전엔 void 로 감싸 "await has no effect" 경고가 발생했다.
  */
-export function useInvalidateAlarmSettings(): () => void {
+export function useInvalidateAlarmSettings(): () => Promise<void> {
   const qc = useQueryClient();
-  return () => {
-    void qc.invalidateQueries({ queryKey: ALARM_SETTINGS_QUERY_KEY });
-  };
+  return () => qc.invalidateQueries({ queryKey: ALARM_SETTINGS_QUERY_KEY });
 }
 
 export { updateAlarmTime, toggleAlarmEnabled };
