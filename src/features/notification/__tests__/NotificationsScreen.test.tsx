@@ -136,9 +136,7 @@ describe('SPEC-NOTIF-001 NotificationsScreen', () => {
     fireEvent.press(item);
     await waitFor(() => {
       expect(mockedMarkNotificationRead).toHaveBeenCalledWith('n-1');
-      expect(routerPush).toHaveBeenCalledWith(
-        '/library?userBookId=11111111-1111-1111-1111-111111111111',
-      );
+      expect(routerPush).toHaveBeenCalledWith('/library');
     });
   });
 

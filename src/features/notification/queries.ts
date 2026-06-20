@@ -80,8 +80,13 @@ export async function markNotificationRead(id: string): Promise<void> {
 
 /**
  * 읽지 않은 모든 알림을 일괄 읽음 처리한다 (REQ-NOTIF-008).
- * user_id = auth.uid() AND is_read = false 행을 bulk UPDATE.
- * RLS 가 본인 행만 갱신 허용.
+ *
+ * `.eq('is_read', false)` 만으로 충분하다 — RLS(notifications_update_own,
+ * auth.uid() = user_id)가 서버에서 본인 행으로 자동 제한한다. 클라이언트가 보유한
+ * user_id 를 쿼리에 명시하면 RLS 와 중복되어 단일 진실이 훼손된다 (PR #34 리뷰 m4).
+ *
+ * @MX:NOTE: [AUTO] 명시적 user_id 필터 불필요 — RLS 가 본인 행 갱신을 단독 보장.
+ *   @MX:REASON: 클라이언트 전달 user_id 가 auth.uid() 와 불일치해도 RLS 가 0행 갱신으로 차단한다 (방어적 깊이는 RLS 단층이면 충분).
  */
 export async function markAllNotificationsRead(): Promise<void> {
   const client = getSupabaseClient();

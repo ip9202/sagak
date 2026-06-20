@@ -11,10 +11,8 @@ import { routeForNotification, NOTIFICATION_CENTER_ROUTE } from '../routeMapper'
 describe('SPEC-NOTIF-001 REQ-NOTIF-009: routeForNotification', () => {
   const REF = '11111111-1111-1111-1111-111111111111';
 
-  it('reading_reminder → /library?userBookId= (N19)', () => {
-    expect(routeForNotification('reading_reminder', REF)).toBe(
-      `/library?userBookId=${REF}`,
-    );
+  it('reading_reminder → /library (user_book 강조는 후속, N19)', () => {
+    expect(routeForNotification('reading_reminder', REF)).toBe('/library');
   });
 
   it('join_request_received → /host-requests?joinRequestId=', () => {

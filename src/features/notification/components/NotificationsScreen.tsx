@@ -21,7 +21,7 @@ import {
   ScrollView,
   Pressable,
 } from 'react-native';
-import { router } from 'expo-router';
+import { router, type Href } from 'expo-router';
 import { useTheme } from '../../../theme/theme';
 import {
   useNotifications,
@@ -92,14 +92,17 @@ export function NotificationsScreen(): React.JSX.Element {
   const items: NotificationRow[] = listQuery.data ?? [];
 
   const handlePress = (n: NotificationRow): void => {
-    // REQ-NOTIF-007: 읽지 않은 경우만 읽음 처리 (멱등)
+    // REQ-NOTIF-007: 읽지 않은 경우만 읽음 처리 (멱등).
+    // 탭 후 즉시 라우팅되므로 읽음 실패는 백그라운드 로깅 (m3 — react-query 재시도 후에도 실패 시).
     if (!n.is_read) {
-      markAsRead.mutate(n.id);
+      markAsRead.mutate(n.id, {
+        onError: (e) => console.warn('markNotificationRead failed', e),
+      });
     }
     // REQ-NOTIF-009: type별 딥링크. 폴백(null) 시 알림 센터 유지.
     const target = routeForNotification(n.type, n.ref_id);
     if (target) {
-      void router.push(target as any);
+      void router.push(target as Href);
     }
   };
 
@@ -132,15 +135,35 @@ export function NotificationsScreen(): React.JSX.Element {
           ) : null}
         </View>
         {unreadCount > 0 ? (
-          <Pressable
-            testID="notifications-mark-all"
-            onPress={handleMarkAll}
-            hitSlop={8}
-          >
-            <Text style={[styles.markAllText, { color: theme.colors.brand[500] }]}>
-              모두 읽음
-            </Text>
-          </Pressable>
+          <View>
+            <Pressable
+              testID="notifications-mark-all"
+              onPress={handleMarkAll}
+              disabled={markAll.isPending}
+              hitSlop={8}
+            >
+              <Text
+                style={[
+                  styles.markAllText,
+                  {
+                    color: markAll.isPending
+                      ? theme.colors.text.tertiary
+                      : theme.colors.brand[500],
+                  },
+                ]}
+              >
+                {markAll.isPending ? '처리 중…' : '모두 읽음'}
+              </Text>
+            </Pressable>
+            {markAll.isError ? (
+              <Text
+                testID="notifications-mark-all-error"
+                style={{ color: theme.colors.semantic.error, fontSize: 11 }}
+              >
+                모두 읽음 처리에 실패했어요
+              </Text>
+            ) : null}
+          </View>
         ) : null}
       </View>
 

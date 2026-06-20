@@ -18,12 +18,16 @@ import type { NotificationType } from './types';
  * 라우팅 테이블 (REQ-NOTIF-009):
  * | type                  | 경로                          | ref_id 의미        |
  * |-----------------------|-------------------------------|--------------------|
- * | reading_reminder      | /library?userBookId=          | user_book_id       |
+ * | reading_reminder      | /library (user_book 강조 후속) | user_book_id       |
  * | join_request_received | /host-requests?joinRequestId= | join_request_id    |
  * | join_accepted         | /clubs/{clubId}               | club_id            |
  * | sticker_received      | (미구현 → 폴백)               | emotion_record_id  |
  * | completion            | (미구현 → 폴백)               | completion_report  |
  * | club_signal           | /clubs/{clubId}/feed          | club_id            |
+ *
+ * @MX:NOTE: [AUTO] reading_reminder ref_id(user_book_id) 기반 강조 라우트는 아직 미구현 —
+ *   library.tsx 가 userBookId param 을 소비하지 않는다 (PR #34 리뷰 M1).
+ *   MVP는 /library 진입만 보장하고, user_book 강조는 library param 지원 후 연결 (ROUTINE 핸드오프 bookId 딥링크 대기 항목과 동일).
  */
 export function routeForNotification(
   type: NotificationType,
@@ -31,8 +35,8 @@ export function routeForNotification(
 ): string | null {
   switch (type) {
     case 'reading_reminder':
-      // 현재 읽는 책 서재 — ref_id(user_book_id) 필수
-      return refId ? `/library?userBookId=${encodeURIComponent(refId)}` : null;
+      // 현재 읽는 책 서재로 진입. ref_id(user_book_id) 강조는 후속 (library param 미지원).
+      return refId ? '/library' : null;
 
     case 'join_request_received':
       // 호스트 모임 관리 — ref_id(join_request_id)
