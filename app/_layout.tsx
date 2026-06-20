@@ -28,6 +28,11 @@ import * as WebBrowser from 'expo-web-browser';
 import { ThemeProvider } from '../src/theme/theme';
 import { AuthProvider } from '../src/auth/AuthContext';
 import { getQueryClient } from '../src/lib/query/queryClient';
+// SPEC-NOTIF-001 Optional (REQ-NOTIF-001~004): 클라이언트 Expo Push 통합
+import {
+  usePushTokenRegistration,
+  useNotificationResponse,
+} from '../src/features/notification';
 
 // @MX:NOTE: [AUTO] OAuth 콜백 딥링크(sagak://auth/callback)로 앱이 열렸을 때 인증 세션 브라우저를 닫고
 //           Supabase가 코드 교환을 완료하도록 돕는다. 반드시 모듈 최상단(컴포넌트 외부)에서 호출해야 한다.
@@ -39,6 +44,7 @@ export default function RootLayout() {
     <ThemeProvider>
       <QueryClientProvider client={getQueryClient()}>
         <AuthProvider>
+          <PushNotificationHost />
           <Stack screenOptions={{ headerShown: false }}>
             <Stack.Screen name="index" />
             <Stack.Screen name="(tabs)" />
@@ -50,4 +56,15 @@ export default function RootLayout() {
       </QueryClientProvider>
     </ThemeProvider>
   );
+}
+
+// @MX:NOTE: [AUTO] SPEC-NOTIF-001 Optional: 푸시 토큰 등록 + 알림 탭 라우팅 훅을
+//   AuthProvider 내부에서 호출하기 위한 빈 호스트 컴포넌트. 두 훅 모두 useSession/useRouter 에
+//   의존하므로 AuthProvider/Stack 라우터 컨텍스트 안에 있어야 한다. 렌더링 결과는 null.
+function PushNotificationHost(): React.JSX.Element | null {
+  // REQ-NOTIF-001~003: 인증된 사용자 푸시 토큰 획득 + 서버 등록
+  usePushTokenRegistration();
+  // REQ-NOTIF-004: foreground 알림 표시 + 탭 라우팅
+  useNotificationResponse();
+  return null;
 }

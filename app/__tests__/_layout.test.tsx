@@ -47,6 +47,8 @@ jest.mock('expo-router', () => {
         },
       },
     ),
+    // SPEC-NOTIF-001 Optional: useNotificationResponse 가 호출하는 useRouter stub
+    useRouter: () => ({ replace: jest.fn() }),
   };
 });
 
@@ -55,11 +57,25 @@ jest.mock('../../src/auth/AuthContext', () => ({
   AuthProvider: ({ children }: { children: React.ReactNode }) => children,
 }));
 
+// SPEC-NOTIF-001 Optional: 루트 레이아웃 구조 검증이 목적이므로 푸시 훅 본체는 no-op 로 대체.
+// (훅 자체의 동작은 usePushTokenRegistration/useNotificationResponse 단위 테스트가 보장)
+const pushHookCalled = { push: 0, response: 0 };
+jest.mock('../../src/features/notification', () => ({
+  usePushTokenRegistration: () => {
+    pushHookCalled.push += 1;
+  },
+  useNotificationResponse: () => {
+    pushHookCalled.response += 1;
+  },
+}));
+
 import RootLayout from '../_layout';
 
 describe('REQ-NAV-012: 루트 Stack 자식 그룹 구성', () => {
   beforeEach(() => {
     screenNames.length = 0;
+    pushHookCalled.push = 0;
+    pushHookCalled.response = 0;
   });
 
   it('ThemeProvider + AuthProvider가 보존되어 Stack이 정상 렌더링된다 (R1 회귀)', () => {
@@ -78,5 +94,12 @@ describe('REQ-NAV-012: 루트 Stack 자식 그룹 구성', () => {
     // jest 환경은 __DEV__=true (기본값)
     render(<RootLayout />);
     expect(screenNames).toContain('_dev');
+  });
+
+  it('SPEC-NOTIF-001 Optional: 마운트 시 usePushTokenRegistration/useNotificationResponse 호출', () => {
+    render(<RootLayout />);
+    // PushNotificationHost 가 AuthProvider 내부에서 두 훅을 1회씩 호출한다
+    expect(pushHookCalled.push).toBeGreaterThanOrEqual(1);
+    expect(pushHookCalled.response).toBeGreaterThanOrEqual(1);
   });
 });

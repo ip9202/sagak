@@ -42,11 +42,19 @@ jest.mock('expo-router', () => {
         },
       },
     ),
+    // SPEC-NOTIF-001 Optional: useNotificationResponse 가 호출하는 useRouter stub
+    useRouter: () => ({ replace: jest.fn() }),
   };
 });
 
 jest.mock('../../src/auth/AuthContext', () => ({
   AuthProvider: ({ children }: { children: React.ReactNode }) => children,
+}));
+
+// @MX:NOTE: [AUTO] SPEC-NOTIF-001 Optional: _dev 게이트 검증이 목적이므로 푸시 훅 본체는 no-op 로 대체.
+jest.mock('../../src/features/notification', () => ({
+  usePushTokenRegistration: () => {},
+  useNotificationResponse: () => {},
 }));
 
 // __DEV__=false로 고정한 상태에서 _layout 모듈을 로드한다
