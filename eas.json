@@ -10,7 +10,6 @@
       "env": {
         "EXPO_PUBLIC_SUPABASE_URL": "your-dev-project-url.supabase.co",
         "EXPO_PUBLIC_SUPABASE_ANON_KEY": "your-dev-anon-key",
-        "EXPO_PUBLIC_SENTRY_DSN": "",
         "ENV": "development"
       },
       "cache": {
@@ -22,7 +21,6 @@
       "env": {
         "EXPO_PUBLIC_SUPABASE_URL": "your-staging-project-url.supabase.co",
         "EXPO_PUBLIC_SUPABASE_ANON_KEY": "your-staging-anon-key",
-        "EXPO_PUBLIC_SENTRY_DSN": "",
         "ENV": "staging"
       },
       "cache": {
@@ -34,7 +32,6 @@
       "env": {
         "EXPO_PUBLIC_SUPABASE_URL": "your-production-project-url.supabase.co",
         "EXPO_PUBLIC_SUPABASE_ANON_KEY": "your-production-anon-key",
-        "EXPO_PUBLIC_SENTRY_DSN": "",
         "ENV": "production"
       },
       "cache": {

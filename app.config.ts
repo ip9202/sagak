@@ -55,6 +55,12 @@ export default ({ config }: ConfigContext) => {
 
       // Environment (REQ-API-019)
       ENV: process.env.ENV || 'development',
+
+      // SPEC-NOTIF-001 / REQ-NOTIF-001: Expo Push 토큰 발급용 projectId.
+      // @ip9202/sagak project 식별자 (환경 무관 고정값, secret 아님). registerForPush.ts:44 참조.
+      eas: {
+        projectId: '6648249c-f694-48d8-9a76-b1e639e86fdd',
+      },
     },
   };
 };
