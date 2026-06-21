@@ -22,6 +22,7 @@ import {
   View,
   Text,
   Pressable,
+  ScrollView,
   StyleSheet,
   ActivityIndicator,
   Alert,
@@ -179,11 +180,14 @@ export default function MyTab(): React.JSX.Element {
         </Text>
       </View>
 
-      <View
-        style={[
-          styles.content,
-          { paddingHorizontal: theme.spacing[5] },
-        ]}
+      <ScrollView
+        style={{ flex: 1 }}
+        contentContainerStyle={{
+          paddingTop: 12,
+          gap: 16,
+          paddingHorizontal: theme.spacing[5],
+        }}
+        keyboardShouldPersistTaps="handled"
       >
         {/* 사용자 정보 카드 (SPEC-UI-002 REQ-SCREEN-CARD — cornerRadius 16 / padding 16-20) */}
         <View
@@ -533,7 +537,7 @@ export default function MyTab(): React.JSX.Element {
             </Text>
           )}
         </Pressable>
-      </View>
+      </ScrollView>
     </View>
   );
 }

@@ -155,6 +155,15 @@ export default function TabsLayout() {
         name="host-requests"
         options={{ href: null, headerShown: false }}
       />
+      {/* @MX:NOTE: [AUTO] 하위 라우트 — 탭바 미표시 (href:null), 스택 진입용.
+          선언 누락 시 expo-router 가 자동 탭으로 노출시켜 SPEC-UI-002 캡슐형 4탭이 깨짐 (회귀).
+          NOTIF/PROFILE/ROUTINE/CLUB 하위 라우트가 누적되며 발견됨. */}
+      <Tabs.Screen name="my/notifications" options={{ href: null, headerShown: false }} />
+      <Tabs.Screen name="my/edit" options={{ href: null, headerShown: false }} />
+      <Tabs.Screen name="my/timer" options={{ href: null, headerShown: false }} />
+      <Tabs.Screen name="my/alarm" options={{ href: null, headerShown: false }} />
+      <Tabs.Screen name="clubs/new" options={{ href: null, headerShown: false }} />
+      <Tabs.Screen name="clubs/[clubId]/feed" options={{ href: null, headerShown: false }} />
     </Tabs>
   );
 }
