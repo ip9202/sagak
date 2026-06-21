@@ -11,7 +11,7 @@ issue_number: 0
 labels: [notif, push, expo-push, notification-center, edge-function, supabase, phase-4, acceptance]
 ---
 
-> **업데이트 (2026-06-21)**: Optional Goal (REQ-NOTIF-001~004) 구현 완료 및 PR #38 병격. 자동화 검증 N1/N2/N5/N8 통과. 수동 검증 N3/N4/N7 대기 중 (실기기, dev client 재빌드 필요). Primary Goal (CENTER/SEND)는 PR #34에서 이미 완료됨.
+> **업데이트 (2026-06-21)**: Optional Goal (REQ-NOTIF-001~004) 구현 완료(PR #38). 자동화 N1/N2/N5/N8 통과. **수동 검증: N4 통과**(권한 거부 폴백 — 알림 센터 정상 동작, silent, 크래시 없음). **N3/N7 보류**(Android FCM 자격증명 미설정 — projectId 주입 완료, FCM credentials가 전제; lesson #4 사례). dev 마이그레이션 20240620000001/02/03 적용(notifications.data + users.push_token + ENUM).
 
 # SPEC-NOTIF-001: 인수 기준 (acceptance.md)
 
@@ -382,11 +382,11 @@ labels: [notif, push, expo-push, notification-center, edge-function, supabase, p
 
 ### 3.3 수동 검증 (실기기)
 
-- **Expo Push Token 획득**: 실기기(또는 에뮬레이터)에서 로그인 후 토큰 획득 확인 — N1
-- **포그라운드 알림 수신**: 앱 실행 중 푸시 도착 시 인앱 배너 표시 확인 — N7
-- **백그라운드 알림 수신**: 앱 백그라운드/종료 상태에서 시스템 알림 표시 확인
-- **알림 탭 라우팅**: 실제 알림 탭 시 해당 화면 이동 확인 — N19-N22
-- **권한 거부 폴백**: 알림 권한 거부 후 알림 센터 동작 확인 — N4
+- **Expo Push Token 획득**: 실기기 로그인 후 토큰 획득 — N1: 보류(Android FCM 자격증명 미설정 → getExpoPushTokenAsync 실패, projectId는 주입됨)
+- **포그라운드 알림 수신**: 앱 실행 중 푸시 도착 시 인앱 배너 — N7: 보류(동일 FCM 전제)
+- **백그라운드 알림 수신**: 시스템 알림 표시: 보류(FCM 전제)
+- **알림 탭 라우팅**: 알림 탭 시 화면 이동 — N19-N22: 단위 테스트 커버
+- **권한 거부 폴백**: 알림 권한 거부 후 알림 센터 동작 — N4: **통과**(빈 알림 센터 정상 조회, silent failure, 크래시 없음)
 
 ---
 

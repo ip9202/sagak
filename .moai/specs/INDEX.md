@@ -216,7 +216,7 @@ Phase 5 (배포)
 - **API/Edge Function**: `/users/{id}/notifications`, `send-notification` Edge Function
 - **의존성**: SPEC-API-001, SPEC-AUTH-001(토큰-사용자 매핑)
 - **구현 산출물**: `src/features/notification/*.ts` (13 modules), 알림 센터 화면, `supabase/functions/send-notification/`
-- **검증 상태**: 자동화 N1/N2/N5/N8 통과, 수동 N3/N4/N7 대기 중 (실기기, dev client 재빌드 필요)
+- **검증 상태**: 자동화 N1/N2/N5/N8 통과. 수동 **N4 통과**(권한 거부 폴백 — 알림 센터 정상 동작, silent). **N3/N7 보류**(Android FCM 자격증명 미설정 — projectId 주입 완료, FCM credentials가 전제)
 - **제외**: SMS/이메일 채널, 마케팅 푸시
 
 #### SPEC-PROFILE-001: 마이페이지, 통계 및 보상
