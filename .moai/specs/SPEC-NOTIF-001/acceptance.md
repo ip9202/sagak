@@ -12,6 +12,8 @@ labels: [notif, push, expo-push, notification-center, edge-function, supabase, p
 ---
 
 > **업데이트 (2026-06-21)**: Optional Goal (REQ-NOTIF-001~004) 구현 완료(PR #38). 자동화 N1/N2/N5/N8 통과. **수동 검증: N4 통과**(권한 거부 폴백 — 알림 센터 정상 동작, silent, 크래시 없음). **N3/N7 보류**(Android FCM 자격증명 미설정 — projectId 주입 완료, FCM credentials가 전제; lesson #4 사례). dev 마이그레이션 20240620000001/02/03 적용(notifications.data + users.push_token + ENUM).
+>
+> **업데이트 (2026-06-22)**: PR #41 머지. **N3 해소**(Android FCM 자격증명 완료 — Firebase sagak-dev 프로젝트 + google-services.json 구성, `Default FirebaseApp is not initialized` 에러 해소, `getExpoPushTokenAsync` 토큰 획득 성공). **REQ-NOTIF-003 회귀 수정**(PostgREST 21000 — WHERE 절 `.eq('id', userId)` 추가, 기존 "RLS만으로 충분" 가정 was wrong, lesson #12 참조). **N7 여전히 보류**(포그라운드 알림 수신 — Service Account Key 필요, google-services.json과는 별개 credential).
 
 # SPEC-NOTIF-001: 인수 기준 (acceptance.md)
 
@@ -54,6 +56,8 @@ labels: [notif, push, expo-push, notification-center, edge-function, supabase, p
 **Then** OS가 사용자에게 알림 권한 대화상자를 표시한다
 **And** 사용자가 허용하면 시스템은 권한을 획득하고 토큰 획득을 진행한다
 
+**검증 상태**: ✅ **통과 (2026-06-22 PR #41)** — Firebase `sagak-dev` 프로젝트 + `com.sagak.app` 등록, google-services.json 구성 완료. Pixel 6 실기기: `Default FirebaseApp is not initialized` 에러 해소, `getExpoPushTokenAsync` 토큰 획득 성공. N3(권한 허용 → 토큰 획득) 만족.
+
 #### 시나리오 N4: 권한 거부
 
 **Given** 사용자가 알림 권한 대화상자에서 "거부"를 선택한다
@@ -74,6 +78,8 @@ labels: [notif, push, expo-push, notification-center, edge-function, supabase, p
 **Then** 시스템은 토큰을 현재 사용자 ID와 매핑하여 서버에 저장한다
 **And** `send-notification` Edge Function이 해당 사용자에게 푸시를 발송할 수 있게 된다
 
+**검증 상태**: ✅ **통과 (2026-06-22 PR #41)** — PostgREST 21000 코드 21000 "UPDATE requires a WHERE clause" 회귀 수정. `registerPushToken(token, userId)`에 `.eq('id', userId)` WHERE 절 추가 (기존 "RLS만으로 충분" 가정 was wrong — lesson #12). 실기기 userId 01ff8d99-... 사용자 토큰 정상 등록 확인.
+
 #### 시나리오 N6: 토큰 미등록 상태에서 알림 발송
 
 **Given** 사용자 A가 푸시 토큰을 서버에 등록하지 않았다 (권한 거부 또는 미획득)
@@ -93,6 +99,8 @@ labels: [notif, push, expo-push, notification-center, edge-function, supabase, p
 **When** 푸시 알림이 도착한다
 **Then** 시스템은 인앱 배너 또는 토스트로 알림을 표시한다
 **And** OS 시스템 알림은 표시하지 않는다 (포그라운드 억제)
+
+**검증 상태**: ⏳ **보류 (2026-06-22)** — Firebase Service Account Key(서버 credential) 필요. google-services.json(클라이언트 credential)과는 별개 파일. EAS credentials 업로드 → 실제 푸시 발송/수신 테스트 필요. N7=메시지 전달, N3=토큰 획득(완료).
 
 #### 시나리오 N8: 알림 탭 시 딥링크 라우팅
 
@@ -382,11 +390,12 @@ labels: [notif, push, expo-push, notification-center, edge-function, supabase, p
 
 ### 3.3 수동 검증 (실기기)
 
-- **Expo Push Token 획득**: 실기기 로그인 후 토큰 획득 — N1: 보류(Android FCM 자격증명 미설정 → getExpoPushTokenAsync 실패, projectId는 주입됨)
-- **포그라운드 알림 수신**: 앱 실행 중 푸시 도착 시 인앱 배너 — N7: 보류(동일 FCM 전제)
-- **백그라운드 알림 수신**: 시스템 알림 표시: 보류(FCM 전제)
+- **Expo Push Token 획득**: 실기기 로그인 후 토큰 획득 — N1: ✅ **통과 (2026-06-22 PR #41)** — Pixel 6: `getExpoPushTokenAsync` 토큰 반환 성공. google-services.json + `expo.android.googleServicesFile` 구성 완료.
+- **포그라운드 알림 수신**: 앱 실행 중 푸시 도착 시 인앱 배너 — N7: ⏳ **보류 (2026-06-22)** — Service Account Key 필요. google-services.json(클라이언트)와는 별개.
+- **백그라운드 알림 수신**: 시스템 알림 표시: ⏳ **보류 (2026-06-22)** — 동일 전제(N7)
 - **알림 탭 라우팅**: 알림 탭 시 화면 이동 — N19-N22: 단위 테스트 커버
-- **권한 거부 폴백**: 알림 권한 거부 후 알림 센터 동작 — N4: **통과**(빈 알림 센터 정상 조회, silent failure, 크래시 없음)
+- **권한 거부 폴백**: 알림 권한 거부 후 알림 센터 동작 — N4: ✅ **통과**(빈 알림 센터 정상 조회, silent failure, 크래시 없음)
+- **서버 등록**: 실기기 userId 01ff8d99-... 토큰 등록 확인 — N5: ✅ **통과 (2026-06-22 PR #41)** — users.push_token UPDATE 성공. PostgREST 21000 WHERE 절 수정 적용.
 
 ---
 
