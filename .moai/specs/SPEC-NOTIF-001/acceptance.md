@@ -13,7 +13,7 @@ labels: [notif, push, expo-push, notification-center, edge-function, supabase, p
 
 > **업데이트 (2026-06-21)**: Optional Goal (REQ-NOTIF-001~004) 구현 완료(PR #38). 자동화 N1/N2/N5/N8 통과. **수동 검증: N4 통과**(권한 거부 폴백 — 알림 센터 정상 동작, silent, 크래시 없음). **N3/N7 보류**(Android FCM 자격증명 미설정 — projectId 주입 완료, FCM credentials가 전제; lesson #4 사례). dev 마이그레이션 20240620000001/02/03 적용(notifications.data + users.push_token + ENUM).
 >
-> **업데이트 (2026-06-22)**: PR #41 머지. **N3 해소**(Android FCM 자격증명 완료 — Firebase sagak-dev 프로젝트 + google-services.json 구성, `Default FirebaseApp is not initialized` 에러 해소, `getExpoPushTokenAsync` 토큰 획득 성공). **REQ-NOTIF-003 회귀 수정**(PostgREST 21000 — WHERE 절 `.eq('id', userId)` 추가, 기존 "RLS만으로 충분" 가정 was wrong, lesson #12 참조). **N7 여전히 보류**(포그라운드 알림 수신 — Service Account Key 필요, google-services.json과는 별개 credential).
+> **업데이트 (2026-06-22)**: PR #41 머지. **N3 해소**(Android FCM 자격증명 완료 — Firebase sagak-dev 프로젝트 + google-services.json 구성, `Default FirebaseApp is not initialized` 에러 해소, `getExpoPushTokenAsync` 토큰 획득 성공). **REQ-NOTIF-003 회귀 수정**(PostgREST 21000 — WHERE 절 `.eq('id', userId)` 추가, 기존 "RLS만으로 충분" 가정 was wrong, lesson #12 참조). **N7 Phase 5/prod 연기**(포그라운드 알림 수신 — EAS identifier 등록이 keystore 강제 + eas-cli 20.x FCM V1 CLI 불가, 로컬 dev 정책 충돌 → prod 첫 EAS 빌드 시점으로 연기, lesson #13).
 
 # SPEC-NOTIF-001: 인수 기준 (acceptance.md)
 
@@ -100,7 +100,7 @@ labels: [notif, push, expo-push, notification-center, edge-function, supabase, p
 **Then** 시스템은 인앱 배너 또는 토스트로 알림을 표시한다
 **And** OS 시스템 알림은 표시하지 않는다 (포그라운드 억제)
 
-**검증 상태**: ⏳ **보류 (2026-06-22)** — Firebase Service Account Key(서버 credential) 필요. google-services.json(클라이언트 credential)과는 별개 파일. EAS credentials 업로드 → 실제 푸시 발송/수신 테스트 필요. N7=메시지 전달, N3=토큰 획득(완료).
+**검증 상태**: ⏳ **Phase 5/prod 연기 (2026-06-22)** — 단순히 Service Account Key만 필요한 게 아님. EAS identifier 등록이 **keystore(.jks/.p12) 업로드를 강제**(대시보드 New Application Identifier 마법사 Step 3/5, Generate/Skip 불가). eas-cli 20.x는 FCM V1을 CLI로 업로드 불가(`eas credentials`/`credentials:configure-build`/`credentials.json` 모두 빌드 keystore 전용). sagak 로컬 dev 정책(EAS 클라우드 빌드 안 함)과 충돌 → **prod 첫 EAS 빌드 시점**(keystore EAS 자동 생성 + identifier + FCM V1 동시 설정)으로 연기. N3(토큰 획득)=완료, N7(메시지 전달)=prod 연기. 상세는 lesson #13.
 
 #### 시나리오 N8: 알림 탭 시 딥링크 라우팅
 

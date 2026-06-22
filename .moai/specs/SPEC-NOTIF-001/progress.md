@@ -14,7 +14,7 @@
 
 - **구현 완료**: REQ-NOTIF-001~004 (Expo Push Token 획득·권한·서버 등록·포그라운드 핸들러)
 - **자동화 검증 통과**: N1(token 성공), N2(token 실패 silent), N5(서버 등록 + WHERE 절 수정), N8(탭 라우팅)
-- **수동 검증**: N3(권한 허용) **✅ 통과 (PR #41)** — Firebase sagak-dev + google-services.json 완료, `getExpoPushTokenAsync` 토큰 획득 성공. N4(권한 거부 폴백) **✅ 통과**. N7(포그라운드 수신) **⏳ 보류** — Service Account Key 필요 (google-services.json과는 별개)
+- **수동 검증**: N3(권한 허용) **✅ 통과 (PR #41)** — Firebase sagak-dev + google-services.json 완료, `getExpoPushTokenAsync` 토큰 획득 성공. N4(권한 거부 폴백) **✅ 통과**. N7(포그라운드 수신) **⏳ Phase 5/prod 연기** — EAS identifier 등록이 keystore 강제 + eas-cli 20.x FCM V1 CLI 불가, 로컬 dev 정책 충돌 → prod 첫 EAS 빌드 시점 연기 (lesson #13)
 - **리뷰 상태**: evaluator-active PASS, OWASP security audit APPROVE (Critical 0)
 - **품질 게이트**: TRUST 5 5/5, tsc 0 errors, jest 1136/1136 pass, lint 0 errors
 - **커버리지**: 신규 파일 93-100%, 전체 98.82%
@@ -40,7 +40,7 @@
 
 - **N3 (권한 허용 → 토큰 획득)**: ✅ **통과 (PR #41)** — Firebase `sagak-dev` 프로젝트 + `com.sagak.app` 등록, google-services.json 프로젝트 루트 배치(gitignored), `app.json`에 `expo.android.googleServicesFile: "./google-services.json"` 추가. `expo prebuild --clean` → google-services gradle plugin 적용 + `processDebugGoogleServices` values.xml 생성 → APK 빌드 성공. Pixel 6 실기기: `Default FirebaseApp is not initialized` 에러 해소, `getExpoPushTokenAsync` 토큰 획득 성공.
 - **N4 (권한 거부 폴백)**: ✅ 통과 — 알림 센터 빈 목록 정상 조회, silent failure, 크래시 없음 (USER_FIXED 거부 상태에서)
-- **N7 (포그라운드 알림 수신)**: ⏳ **보류** — Service Account Key(서버 credential) 필요. google-services.json(클라이언트 credential)와는 별개 파일. EAS credentials 업로드 → 실제 푸시 발송/수신 테스트 필요.
+- **N7 (포그라운드 알림 수신)**: ⏳ **Phase 5/prod 연기 (2026-06-22)** — EAS identifier 등록 시도 중 **keystore(.jks/.p12) 업로드 강제** 발견(대시보드 New Application Identifier 마법사 Step 3/5, Generate/Skip 불가). eas-cli 20.x는 FCM V1 전용 CLI 명령 없음(credentials.json은 빌드 keystore 전용). sagak 로컬 dev 정책(EAS 클라우드 빌드 안 함)과 충돌 → **prod 첫 EAS 빌드 시점**(keystore 자동 생성 + identifier + FCM V1 동시 설정)으로 연기. Firebase Service Account Key는 생성 완료(보관, prod용). lesson #13.
 - **REQ-NOTIF-003 WHERE 절 회귀 수정**: ✅ **통과 (PR #41)** — PostgREST 21000 "UPDATE requires a WHERE clause". `registerPushToken(token, userId)`에 `.eq('id', userId)` WHERE 절 추가 + `usePushTokenRegistration.ts`에 `!session.user` 가드 추가. 기존 코드/테스트가 "RLS만으로 충분, WHERE 없어도 됨"을 가정(wrong — lesson #12). 테스트 assertion 반전(eq NOT 사용 → eq 사용 확인). jest 12/12, tsc clean. 실기기 userId 01ff8d99-... 사용자 토큰 정상 등록 확인(users.push_token UPDATE 성공).
 - **dev DB**: 마이그레이션 20240620000001/02/03 dev 적용 (notifications.data + users.push_token + ENUM + Realtime + RPC — 이전 dev 미적용 상태였음)
 - **검증 인프라**: projectId(@ip9202/sagak) 주입, eas.json SENTRY_DSN 빈값 제거(EAS init validation)
