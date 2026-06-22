@@ -14,7 +14,8 @@ import { renderHook, act } from '@testing-library/react';
 let mockSessionReturn: {
   isAuthenticated: boolean;
   loading: boolean;
-} | null = { isAuthenticated: true, loading: false };
+  user: { id: string } | null;
+} | null = { isAuthenticated: true, loading: false, user: { id: 'user-1' } };
 
 jest.mock('../../../auth/useSession', () => ({
   useSession: () => mockSessionReturn,
@@ -45,7 +46,7 @@ describe('SPEC-NOTIF-001 REQ-NOTIF-001~003: usePushTokenRegistration', () => {
   beforeEach(() => {
     mockRegisterForPush.mockReset();
     mockRegisterToken.mockReset();
-    mockSessionReturn = { isAuthenticated: true, loading: false };
+    mockSessionReturn = { isAuthenticated: true, loading: false, user: { id: 'user-1' } };
   });
 
   it('인증 시 registerForPushNotifications + registerPushToken 각 1회 호출 (idempotent)', async () => {
@@ -61,7 +62,7 @@ describe('SPEC-NOTIF-001 REQ-NOTIF-001~003: usePushTokenRegistration', () => {
 
     expect(mockRegisterForPush).toHaveBeenCalledTimes(1);
     expect(mockRegisterToken).toHaveBeenCalledTimes(1);
-    expect(mockRegisterToken).toHaveBeenCalledWith('ExponentPushToken[t1]');
+    expect(mockRegisterToken).toHaveBeenCalledWith('ExponentPushToken[t1]', 'user-1');
   });
 
   it('useSession 이 null(loading) 반환 시 등록 호출 없음', async () => {
@@ -76,7 +77,7 @@ describe('SPEC-NOTIF-001 REQ-NOTIF-001~003: usePushTokenRegistration', () => {
   });
 
   it('미인증(isAuthenticated=false) 시 등록 호출 없음', async () => {
-    mockSessionReturn = { isAuthenticated: false, loading: false };
+    mockSessionReturn = { isAuthenticated: false, loading: false, user: null };
     mockRegisterForPush.mockResolvedValue('ExponentPushToken[t1]');
 
     renderHook(() => usePushTokenRegistration());
@@ -86,7 +87,7 @@ describe('SPEC-NOTIF-001 REQ-NOTIF-001~003: usePushTokenRegistration', () => {
   });
 
   it('token null(권한 거부) 시 registerPushToken 호출하지 않음', async () => {
-    mockSessionReturn = { isAuthenticated: true, loading: false };
+    mockSessionReturn = { isAuthenticated: true, loading: false, user: { id: 'user-1' } };
     mockRegisterForPush.mockResolvedValue(null);
 
     renderHook(() => usePushTokenRegistration());
@@ -97,7 +98,7 @@ describe('SPEC-NOTIF-001 REQ-NOTIF-001~003: usePushTokenRegistration', () => {
   });
 
   it('registerPushToken throw 시 swallow (silent, hook crash 없음)', async () => {
-    mockSessionReturn = { isAuthenticated: true, loading: false };
+    mockSessionReturn = { isAuthenticated: true, loading: false, user: { id: 'user-1' } };
     mockRegisterForPush.mockResolvedValue('ExponentPushToken[t1]');
     mockRegisterToken.mockRejectedValue(new Error('rls denied'));
 
@@ -114,7 +115,7 @@ describe('SPEC-NOTIF-001 REQ-NOTIF-001~003: usePushTokenRegistration', () => {
     const originalDev = (global as unknown as { __DEV__?: boolean }).__DEV__;
     (global as unknown as { __DEV__?: boolean }).__DEV__ = true;
     const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => undefined);
-    mockSessionReturn = { isAuthenticated: true, loading: false };
+    mockSessionReturn = { isAuthenticated: true, loading: false, user: { id: 'user-1' } };
     mockRegisterForPush.mockRejectedValue(new Error('permission race'));
     mockRegisterToken.mockResolvedValue(undefined);
 
@@ -139,7 +140,7 @@ describe('SPEC-NOTIF-001 REQ-NOTIF-001~003: usePushTokenRegistration', () => {
     const originalDev = (global as unknown as { __DEV__?: boolean }).__DEV__;
     (global as unknown as { __DEV__?: boolean }).__DEV__ = true;
     const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => undefined);
-    mockSessionReturn = { isAuthenticated: true, loading: false };
+    mockSessionReturn = { isAuthenticated: true, loading: false, user: { id: 'user-1' } };
     // 토큰을 message 에 echo 하는 PostgREST 형태의 에러 시뮬레이션
     mockRegisterForPush.mockRejectedValue(
       new Error(`duplicate key value violates unique constraint: (${SECRET_TOKEN})`),
@@ -169,7 +170,7 @@ describe('SPEC-NOTIF-001 REQ-NOTIF-001~003: usePushTokenRegistration', () => {
     const originalDev = (global as unknown as { __DEV__?: boolean }).__DEV__;
     (global as unknown as { __DEV__?: boolean }).__DEV__ = false;
     const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => undefined);
-    mockSessionReturn = { isAuthenticated: true, loading: false };
+    mockSessionReturn = { isAuthenticated: true, loading: false, user: { id: 'user-1' } };
     mockRegisterForPush.mockResolvedValue('ExponentPushToken[t1]');
     mockRegisterToken.mockRejectedValue(new Error('rls denied'));
 

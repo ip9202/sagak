@@ -26,8 +26,8 @@ export function usePushTokenRegistration(): void {
   const doneRef = useRef(false);
 
   useEffect(() => {
-    // loading(useSession null 반환) 또는 미인증 시 등록하지 않는다.
-    if (!session || !session.isAuthenticated) {
+    // loading(useSession null 반환), 미인증, 또는 user 미확정 시 등록하지 않는다.
+    if (!session || !session.isAuthenticated || !session.user) {
       return;
     }
     // idempotency: 한 세션/마운트 생명주기 내 1회만 실행
@@ -35,6 +35,7 @@ export function usePushTokenRegistration(): void {
       return;
     }
     doneRef.current = true;
+    const userId = session.user.id;
 
     // void — 비동기 에러는 내부 catch. 반환된 Promise 를 await 하지 않는다 (useEffect async 금지).
     void (async () => {
@@ -43,7 +44,7 @@ export function usePushTokenRegistration(): void {
         if (!token) {
           return;
         }
-        await registerPushToken(token);
+        await registerPushToken(token, userId);
       } catch {
         // PROD silent swallow — 알림 센터 unaffected (REQ-NOTIF-001/002 silent failure).
         // DEV 에서는 console.warn 으로 프로그래밍 버그(예: mock 누락, 권한 race) 가시성 확보.
