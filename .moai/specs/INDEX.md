@@ -210,13 +210,13 @@ Phase 5 (배포)
 #### SPEC-NOTIF-001: 푸시 알림 및 알림 센터
 - **도메인**: NOTIF
 - **우선순위**: medium
-- **상태**: ✅ 구현 완료 (13/13 REQ — Primary/Secondary/Optional 모두 완료. PR #34 5db38e7 (Primary/Secondary, 2026-06-20) + PR #38 8f532d6 (Optional Expo Push, 2026-06-21))
+- **상태**: ✅ 구현 완료 (13/13 REQ — Primary/Secondary/Optional 모두 완료. PR #34 5db38e7 (Primary/Secondary, 2026-06-20) + PR #38 8f532d6 (Optional Expo Push, 2026-06-21) + PR #41 cc87323 (N3 해결 + REQ-003 WHERE 수정, 2026-06-22))
 - **핵심 범위**: Expo Push Notifications 통합(토큰 관리), 알림 센터(`notifications` 테이블 읽음 처리), 알림 타입별 처리(reading_reminder/join_request_received/join_accepted/sticker_received/completion/club_signal), 알림 설정 UI, `send-notification` Edge Function
 - **DB 엔터티**: `notifications`
 - **API/Edge Function**: `/users/{id}/notifications`, `send-notification` Edge Function
 - **의존성**: SPEC-API-001, SPEC-AUTH-001(토큰-사용자 매핑)
 - **구현 산출물**: `src/features/notification/*.ts` (13 modules), 알림 센터 화면, `supabase/functions/send-notification/`
-- **검증 상태**: 자동화 N1/N2/N5/N8 통과. 수동 **N4 통과**(권한 거부 폴백 — 알림 센터 정상 동작, silent). **N3/N7 보류**(Android FCM 자격증명 미설정 — projectId 주입 완료, FCM credentials가 전제)
+- **검증 상태**: 자동화 N1/N2/N5/N8 통과. 수동 **N3 통과 (PR #41)** — Firebase sagak-dev + google-services.json 완료, 토큰 획득 성공. **N4 통과**(권한 거부 폴백). **REQ-NOTIF-003 WHERE 수정 (PR #41)** — PostgREST 21000, `.eq('id', userId)` 추가. **N7 보류**(Service Account Key 필요 — google-services.json과는 별개).
 - **제외**: SMS/이메일 채널, 마케팅 푸시
 
 #### SPEC-PROFILE-001: 마이페이지, 통계 및 보상
@@ -295,7 +295,7 @@ product.md "비목표" + SPEC-DB-001 "제외 범위" 기반:
 | 3 | SPEC-CLUB-002 | ✅ | ✅ | ✅ | 구현 완료 (17/17 REQ, PR #23 c6920fe, 2026-06-19, 861 테스트) |
 | 3 | SPEC-FEED-001 | ✅ | ✅ | ✅ | 구현 완료 (8/8 REQ, PR #25 63ddf12, 2026-06-20, 913 테스트) |
 | 4 | SPEC-ROUTINE-001 | ✅ | ✅ | ✅ | 구현 완료 (10/10 REQ, PR #31 9ddd1a4, 2026-06-20, 2881 LOC 추가) |
-| 4 | SPEC-NOTIF-001 | ✅ | ✅ | ✅ | 구현 완료 (9/13 REQ, PR #34 5db38e7, 2026-06-20; Optional 4개[REQ-001~004 Expo Push 실기기] 후속) |
+| 4 | SPEC-NOTIF-001 | ✅ | ✅ | ✅ | 구현 완료 (13/13 REQ — PR #34 5db38e7 + PR #38 8f532d6 + PR #41 cc87323. N3 Android FCM 해결, REQ-003 WHERE 절 수정. N7 Service Account Key 필요) |
 | 4 | SPEC-PROFILE-001 | ✅ | ✅ | ✅ | 구현 완료 (8/8 REQ, PR #36 e616614, 2026-06-20) |
 | 5 | SPEC-DEPLOY-001 | ✅ | ✅ | ✅ | 진행 중 (M1+M5 머지, PR #15 2514263, 2026-06-17; M2/M3/M4/M6 미완료 — M6 블로킹: CLUB/NOTIF 의존) |
 | 0 | SPEC-UI-002 | ✅ | ✅ | ✅ | SPEC 작성 완료 (25 REQ) — 화면 패턴, 14개 도메인 SPEC 선행 의존성 |
