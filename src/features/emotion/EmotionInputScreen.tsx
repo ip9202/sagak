@@ -24,6 +24,7 @@ import {
   ScrollView,
 } from 'react-native';
 import { useTheme } from '../../theme/theme';
+import { spacing, radius, borderWidth, minHeight, typography } from '../../theme/tokens';
 import { Button } from '../../components/Button';
 import { selectPrompt } from './questionPrompts';
 import type { CreateEmotionInput, Visibility } from './types';
@@ -252,64 +253,64 @@ export const EmotionInputScreen: React.FC<EmotionInputScreenProps> = ({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 16,
+    padding: spacing[4],
   },
   promptBox: {
-    padding: 16,
-    borderRadius: 12,
-    marginBottom: 16,
+    padding: spacing[4],
+    borderRadius: radius.lg,
+    marginBottom: spacing[4],
   },
   promptText: {
-    fontSize: 15,
-    lineHeight: 22,
+    fontSize: typography.bodyPrompt.fontSize,
+    lineHeight: typography.bodyPrompt.lineHeight,
   },
   label: {
-    fontSize: 13,
-    marginBottom: 6,
-    marginTop: 12,
+    fontSize: typography.bodySm.fontSize,
+    marginBottom: spacing[2],
+    marginTop: spacing[3],
   },
   input: {
-    borderWidth: 1,
-    borderRadius: 8,
-    padding: 12,
-    fontSize: 15,
+    borderWidth: borderWidth.hairline,
+    borderRadius: radius.md,
+    padding: spacing[3],
+    fontSize: typography.bodyPrompt.fontSize,
   },
   contentInput: {
-    borderWidth: 1,
-    borderRadius: 8,
-    padding: 12,
-    fontSize: 15,
-    minHeight: 100,
+    borderWidth: borderWidth.hairline,
+    borderRadius: radius.md,
+    padding: spacing[3],
+    fontSize: typography.bodyPrompt.fontSize,
+    minHeight: minHeight.input,
     textAlignVertical: 'top',
   },
   counter: {
-    fontSize: 12,
+    fontSize: typography.caption.fontSize,
     textAlign: 'right',
-    marginTop: 4,
+    marginTop: spacing[1],
   },
   visibilityRow: {
     flexDirection: 'row',
-    gap: 8,
-    marginTop: 16,
+    gap: spacing[2],
+    marginTop: spacing[4],
   },
   visibilityBtn: {
-    paddingVertical: 10,
-    paddingHorizontal: 16,
-    borderRadius: 8,
-    borderWidth: 1,
+    paddingVertical: spacing[2],
+    paddingHorizontal: spacing[4],
+    borderRadius: radius.md,
+    borderWidth: borderWidth.hairline,
   },
   clubList: {
-    marginTop: 12,
-    gap: 8,
+    marginTop: spacing[3],
+    gap: spacing[2],
   },
   clubBtn: {
-    paddingVertical: 10,
-    paddingHorizontal: 16,
-    borderRadius: 8,
-    borderWidth: 1,
+    paddingVertical: spacing[2],
+    paddingHorizontal: spacing[4],
+    borderRadius: radius.md,
+    borderWidth: borderWidth.hairline,
   },
   error: {
-    fontSize: 13,
-    marginTop: 12,
+    fontSize: typography.bodySm.fontSize,
+    marginTop: spacing[3],
   },
 });

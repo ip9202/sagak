@@ -23,6 +23,7 @@ import {
   StyleSheet,
 } from 'react-native';
 import { useTheme } from '../../theme/theme';
+import { spacing, radius, borderWidth } from '../../theme/tokens';
 import { EmotionRecordCard } from '../../components/EmotionRecordCard';
 import { getBookDetail } from '../book/bookDetailApi';
 import type {
@@ -183,7 +184,7 @@ export const TimelineScreen: React.FC<TimelineScreenProps> = ({
             isSpoiler={item.isSpoiler}
           />
         )}
-        ItemSeparatorComponent={() => <View style={{ height: 12 }} />}
+        ItemSeparatorComponent={() => <View style={{ height: spacing[3] }} />}
       />
     </View>
   );
@@ -192,23 +193,23 @@ export const TimelineScreen: React.FC<TimelineScreenProps> = ({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 16,
+    padding: spacing[4],
   },
   center: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 24,
+    padding: spacing[6],
   },
   sortRow: {
     flexDirection: 'row',
-    gap: 8,
-    marginBottom: 12,
+    gap: spacing[2],
+    marginBottom: spacing[3],
   },
   sortBtn: {
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    borderRadius: 8,
-    borderWidth: 1,
+    paddingVertical: spacing[2],
+    paddingHorizontal: spacing[4],
+    borderRadius: radius.md,
+    borderWidth: borderWidth.hairline,
   },
 });

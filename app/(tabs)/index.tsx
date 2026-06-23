@@ -266,9 +266,9 @@ export default function HomeTab(): React.JSX.Element {
           accessibilityLabel="오늘의 감정 기록하기"
           onPress={() => {
             if (hasCurrentBook && currentBook?.books) {
-              // @MX:TODO: P1-B — 직접 감정 입력 라우트 연결 예정
+              // SPEC-EMOTION-001 P1-B — 감정 입력/타임라인 통합 라우트로 직접 진입
               router.push({
-                pathname: '/[bookId]',
+                pathname: '/emotion/[bookId]',
                 params: { bookId: currentBook.books.id },
               });
             } else {

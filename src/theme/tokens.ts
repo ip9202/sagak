@@ -67,6 +67,8 @@ export const typography = {
   headingSm: { fontSize: 16, fontWeight: '600' as const, lineHeight: 23 },
   // @MX:NOTE: [AUTO] AlarmCard 타이틀(F03-Home). lineHeight 21 ≈ 15 * 1.4.
   alarmTitle: { fontSize: 15, fontWeight: '600' as const, lineHeight: 21 },
+  // @MX:NOTE: [AUTO] SPEC-EMOTION-001 P1-B — 감정 입력 프롬프트/입력 본문(15/400). alarmTitle(15/600)과 가중치가 다르고 bodyMd(14/400)와 크기가 달라 추가.
+  bodyPrompt: { fontSize: 15, fontWeight: '400' as const, lineHeight: 22 },
   bodyLg: { fontSize: 16, fontWeight: '400' as const, lineHeight: 26 },
   bodyMd: { fontSize: 14, fontWeight: '400' as const, lineHeight: 22 },
   // @MX:NOTE: [AUTO] CTA 라벨(14/600). bodyMd(14/400) 보다 강조된 버튼 텍스트.
@@ -84,6 +86,19 @@ export const radius = {
   lg: 16,
   xl: 24,
   full: 9999,
+} as const;
+
+// @MX:NOTE: [AUTO] 테두리 두께 토큰 (SPEC-UI-002 FROZEN — borderWidth 수치 하드코딩 금지).
+//           hairline(1px) 은 입력 필드/카드 테두리의 표준 두께. BookDetailScreen/EmotionRecordCard
+//           등 기존 코드의 borderWidth:1 하드코딩을 P3 전역 정정에서 이 토큰으로 통일 예정.
+export const borderWidth = {
+  hairline: 1,
+} as const;
+
+// @MX:NOTE: [AUTO] 컨트롤 최소 높이 토큰 (SPEC-UI-002 FROZEN). 다중 줄 텍스트 입력(contentInput)의
+//           최소 높이 등 컴포넌트 고유 레이아웃 값. spacing 체계(4의 배수)로 표현 불가한 값.
+export const minHeight = {
+  input: 100,
 } as const;
 
 export const shadow = {
