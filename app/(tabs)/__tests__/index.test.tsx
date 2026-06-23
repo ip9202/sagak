@@ -306,7 +306,7 @@ describe('SPEC-NAV-001 홈 탭: F03-Home 렌더링', () => {
       fireEvent.press(cta);
       expect(mockPush).toHaveBeenCalledWith(
         expect.objectContaining({
-          pathname: '/[bookId]',
+          pathname: '/emotion/[bookId]',
           params: { bookId: 'b-1' },
         }),
       );

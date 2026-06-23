@@ -5,7 +5,7 @@
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { useColorScheme } from 'react-native';
-import { colors, spacing, radius, shadow, typography, motion, iconSizes, fontFamily } from './tokens';
+import { colors, spacing, radius, borderWidth, minHeight, shadow, typography, motion, iconSizes, fontFamily } from './tokens';
 import { darkColors } from './darkTokens';
 
 export type ThemeMode = 'light' | 'dark';
@@ -57,6 +57,8 @@ export interface Theme {
   darkColors: ThemeTokens;
   spacing: typeof spacing;
   radius: typeof radius;
+  borderWidth: typeof borderWidth;
+  minHeight: typeof minHeight;
   shadow: typeof shadow;
   typography: typeof typography;
   motion: typeof motion;
@@ -70,6 +72,8 @@ const ThemeContext = createContext<Theme>({
   darkColors,
   spacing,
   radius,
+  borderWidth,
+  minHeight,
   shadow,
   typography,
   motion,
@@ -103,6 +107,8 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     darkColors,
     spacing,
     radius,
+    borderWidth,
+    minHeight,
     shadow,
     typography,
     motion,
