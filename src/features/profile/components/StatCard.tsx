@@ -12,6 +12,7 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { useTheme } from '../../../theme/theme';
+import { spacing, typography } from '../../../theme/tokens';
 
 export interface StatCardProps {
   value: string | number;
@@ -59,17 +60,15 @@ const styles = StyleSheet.create({
   card: {
     flex: 1,
     alignItems: 'center',
-    padding: 14, // .pen padding 14
-    gap: 4, // .pen gap 4
+    padding: 14, // .pen padding 14 (spacing 토큰에 14 없음)
+    gap: spacing[1], // .pen gap 4 → spacing[1]
   },
   // .pen V: fontSize 22 / fontWeight 700
   value: {
-    fontSize: 22,
-    fontWeight: '700',
+    ...typography.displaySm,
   },
   // .pen L: fontSize 11 / fontWeight 500
   label: {
-    fontSize: 11,
-    fontWeight: '500',
+    ...typography.label,
   },
 });

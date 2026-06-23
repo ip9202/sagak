@@ -11,6 +11,7 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { useTheme } from '../../../theme/theme';
+import { spacing, typography } from '../../../theme/tokens';
 
 export interface BadgeCardProps {
   label: string;
@@ -56,15 +57,15 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    padding: 14,
-    gap: 4,
+    padding: 14, // spacing 토큰에 14 없음
+    gap: spacing[1],
   },
   label: {
-    fontSize: 12,
-    fontWeight: '600',
+    ...typography.caption,
+    fontWeight: '600', // override from '400'
     textAlign: 'center',
   },
   lock: {
-    fontSize: 14,
+    ...typography.bodyMd,
   },
 });

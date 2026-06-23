@@ -8,6 +8,7 @@ import { View, Text, StyleSheet, ViewStyle } from 'react-native';
 import { BlurView } from 'expo-blur';
 import { Card } from './Card';
 import { useTheme } from '../theme/theme';
+import { spacing, iconSizes } from '../theme/tokens';
 
 export interface EmotionRecordCardProps {
   nickname: string;
@@ -167,23 +168,23 @@ const styles = StyleSheet.create({
   accentLine: {
     position: 'absolute',
     left: 0,
-    top: 16,
-    bottom: 16,
+    top: spacing[4],
+    bottom: spacing[4],
     width: 2,
   },
   content: {
-    paddingLeft: 8,
-    gap: 8,
+    paddingLeft: spacing[2],
+    gap: spacing[2],
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: spacing[2],
   },
   avatar: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    width: iconSizes.xl,
+    height: iconSizes.xl,
+    borderRadius: iconSizes.xl,
   },
   nickname: {
     flex: 1,
@@ -203,30 +204,30 @@ const styles = StyleSheet.create({
     zIndex: 1,
   },
   spoilerLabel: {
-    paddingHorizontal: 12,
+    paddingHorizontal: spacing[3],
     paddingVertical: 6,
     borderRadius: 4,
     fontSize: 12,
     fontWeight: '500',
   },
   contentText: {
-    marginTop: 4,
+    marginTop: spacing[1],
   },
   bookTitle: {
-    marginTop: 4,
+    marginTop: spacing[1],
     fontSize: 13,
     fontWeight: '500',
   },
   stickers: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 12,
-    marginTop: 8,
+    gap: spacing[3],
+    marginTop: spacing[2],
   },
   sticker: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: spacing[1],
   },
   stickerText: {
     fontWeight: '500',
