@@ -247,24 +247,24 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingTop: 8,
+    paddingHorizontal: 20, // spacing[5] - 헤더 좌우 패딩
+    paddingTop: 8, // spacing[2] - 헤더 상단 패딩
   },
   title: {
-    fontSize: 22,
+    fontSize: 22, // typography.displaySm(22/700/30)
     fontWeight: '700',
   },
   closeIcon: {
-    fontSize: 24,
+    fontSize: 24, // iconSizes.xl(32)과 불일치, 유지
     lineHeight: 24,
   },
   viewfinder: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 20,
-    paddingBottom: 40,
-    gap: 16,
+    paddingHorizontal: 20, // spacing[5] - 뷰파인더 좌우 패딩
+    paddingBottom: 40, // spacing[8] - 뷰파인더 하단 패딩
+    gap: 16, // spacing[4] - 자식 간 간격
   },
   camera: {
     ...StyleSheet.absoluteFill,
@@ -272,44 +272,44 @@ const styles = StyleSheet.create({
   // Pencil F07-Scan eG0uf: 280x170, cornerRadius $radius-lg(16), stroke $brand-300, strokeWidth 3
   scanGuide: {
     position: 'absolute',
-    width: 280,
-    height: 170,
-    borderRadius: 16,
-    borderWidth: 3,
+    width: 280, // spacing 체계(4의 배수)로 표현 불가한 값 유지
+    height: 170, // spacing 체계(4의 배수)로 표현 불가한 값 유지
+    borderRadius: 16, // radius.lg - 스캔 가이드 모서리
+    borderWidth: 3, // borderWidth.hairline(1)과 불일치, 유지
   },
   hint: {
-    fontSize: 14,
+    fontSize: 14, // typography.bodyMd(14/400/22)
     textAlign: 'center',
-    marginTop: 200,
+    marginTop: 200, // spacing 체계(4의 배수)로 표현 불가한 값 유지
   },
   manualEntryButton: {
-    borderWidth: 1,
-    borderRadius: 10,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
+    borderWidth: 1, // borderWidth.hairline
+    borderRadius: 10, // radius.md - 버튼 모서리
+    paddingHorizontal: 16, // spacing[4] - 버튼 좌우 패딩
+    paddingVertical: 10, // spacing 체계(4의 배수)로 표현 불가한 값 유지
   },
   manualEntryText: {
-    fontSize: 14,
+    fontSize: 14, // typography.bodyMd(14/400/22), fontWeight 불일치(500 vs 400)로 유지
     fontWeight: '500',
   },
   // @MX:NOTE: [AUTO] 권한 게이트 UI — 로딩/거부 상태 중앙 정렬 컨테이너
   permissionState: {
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 12,
-    marginBottom: 24,
+    gap: 12, // spacing[3] - 권한 상태 간 간격
+    marginBottom: 24, // spacing[6] - 하단 마진
   },
   permissionText: {
-    fontSize: 14,
+    fontSize: 14, // typography.bodyMd(14/400/22)
     textAlign: 'center',
   },
   permissionDeniedTitle: {
-    fontSize: 18,
+    fontSize: 18, // typography.headingMd(18/600/26)과 lineHeight 불일치, 유지
     fontWeight: '700',
     textAlign: 'center',
   },
   permissionDeniedHint: {
-    fontSize: 13,
+    fontSize: 13, // typography.bodySm(13/400/20)
     textAlign: 'center',
     opacity: 0.85,
   },

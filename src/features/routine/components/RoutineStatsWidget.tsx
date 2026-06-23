@@ -76,7 +76,7 @@ export function RoutineStatsWidget(): React.JSX.Element {
 }
 
 const styles = StyleSheet.create({
-  container: { gap: 8 },
-  title: { fontSize: 16, fontWeight: '600' },
-  achievement: { fontSize: 14, fontWeight: '500' },
+  container: { gap: 8 }, // spacing[2] - 자식 간 간격
+  title: { fontSize: 16, fontWeight: '600' }, // typography.headingSm(16/600/23)과 lineHeight 불일치로 유지
+  achievement: { fontSize: 14, fontWeight: '500' }, // typography.bodyMd(14/400/22)와 fontWeight 불일치, ctaLabel(14/600/22)와도 불일치로 유지
 });

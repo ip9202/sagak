@@ -103,11 +103,11 @@ export function TimerScreen({ bookId }: { bookId?: string }): React.JSX.Element 
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  header: { paddingHorizontal: 20, paddingTop: 8, paddingBottom: 4 },
-  title: { fontSize: 22, fontWeight: '700' },
-  body: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 16, padding: 20 },
+  header: { paddingHorizontal: 20, paddingTop: 8, paddingBottom: 4 }, // paddingHorizontal: spacing[5], paddingTop: spacing[2], paddingBottom: spacing[1]
+  title: { fontSize: 22, fontWeight: '700' }, // typography.displaySm(22/700/30)
+  body: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 16, padding: 20 }, // gap: spacing[4], padding: spacing[5]
   center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  timerText: { fontSize: 48, fontWeight: '700', fontVariant: ['tabular-nums'] },
-  prompt: { fontSize: 18, textAlign: 'center' },
-  encouragement: { fontSize: 15 },
+  timerText: { fontSize: 48, fontWeight: '700', fontVariant: ['tabular-nums'] }, // typography 토큰에 없는 큰 크기 유지
+  prompt: { fontSize: 18, textAlign: 'center' }, // typography.headingMd(18/600/26)과 fontWeight 불일치로 유지
+  encouragement: { fontSize: 15 }, // typography.alarmTitle(15/600/21)과 fontWeight 불일치로 유지
 });

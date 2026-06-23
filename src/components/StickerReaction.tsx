@@ -83,18 +83,18 @@ export const StickerReaction: React.FC<{
 const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
-    gap: 24, // spacing[6]
+    gap: 24, // spacing[6] - 스티커 간 간격
     justifyContent: 'center',
-    paddingVertical: 8,
+    paddingVertical: 8, // spacing[2] - 상하 패딩
   },
   stickerButton: {
-    width: 56,
-    height: 56,
-    borderRadius: 28, // circle
+    width: 56, // spacing 체계(4의 배수)로 표현 불가한 값 유지
+    height: 56, // spacing 체계(4의 배수)로 표현 불가한 값 유지
+    borderRadius: 28, // circle: width/2
     alignItems: 'center',
     justifyContent: 'center',
   },
   emoji: {
-    fontSize: 28,
+    fontSize: 28, // iconSizes.xl(32)과 불일치, 토큰화 유지
   },
 });

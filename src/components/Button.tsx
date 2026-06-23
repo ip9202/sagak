@@ -142,15 +142,15 @@ const getTextColor = (variant: ButtonVariant, theme: ReturnType<typeof useTheme>
 
 const styles = StyleSheet.create({
   button: {
-    height: 48, // pages_11 §9.1: 48dp for non-ghost variants
-    paddingHorizontal: 16,
-    borderRadius: 10, // radius-md
+    height: 48, // spacing[12] - 비고스트 버튼 높이 (pages_11 §9.1)
+    paddingHorizontal: 16, // spacing[4] - 좌우 패딩
+    borderRadius: 10, // radius.md - 모서리 반경
     alignItems: 'center',
     justifyContent: 'center',
     flexDirection: 'row',
   },
   text: {
-    fontSize: 16,
+    fontSize: 16, // typography.headingSm(16/600/23)와 lineHeight 1pt 차이로 유지
     fontWeight: '600',
     lineHeight: 22,
   },
@@ -158,8 +158,8 @@ const styles = StyleSheet.create({
   primary: {},
   secondary: {},
   ghost: {
-    height: 40,
-    paddingHorizontal: 12,
+    height: 40, // spacing[10] - 고스트 버튼 높이
+    paddingHorizontal: 12, // spacing[3] - 고스트 버튼 좌우 패딩
   },
   destructive: {},
   disabled: {},
