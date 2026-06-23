@@ -196,28 +196,28 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingTop: 8,
-    paddingBottom: 4,
+    paddingHorizontal: 20, // spacing[5] - 헤더 좌우 패딩
+    paddingTop: 8, // spacing[2] - 헤더 상단 패딩
+    paddingBottom: 4, // spacing[1] - 헤더 하단 패딩
   },
-  backButton: { width: 36, height: 36, alignItems: 'center', justifyContent: 'center' },
-  backText: { fontSize: 22, fontWeight: '700' },
+  backButton: { width: 36, height: 36, alignItems: 'center', justifyContent: 'center' }, // spacing 체계(4의 배수)로 표현 불가한 값 유지
+  backText: { fontSize: 22, fontWeight: '700' }, // typography.displaySm(22/700/30)
   // SPEC-UI-002 FROZEN: title uniformity (fontSize 22 / weight 700)
-  title: { fontSize: 22, fontWeight: '700' },
-  headerSpacer: { width: 36 },
-  bodyCenter: { flex: 1, justifyContent: 'center', alignItems: 'center', gap: 12, padding: 20 },
-  errorText: { fontSize: 14, fontWeight: '600', textAlign: 'center', paddingHorizontal: 32 },
-  emptyTitle: { fontSize: 18, fontWeight: '600' },
-  emptyHint: { fontSize: 14, textAlign: 'center' },
+  title: { fontSize: 22, fontWeight: '700' }, // typography.displaySm(22/700/30)
+  headerSpacer: { width: 36 }, // spacing 체계(4의 배수)로 표현 불가한 값 유지
+  bodyCenter: { flex: 1, justifyContent: 'center', alignItems: 'center', gap: 12, padding: 20 }, // gap: spacing[3], padding: spacing[5]
+  errorText: { fontSize: 14, fontWeight: '600', textAlign: 'center', paddingHorizontal: 32 }, // typography.ctaLabel(14/600/22), paddingHorizontal: spacing[8]
+  emptyTitle: { fontSize: 18, fontWeight: '600' }, // typography.headingMd(18/600/26)
+  emptyHint: { fontSize: 14, textAlign: 'center' }, // typography.bodyMd(14/400/22)
   list: { flex: 1 },
-  listContent: { gap: 16, paddingTop: 4, paddingBottom: 24 },
-  card: { gap: 12 },
+  listContent: { gap: 16, paddingTop: 4, paddingBottom: 24 }, // gap: spacing[4], paddingTop: spacing[1], paddingBottom: spacing[6]
+  card: { gap: 12 }, // spacing[3] - 카드 내부 간 간격
   cardHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  readerId: { fontSize: 16, fontWeight: '600', flexShrink: 1 },
-  badge: { paddingVertical: 4, paddingHorizontal: 10 },
-  badgeText: { fontSize: 12, fontWeight: '600' },
-  metaRow: { flexDirection: 'row', gap: 12 },
-  metaText: { fontSize: 13 },
-  joinButton: { paddingVertical: 10, alignItems: 'center' },
-  joinText: { fontSize: 14, fontWeight: '600' },
+  readerId: { fontSize: 16, fontWeight: '600', flexShrink: 1 }, // typography.headingSm(16/600/23)
+  badge: { paddingVertical: 4, paddingHorizontal: 10 }, // paddingVertical: spacing[1], paddingHorizontal: spacing 체계(4의 배수)로 표현 불가한 값 유지
+  badgeText: { fontSize: 12, fontWeight: '600' }, // typography.sectionLabel(13/600/18)과 fontSize 불일치로 유지
+  metaRow: { flexDirection: 'row', gap: 12 }, // gap: spacing[3] - 메타 행 간 간격
+  metaText: { fontSize: 13 }, // typography.bodySm(13/400/20)
+  joinButton: { paddingVertical: 10, alignItems: 'center' }, // paddingVertical: spacing 체계(4의 배수)로 표현 불가한 값 유지
+  joinText: { fontSize: 14, fontWeight: '600' }, // typography.ctaLabel(14/600/22)
 });
