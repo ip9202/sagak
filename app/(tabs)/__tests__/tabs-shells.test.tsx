@@ -22,6 +22,23 @@ jest.mock('expo-router', () => ({
   useRouter: () => ({ push: jest.fn(), replace: jest.fn(), back: jest.fn(), canGoBack: () => false }),
 }));
 
+// SPEC-NAV-001 홈 탭: Feather 아이콘 사용 — 네이티브 의존성 mock (expo-asset/expo-font 회피)
+jest.mock('@expo/vector-icons', () => {
+  const ReactMod = require('react');
+  const { Text } = require('react-native');
+  const MockIcon = (props: Record<string, unknown>) =>
+    ReactMod.createElement(
+      Text,
+      { testID: 'feather-icon' },
+      (props.name as string) || 'icon',
+    );
+  return {
+    __esModule: true,
+    Feather: MockIcon,
+    default: MockIcon,
+  };
+});
+
 // SPEC-LIBRARY-001 TASK-009: library 탭이 useSession + useLibrary 사용.
 // 탭 셸 렌더링 테스트이므로 빈 결과로 고정.
 jest.mock('../../../src/auth/useSession', () => ({
@@ -46,6 +63,16 @@ jest.mock('../../../src/features/library/libraryApi', () => ({
   updateProgress: jest.fn(),
   updateStatus: jest.fn(),
   updateVisibility: jest.fn(),
+}));
+
+// SPEC-NAV-001 홈 탭: useAlarmSettings 소비 — 탭 셸 렌더링 테스트이므로 미설정으로 고정.
+jest.mock('../../../src/features/routine/useAlarmSettings', () => ({
+  useAlarmSettings: jest.fn(() => ({
+    data: { alarm_time: null, alarm_enabled: false },
+    isLoading: false,
+    isError: false,
+    error: null,
+  })),
 }));
 
 // SPEC-CLUB-002 M4: clubs 탭이 ClubsScreen 으로 교체됨 — useSession/router/hooks 안전망.
@@ -85,9 +112,10 @@ function withTheme(ui: React.ReactElement) {
 }
 
 describe('T6: 탭 헤더/placeholder 렌더링', () => {
-  it('홈 탭이 "홈 화면" placeholder를 렌더링한다', () => {
+  it('홈 탭이 "오늘의 독서" 헤더를 렌더링한다 (SPEC-NAV-001 F03-Home)', () => {
+    // 홈 탭 placeholder → F03-Home 구현으로 교체됨
     withTheme(<HomeTab />);
-    expect(screen.getByText('홈 화면')).toBeTruthy();
+    expect(screen.getByText('오늘의 독서')).toBeTruthy();
   });
 
   it('서재 탭이 "서재" 헤더와 빈 상태 CTA "책 검색하기"를 렌더링한다', async () => {
