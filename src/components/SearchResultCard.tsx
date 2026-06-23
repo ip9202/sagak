@@ -12,6 +12,7 @@ import React from 'react';
 import { Pressable, Text, View, Image, StyleSheet } from 'react-native';
 import { Card } from './Card';
 import { useTheme } from '../theme/theme';
+import { spacing, typography } from '../theme/tokens';
 import { formatPublishedMonth } from '../features/book/format';
 import type { SearchResult } from '../types/book';
 
@@ -118,33 +119,31 @@ export const SearchResultCard: React.FC<SearchResultCardProps> = ({
 
 const styles = StyleSheet.create({
   card: {
-    padding: 16,
+    padding: spacing[4],
   },
   content: {
     flexDirection: 'row',
-    gap: 12,
+    gap: spacing[3],
   },
   cover: {
-    width: 80,
-    height: 110,
-    borderRadius: 8,
+    width: 80, // 토큰에 없음, 하드코딩 유지
+    height: 110, // 토큰에 없음, 하드코딩 유지
+    borderRadius: spacing[2],
   },
   info: {
     flex: 1,
-    gap: 6,
+    gap: 6, // spacing 토큰에 6 없음, 하드코딩 유지
     justifyContent: 'center',
   },
   title: {
-    fontSize: 15,
-    fontWeight: '600',
-    lineHeight: 21,
+    ...typography.bodyPrompt,
+    fontWeight: '600', // override from '400'
+    lineHeight: 21, // override from 22
   },
   author: {
-    fontSize: 12,
-    lineHeight: 17,
+    ...typography.caption,
   },
   meta: {
-    fontSize: 12,
-    lineHeight: 17,
+    ...typography.caption,
   },
 });

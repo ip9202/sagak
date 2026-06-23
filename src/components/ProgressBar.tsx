@@ -7,6 +7,7 @@ import React from 'react';
 import { View, Text, StyleSheet, ViewStyle } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useTheme } from '../theme/theme';
+import { spacing } from '../theme/tokens';
 
 export interface ProgressBarProps {
   current: number;
@@ -80,17 +81,17 @@ export const ProgressBar: React.FC<ProgressBarProps> = ({
 
 const styles = StyleSheet.create({
   container: {
-    gap: 4,
+    gap: spacing[1],
   },
   track: {
-    height: 4, // pages_11 §9.5: 4dp track height
+    height: spacing[1], // pages_11 §9.5: 4dp track height
     overflow: 'hidden',
   },
   fill: {
     height: '100%',
   },
   caption: {
-    marginTop: 4,
+    marginTop: spacing[1],
     textAlign: 'center',
   },
 });

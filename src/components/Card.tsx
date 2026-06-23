@@ -6,6 +6,7 @@
 import React from 'react';
 import { View, StyleSheet, ViewStyle } from 'react-native';
 import { useTheme } from '../theme/theme';
+import { spacing } from '../theme/tokens';
 
 export interface CardProps {
   children: React.ReactNode;
@@ -48,6 +49,6 @@ export const Card: React.FC<CardProps> = ({ children, style, testID = 'card' }) 
 
 const styles = StyleSheet.create({
   card: {
-    padding: 16,
+    padding: spacing[4],
   },
 });

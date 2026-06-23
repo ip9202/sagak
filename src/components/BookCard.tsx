@@ -8,6 +8,7 @@ import { View, Text, Image, StyleSheet, ViewStyle } from 'react-native';
 import { Card } from './Card';
 import { ProgressBar } from './ProgressBar';
 import { useTheme } from '../theme/theme';
+import { spacing, minHeight } from '../theme/tokens';
 
 export interface BookCardProps {
   title: string;
@@ -90,27 +91,27 @@ export const BookCard: React.FC<BookCardProps> = ({
 
 const styles = StyleSheet.create({
   card: {
-    padding: 12,
+    padding: spacing[3],
   },
   content: {
-    gap: 8,
+    gap: spacing[2],
   },
   cover: {
-    width: 80,
-    height: 110,
-    borderRadius: 8,
+    width: 80, // 토큰에 없음, 하드코딩 유지
+    height: 110, // 토큰에 없음, 하드코딩 유지
+    borderRadius: spacing[2],
     alignSelf: 'center',
   },
   coverPlaceholder: {
-    backgroundColor: '#F4EFE8',
+    backgroundColor: '#F4EFE8', // brand[50]와 다름, 하드코딩 유지
   },
   title: {
-    minHeight: 44, // 2 lines * 22px line-height
+    minHeight: minHeight.button, // 44 (2 lines * 22px line-height)
   },
   author: {
-    marginTop: 4,
+    marginTop: spacing[1],
   },
   progress: {
-    marginTop: 8,
+    marginTop: spacing[2],
   },
 });
