@@ -11,7 +11,7 @@
  *  - useAlarmSettings: alarm_enabled && alarm_time 시 동적 카피("매일 HH:MM에 알려드릴게요")
  *
  * SPEC-UI-002 준수:
- *  - 헤더 타이틀 균일성 (fontSize 22 / weight 700)
+ *  - 헤더 타이틀 균일성 (theme.typography.displaySm — 22/700)
  *  - 카드 패턴 (cornerRadius 16 / padding 16-20)
  *  - 빈/로딩 상태 패턴 (REQ-SCREEN-STATE)
  *  - token-only 스타일링 (useTheme + tokens 변수만 사용, 하드코딩 금지)
@@ -48,12 +48,17 @@ const ALARM_CARD_TITLE = '오늘의 첫 페이지가 당신을 기다리고 있�
 /**
  * 'HH:MM:SS'(PostgREST time) 를 'HH:MM' 로 변환.
  * @MX:NOTE: [AUTO] 알림 시간 표시용 변환 — 초(seconds) 절삭. alarm_time 이 null/비정형이면 null 반환.
+ * 비정형 입력(시 0-23 / 분 0-59 범위 위반, 형식 불일치) 방어 — 폴백으로 null 반환.
  */
 function formatAlarmTime(time: string | null): string | null {
   if (!time) return null;
-  const parts = time.split(':');
-  if (parts.length < 2) return null;
-  return `${parts[0]}:${parts[1]}`;
+  // 형식 검증: 'HH:MM' 또는 'HH:MM:SS' (1-2자리 시, 2자리 분).
+  const match = /^(\d{1,2}):(\d{2})(?::\d{1,2})?$/.exec(time);
+  if (!match) return null;
+  const hour = Number(match[1]);
+  const minute = Number(match[2]);
+  if (hour < 0 || hour > 23 || minute < 0 || minute > 59) return null;
+  return `${match[1]}:${match[2]}`;
 }
 
 export default function HomeTab(): React.JSX.Element {
@@ -87,14 +92,34 @@ export default function HomeTab(): React.JSX.Element {
         testID="home-loading"
         style={[styles.container, { backgroundColor: theme.colors.bg.base }]}
       >
-        <View style={styles.header}>
+        <View
+          style={[
+            styles.header,
+            {
+              paddingHorizontal: theme.spacing[5],
+              paddingTop: theme.spacing[2],
+              paddingBottom: 0,
+            },
+          ]}
+        >
           <Text
-            style={[styles.title, { color: theme.colors.text.primary }]}
+            style={[
+              theme.typography.displaySm,
+              { color: theme.colors.text.primary },
+            ]}
           >
             오늘의 독서
           </Text>
         </View>
-        <View style={styles.bodyCenter}>
+        <View
+          style={[
+            styles.bodyCenter,
+            {
+              gap: theme.spacing[3],
+              padding: theme.spacing[5],
+            },
+          ]}
+        >
           <ActivityIndicator size="large" color={theme.colors.brand[500]} />
         </View>
       </View>
@@ -107,11 +132,26 @@ export default function HomeTab(): React.JSX.Element {
       style={[styles.container, { backgroundColor: theme.colors.bg.base }]}
     >
       {/* 헤더 (SPEC-UI-002 REQ-SCREEN-HEADER — 타이틀 균일성) */}
-      <View style={styles.header}>
-        <Text style={[styles.title, { color: theme.colors.text.primary }]}>
+      <View
+        style={[
+          styles.header,
+          {
+            paddingHorizontal: theme.spacing[5],
+            paddingTop: theme.spacing[2],
+            paddingBottom: 0,
+          },
+        ]}
+      >
+        <Text
+          style={[
+            theme.typography.displaySm,
+            { color: theme.colors.text.primary },
+          ]}
+        >
           오늘의 독서
         </Text>
         <View testID="home-bell-icon">
+          {/* @MX:NOTE: [AUTO] 아이콘 크기 22는 F03-Home 디자인 고정값 — iconSizes 스케일(sm16/md20/lg24)에 22 없음. */}
           <Feather name="bell" size={22} color={theme.colors.text.primary} />
         </View>
       </View>
@@ -137,10 +177,10 @@ export default function HomeTab(): React.JSX.Element {
         />
 
         {/* 지금 읽는 책 섹션 */}
-        <View style={styles.section}>
+        <View style={[styles.section, { gap: theme.spacing[2] }]}>
           <Text
             style={[
-              styles.sectionLabel,
+              theme.typography.sectionLabel,
               { color: theme.colors.text.tertiary },
             ]}
           >
@@ -148,7 +188,9 @@ export default function HomeTab(): React.JSX.Element {
           </Text>
 
           {isLoading ? (
-            <View style={styles.bookSlot}>
+            <View
+              style={[styles.bookSlot, { paddingVertical: theme.spacing[6] }]}
+            >
               <ActivityIndicator color={theme.colors.brand[500]} />
             </View>
           ) : hasCurrentBook && currentBook?.books ? (
@@ -168,12 +210,13 @@ export default function HomeTab(): React.JSX.Element {
                   backgroundColor: theme.colors.bg.surface,
                   borderRadius: theme.radius.lg,
                   padding: theme.spacing[5],
+                  gap: theme.spacing[2],
                 },
               ]}
             >
               <Text
                 style={[
-                  styles.emptyTitle,
+                  theme.typography.headingMd,
                   { color: theme.colors.text.primary },
                 ]}
               >
@@ -181,7 +224,7 @@ export default function HomeTab(): React.JSX.Element {
               </Text>
               <Text
                 style={[
-                  styles.emptyHint,
+                  theme.typography.bodyMd,
                   { color: theme.colors.text.secondary },
                 ]}
               >
@@ -197,12 +240,15 @@ export default function HomeTab(): React.JSX.Element {
                   {
                     backgroundColor: theme.colors.brand[500],
                     borderRadius: theme.radius.md,
+                    paddingVertical: theme.spacing[3],
+                    paddingHorizontal: theme.spacing[6],
+                    marginTop: theme.spacing[2],
                   },
                 ]}
               >
                 <Text
                   style={[
-                    styles.emptyCtaText,
+                    theme.typography.ctaLabel,
                     { color: theme.colors.text.inverse },
                   ]}
                 >
@@ -240,18 +286,11 @@ export default function HomeTab(): React.JSX.Element {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  // SPEC-UI-002 FROZEN: title uniformity (fontSize 22 / weight 700) + 헤더 레이아웃
+  // SPEC-UI-002 FROZEN: 헤더 레이아웃 — 타이틀 균일성은 theme.typography.displaySm 로 인라인 적용.
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingTop: 8,
-    paddingBottom: 0,
-  },
-  title: {
-    fontSize: 22,
-    fontWeight: '700',
   },
   scrollView: { flex: 1 },
   content: {
@@ -259,42 +298,17 @@ const styles = StyleSheet.create({
   },
   section: {
     flexDirection: 'column',
-    gap: 8,
-  },
-  // SPEC-UI-002 섹션 라벨 (my.tsx 패턴 — fontSize 13 / weight 600 / text.tertiary)
-  sectionLabel: {
-    fontSize: 13,
-    fontWeight: '600',
   },
   bookSlot: {
-    paddingVertical: 24,
     alignItems: 'center',
   },
-  emptyState: {
-    gap: 8,
-  },
-  emptyTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-  },
-  emptyHint: {
-    fontSize: 14,
-  },
+  emptyState: {},
   emptyCta: {
     alignSelf: 'flex-start',
-    paddingVertical: 12,
-    paddingHorizontal: 24,
-    marginTop: 8,
-  },
-  emptyCtaText: {
-    fontSize: 14,
-    fontWeight: '600',
   },
   bodyCenter: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    gap: 12,
-    padding: 20,
   },
 });

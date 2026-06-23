@@ -2,7 +2,7 @@
  * AlarmCard 컴포넌트 (SPEC-NAV-001 홈 탭 F03-Home)
  *
  * 따뜻한 리마인더 카드. 배경 brand[50], 곡률 radius.lg, padding spacing[5].
- * title / subtitle 두 줄을 세로로 쌓는다 (gap spacing[2]).
+ * title(theme.typography.alarmTitle) / subtitle(theme.typography.bodySm) 두 줄을 세로로 쌓는다 (gap spacing[2]).
  * token-only 스타일링 (SPEC-UI-002 FROZEN — 하드코딩 금지).
  *
  * 비과시 원칙(SPEC-UI-002 FROZEN): 좋아요/팔로워/랭킹 표시 없음.
@@ -44,7 +44,7 @@ export const AlarmCard: React.FC<AlarmCardProps> = ({
     >
       <Text
         style={[
-          styles.title,
+          theme.typography.alarmTitle,
           { color: theme.colors.text.primary },
         ]}
       >
@@ -52,11 +52,8 @@ export const AlarmCard: React.FC<AlarmCardProps> = ({
       </Text>
       <Text
         style={[
-          styles.subtitle,
-          {
-            color: theme.colors.text.secondary,
-            lineHeight: styles.subtitle.fontSize * 1.5,
-          },
+          theme.typography.bodySm,
+          { color: theme.colors.text.secondary },
         ]}
       >
         {subtitle}
@@ -68,13 +65,5 @@ export const AlarmCard: React.FC<AlarmCardProps> = ({
 const styles = StyleSheet.create({
   container: {
     flexDirection: 'column',
-  },
-  title: {
-    fontSize: 15,
-    fontWeight: '600',
-  },
-  subtitle: {
-    fontSize: 13,
-    fontWeight: '400',
   },
 });

@@ -55,14 +55,24 @@ export const spacing = {
   12: 48,
 } as const;
 
+// @MX:NOTE: [AUTO] SPEC-NAV-001/F03-Home 토큰 전용 준수(SPEC-UI-002 FROZEN)를 위해
+// displaySm / alarmTitle / sectionLabel 세 토큰을 추가. fontSize 오름차순 정렬 유지.
 export const typography = {
   displayLg: { fontSize: 28, fontWeight: '700' as const, lineHeight: 36 },
   displayMd: { fontSize: 24, fontWeight: '700' as const, lineHeight: 32 },
+  // @MX:NOTE: [AUTO] 화면 타이틀 균일성(SPEC-UI-002 FROZEN: 22/700). 홈 탭 헤더 등.
+  displaySm: { fontSize: 22, fontWeight: '700' as const, lineHeight: 30 },
   headingLg: { fontSize: 20, fontWeight: '700' as const, lineHeight: 28 },
   headingMd: { fontSize: 18, fontWeight: '600' as const, lineHeight: 26 },
   headingSm: { fontSize: 16, fontWeight: '600' as const, lineHeight: 23 },
+  // @MX:NOTE: [AUTO] AlarmCard 타이틀(F03-Home). lineHeight 21 ≈ 15 * 1.4.
+  alarmTitle: { fontSize: 15, fontWeight: '600' as const, lineHeight: 21 },
   bodyLg: { fontSize: 16, fontWeight: '400' as const, lineHeight: 26 },
   bodyMd: { fontSize: 14, fontWeight: '400' as const, lineHeight: 22 },
+  // @MX:NOTE: [AUTO] CTA 라벨(14/600). bodyMd(14/400) 보다 강조된 버튼 텍스트.
+  ctaLabel: { fontSize: 14, fontWeight: '600' as const, lineHeight: 22 },
+  // @MX:NOTE: [AUTO] 섹션 라벨(13/600). bodySm(13/400) 와 동일 크기, 가중치 600.
+  sectionLabel: { fontSize: 13, fontWeight: '600' as const, lineHeight: 18 },
   bodySm: { fontSize: 13, fontWeight: '400' as const, lineHeight: 20 },
   caption: { fontSize: 12, fontWeight: '400' as const, lineHeight: 17 },
   label: { fontSize: 11, fontWeight: '500' as const, lineHeight: 14 },

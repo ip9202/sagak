@@ -214,6 +214,52 @@ describe('SPEC-NAV-001 홈 탭: F03-Home 렌더링', () => {
         ),
       ).toBeTruthy();
     });
+
+    // FIX 4: formatAlarmTime 비정형 입력 방어 — 범위/형식 위반 시 기본 카피 폴백.
+    it('alarm_time 이 비정형("25:99:99", 시 범위 위반)이면 기본 카피를 렌더링한다', () => {
+      mockedUseAlarmSettings.mockReturnValue({
+        data: { alarm_time: '25:99:99', alarm_enabled: true },
+        isLoading: false,
+        isError: false,
+        error: null,
+      } as any);
+      const { getByText } = renderTab(createTestQueryClient());
+      expect(
+        getByText(
+          '5분만 읽어도 충분해요. 작은 시작이 큰 여정이 될 거예요.',
+        ),
+      ).toBeTruthy();
+    });
+
+    it('alarm_time 이 비정형("::")이면 기본 카피를 렌더링한다', () => {
+      mockedUseAlarmSettings.mockReturnValue({
+        data: { alarm_time: '::', alarm_enabled: true },
+        isLoading: false,
+        isError: false,
+        error: null,
+      } as any);
+      const { getByText } = renderTab(createTestQueryClient());
+      expect(
+        getByText(
+          '5분만 읽어도 충분해요. 작은 시작이 큰 여정이 될 거예요.',
+        ),
+      ).toBeTruthy();
+    });
+
+    it('alarm_time 이 비정형("9:5", 분 자리 부족)이면 기본 카피를 렌더링한다', () => {
+      mockedUseAlarmSettings.mockReturnValue({
+        data: { alarm_time: '9:5', alarm_enabled: true },
+        isLoading: false,
+        isError: false,
+        error: null,
+      } as any);
+      const { getByText } = renderTab(createTestQueryClient());
+      expect(
+        getByText(
+          '5분만 읽어도 충분해요. 작은 시작이 큰 여정이 될 거예요.',
+        ),
+      ).toBeTruthy();
+    });
   });
 
   describe('지금 읽는 책 (CurrentBook)', () => {
