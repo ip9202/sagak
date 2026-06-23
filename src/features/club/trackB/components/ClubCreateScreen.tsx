@@ -34,6 +34,7 @@ import { useTheme } from '../../../../theme/theme';
 import { useCreateClub, type ClubFormInput } from '../hooks';
 import { getUserFriendlyMessage } from '../../../../lib/api/errors';
 import { AppError } from '../../../../errors';
+import { spacing, typography, borderWidth } from '../../../../theme/tokens';
 
 export interface ClubCreateScreenProps {
   /** auth.uid() — host_id 주입용 */
@@ -364,8 +365,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingTop: 8,
+    paddingHorizontal: spacing[5],
+    paddingTop: spacing[2],
     paddingBottom: 4,
   },
   backButton: {
@@ -374,26 +375,26 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  backText: { fontSize: 22, fontWeight: '700' },
+  backText: { fontSize: typography.displaySm.fontSize, fontWeight: typography.displaySm.fontWeight },
   headerSpacer: { width: 36 },
   // SPEC-UI-002 FROZEN: title uniformity (fontSize 22 / weight 700)
-  title: { fontSize: 22, fontWeight: '700' },
+  title: { fontSize: typography.displaySm.fontSize, fontWeight: typography.displaySm.fontWeight },
   form: { flex: 1 },
-  formContent: { paddingTop: 12, paddingBottom: 24 },
-  label: { fontSize: 13, fontWeight: '600', marginBottom: 6 },
-  subLabel: { fontSize: 12, marginBottom: 6 },
+  formContent: { paddingTop: spacing[3], paddingBottom: spacing[6] },
+  label: { fontSize: typography.sectionLabel.fontSize, fontWeight: typography.sectionLabel.fontWeight, marginBottom: 6 },
+  subLabel: { fontSize: typography.caption.fontSize, marginBottom: 6 },
   input: {
-    borderWidth: 1,
+    borderWidth: borderWidth.hairline,
     paddingHorizontal: 14,
-    paddingVertical: 12,
-    fontSize: 15,
+    paddingVertical: spacing[3],
+    fontSize: typography.alarmTitle.fontSize,
   },
   textarea: { minHeight: 80, textAlignVertical: 'top' },
-  row: { flexDirection: 'row', gap: 12 },
+  row: { flexDirection: 'row', gap: spacing[3] },
   fieldHalf: { flex: 1 },
-  hint: { fontSize: 12 },
-  errorText: { fontSize: 13, fontWeight: '600' },
-  footer: { paddingTop: 12, borderTopWidth: 1 },
+  hint: { fontSize: typography.caption.fontSize },
+  errorText: { fontSize: typography.sectionLabel.fontSize, fontWeight: typography.sectionLabel.fontWeight },
+  footer: { paddingTop: spacing[3], borderTopWidth: borderWidth.hairline },
   submitButton: { paddingVertical: 14, alignItems: 'center' },
-  submitText: { fontSize: 15, fontWeight: '700' },
+  submitText: { fontSize: typography.alarmTitle.fontSize, fontWeight: typography.headingMd.fontWeight },
 });

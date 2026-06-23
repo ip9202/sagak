@@ -8,10 +8,12 @@
  * - useLibraryItem({bookId, userId}) → current_page (서재 미등록 시 0)
  *
  * 모임 상세 로딩 중에는 로딩 인디케이터를, book_id 가 없으면 에러 메시지를 렌더한다.
+ *
+ * P1-C completion 패턴 준용: useEffect 미인증 가드
  */
-import React from 'react';
+import React, { useEffect } from 'react';
 import { View, ActivityIndicator, Text, StyleSheet } from 'react-native';
-import { useLocalSearchParams } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { ClubFeedScreen } from '../../../../src/features/feed/components/ClubFeedScreen';
 import { useSession } from '../../../../src/auth/useSession';
 import { useClubDetail } from '../../../../src/features/club/trackB/hooks';
@@ -20,9 +22,13 @@ import { useTheme } from '../../../../src/theme/theme';
 
 export default function ClubFeedRoute() {
   const { clubId } = useLocalSearchParams<{ clubId: string }>();
+  const router = useRouter();
   const theme = useTheme();
   const session = useSession();
   const userId = session?.user?.id ?? '';
+
+  const sessionLoading = session === null;
+  const isAuthenticated = session?.isAuthenticated ?? false;
 
   const detail = useClubDetail(clubId);
   const club = detail.data;
@@ -31,6 +37,30 @@ export default function ClubFeedRoute() {
   // bookId/userId 가 확정된 후에만 서재 항목 조회 (빈 값이면 훅이 비활성화)
   const libraryItem = useLibraryItem({ bookId, userId });
   const currentPage = libraryItem.data?.current_page ?? 0;
+
+  // 미인증 — 로그인으로 replace (P1-C completion 패턴 준용)
+  useEffect(() => {
+    if (!sessionLoading && !isAuthenticated) {
+      router.replace('/(auth)/login');
+    }
+  }, [sessionLoading, isAuthenticated, router]);
+
+  // 세션 로딩 — ActivityIndicator
+  if (sessionLoading) {
+    return (
+      <View
+        testID="club-feed-loading"
+        style={[styles.center, { backgroundColor: theme.colors.bg.base }]}
+      >
+        <ActivityIndicator size="large" color={theme.colors.brand[500]} />
+      </View>
+    );
+  }
+
+  // 미인증 — useEffect 에서 로그인으로 replace 중
+  if (!isAuthenticated) {
+    return null;
+  }
 
   if (detail.isLoading) {
     return (

@@ -5,9 +5,11 @@
  *
  * clubId param 을 ClubDetailScreen 에 전달. host 진도 동기화, 상태 전환,
  * 탈퇴 액션은 ClubDetailScreen 내부 훅이 담당한다.
+ *
+ * P1-C completion 패턴 준용: useEffect 미인증 가드
  */
-import React from 'react';
-import { Pressable, Text, View, StyleSheet } from 'react-native';
+import React, { useEffect } from 'react';
+import { Pressable, Text, View, ActivityIndicator, StyleSheet } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { ClubDetailScreen } from '../../../src/features/club/trackB/components/ClubDetailScreen';
 import { useSession } from '../../../src/auth/useSession';
@@ -19,6 +21,33 @@ export default function ClubDetailRoute() {
   const userId = session?.user?.id ?? '';
   const router = useRouter();
   const theme = useTheme();
+
+  const sessionLoading = session === null;
+  const isAuthenticated = session?.isAuthenticated ?? false;
+
+  // 미인증 — 로그인으로 replace (P1-C completion 패턴 준용)
+  useEffect(() => {
+    if (!sessionLoading && !isAuthenticated) {
+      router.replace('/(auth)/login');
+    }
+  }, [sessionLoading, isAuthenticated, router]);
+
+  // 세션 로딩 — ActivityIndicator
+  if (sessionLoading) {
+    return (
+      <View
+        testID="club-detail-loading"
+        style={[styles.center, { backgroundColor: theme.colors.bg.base }]}
+      >
+        <ActivityIndicator size="large" color={theme.colors.brand[500]} />
+      </View>
+    );
+  }
+
+  // 미인증 — useEffect 에서 로그인으로 replace 중
+  if (!isAuthenticated) {
+    return null;
+  }
 
   return (
     <View style={styles.wrap}>
@@ -45,6 +74,7 @@ export default function ClubDetailRoute() {
 }
 
 const styles = StyleSheet.create({
+  center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   wrap: { flex: 1 },
   feedCta: { paddingVertical: 12, alignItems: 'center' },
   feedCtaText: { fontSize: 14, fontWeight: '700' },
