@@ -97,8 +97,11 @@ export const borderWidth = {
 
 // @MX:NOTE: [AUTO] 컨트롤 최소 높이 토큰 (SPEC-UI-002 FROZEN). 다중 줄 텍스트 입력(contentInput)의
 //           최소 높이 등 컴포넌트 고유 레이아웃 값. spacing 체계(4의 배수)로 표현 불가한 값.
+// @MX:NOTE: [AUTO] SPEC-COMPLETION-001 P1-C — button(44): 완독 리포트 재시도 버튼 최소 탭 영역.
+//           접근성 권장 최소 탭타겟 44pt. spacing(4의 배수)으로 표현 불가.
 export const minHeight = {
   input: 100,
+  button: 44,
 } as const;
 
 export const shadow = {

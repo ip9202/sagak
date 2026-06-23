@@ -49,6 +49,11 @@ jest.mock('expo-linear-gradient', () => {
   };
 });
 
+// expo-router mock — SPEC-COMPLETION-001 P1-C: handleComplete 가 router.push 호출
+jest.mock('expo-router', () => ({
+  useRouter: jest.fn(() => ({ push: jest.fn(), replace: jest.fn(), back: jest.fn() })),
+}));
+
 // useSession mock
 jest.mock('../../../auth/useSession', () => ({
   useSession: jest.fn(),

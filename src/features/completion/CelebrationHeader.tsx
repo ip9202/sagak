@@ -12,6 +12,7 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { useTheme } from '../../theme/theme';
+import { spacing, radius, typography } from '../../theme/tokens';
 
 /**
  * 완독 축하 헤더를 렌더링한다 (REQ-COMP-009/010).
@@ -46,21 +47,22 @@ export function CelebrationHeader(): React.ReactElement {
 const styles = StyleSheet.create({
   container: {
     alignItems: 'center',
-    paddingVertical: 24,
+    paddingVertical: spacing[6],
   },
   badge: {
-    borderRadius: 9999,
-    paddingHorizontal: 16,
-    paddingVertical: 6,
-    marginBottom: 12,
+    borderRadius: radius.full,
+    paddingHorizontal: spacing[4],
+    // @MX:NOTE: [AUTO] 배지 세로 여백 6 → spacing 근사 (P1-B 사례와 일관).
+    paddingVertical: spacing[2],
+    marginBottom: spacing[3],
   },
+  // @MX:NOTE: [AUTO] badgeText(13/700) → sectionLabel(13/600) 근사. 가중치 600→700 차이는 미미,
+  //           새 토큰 추가는 오버엔지니어링(guide 4). 축하 배지 강조 의미는 sectionLabel 로 충분.
   badgeText: {
-    fontSize: 13,
-    fontWeight: '700',
+    ...typography.sectionLabel,
   },
   message: {
-    fontSize: 20,
-    fontWeight: '700',
+    ...typography.headingLg,
     textAlign: 'center',
   },
 });
