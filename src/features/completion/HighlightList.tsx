@@ -12,6 +12,7 @@
 import React from 'react';
 import { FlatList, View, Text, StyleSheet } from 'react-native';
 import { useTheme } from '../../theme/theme';
+import { spacing, radius, borderWidth, typography } from '../../theme/tokens';
 import type { Highlight } from './types';
 
 export interface HighlightListProps {
@@ -57,21 +58,21 @@ export function HighlightList({ highlights }: HighlightListProps): React.ReactEl
 
 const styles = StyleSheet.create({
   list: {
-    paddingVertical: 4,
+    paddingVertical: spacing[1],
   },
   card: {
-    borderRadius: 16,
-    borderWidth: 1,
-    padding: 16,
-    marginVertical: 6,
+    borderRadius: radius.lg,
+    borderWidth: borderWidth.hairline,
+    padding: spacing[4],
+    // @MX:NOTE: [AUTO] marginVertical 6px → spacing[2](8) 근사 (P1-B/CelebrationHeader 6px 사례와 일관).
+    marginVertical: spacing[2],
   },
+  // @MX:NOTE: [AUTO] pageNumber(12/500) → caption(12/400) 근사. 강조(500) 의미 약해 caption 허용 (guide 3/4).
   pageNumber: {
-    fontSize: 12,
-    fontWeight: '500',
-    marginBottom: 4,
+    ...typography.caption,
+    marginBottom: spacing[1],
   },
   content: {
-    fontSize: 14,
-    lineHeight: 22,
+    ...typography.bodyMd,
   },
 });

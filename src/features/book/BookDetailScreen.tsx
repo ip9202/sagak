@@ -27,6 +27,7 @@ import {
   View,
 } from 'react-native';
 import { useTheme } from '../../theme/theme';
+import { useRouter } from 'expo-router';
 import { useSession } from '../../auth/useSession';
 import { getBookDetail } from './bookDetailApi';
 import { formatPublishedMonth } from './format';
@@ -97,6 +98,7 @@ export const BookDetailScreen: React.FC<BookDetailScreenProps> = ({
 }) => {
   const theme = useTheme();
   const tc = theme.colors;
+  const router = useRouter();
   const session = useSession();
   const [state, setState] = useState<DetailState>(initialState);
 
@@ -168,7 +170,19 @@ export const BookDetailScreen: React.FC<BookDetailScreenProps> = ({
     if (!libraryItem) return;
     // @MX:NOTE: [AUTO] 완독 처리: status='completed' 만 UPDATE. completed_at/completion_reports
     //           는 DB 트리거가 관리(AC-TRIG-002/003)하므로 payload 에 포함하지 않는다.
-    updateStatusMutation.mutate({ id: libraryItem.id, status: 'completed' });
+    // @MX:NOTE: [AUTO] SPEC-COMPLETION-001 P1-C — 성공 시 완독 다이어리(completion/[bookId]) 로 이동.
+    //           bookId(books.id) param 으로 전달. 라우트가 bookId → userBookId 매핑 수행.
+    updateStatusMutation.mutate(
+      { id: libraryItem.id, status: 'completed' },
+      {
+        onSuccess: () => {
+          router.push({
+            pathname: '/completion/[bookId]',
+            params: { bookId },
+          });
+        },
+      },
+    );
     setStatusMessage('완독을 축하합니다!');
   };
 

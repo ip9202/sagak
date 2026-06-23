@@ -21,6 +21,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, Pressable } from 'react-native';
 import { useTheme } from '../../theme/theme';
+import { spacing, radius, borderWidth, minHeight, typography } from '../../theme/tokens';
 import { useCompletionReport } from './useCompletionReport';
 import { CelebrationHeader } from './CelebrationHeader';
 import { EmotionCurveChart } from './EmotionCurveChart';
@@ -120,39 +121,38 @@ export function CompletionDiaryScreen({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 16,
+    padding: spacing[4],
   },
   loadingText: {
-    fontSize: 14,
+    ...typography.bodyMd,
     textAlign: 'center',
-    marginTop: 40,
+    marginTop: spacing[10],
   },
   errorText: {
-    fontSize: 14,
+    ...typography.bodyMd,
     textAlign: 'center',
-    marginTop: 40,
+    marginTop: spacing[10],
   },
   retryButton: {
-    borderWidth: 1,
-    borderRadius: 10,
-    paddingHorizontal: 16,
-    minHeight: 44,
+    borderWidth: borderWidth.hairline,
+    borderRadius: radius.md,
+    paddingHorizontal: spacing[4],
+    minHeight: minHeight.button,
     justifyContent: 'center',
     alignSelf: 'center',
-    marginTop: 16,
+    marginTop: spacing[4],
   },
   retryText: {
-    fontSize: 14,
-    fontWeight: '600',
+    ...typography.ctaLabel,
   },
   totalHeader: {
-    fontSize: 14,
+    ...typography.bodyMd,
     textAlign: 'center',
-    marginBottom: 12,
+    marginBottom: spacing[3],
   },
   emptyText: {
-    fontSize: 14,
+    ...typography.bodyMd,
     textAlign: 'center',
-    marginTop: 24,
+    marginTop: spacing[6],
   },
 });
