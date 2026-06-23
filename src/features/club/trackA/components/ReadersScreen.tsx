@@ -35,6 +35,7 @@ import { useActiveReaders } from '../hooks';
 import { getUserFriendlyMessage } from '../../../../lib/api/errors';
 import { AppError } from '../../../../errors';
 import type { ActiveReader } from '../types';
+import { spacing, typography } from '../../../../theme/tokens';
 
 export interface ReadersScreenProps {
   /** books.id (UUID) — 독자 목록 필터 기준 */
@@ -196,28 +197,28 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingTop: 8,
+    paddingHorizontal: spacing[5],
+    paddingTop: spacing[2],
     paddingBottom: 4,
   },
   backButton: { width: 36, height: 36, alignItems: 'center', justifyContent: 'center' },
-  backText: { fontSize: 22, fontWeight: '700' },
+  backText: { fontSize: typography.displaySm.fontSize, fontWeight: typography.displaySm.fontWeight },
   // SPEC-UI-002 FROZEN: title uniformity (fontSize 22 / weight 700)
-  title: { fontSize: 22, fontWeight: '700' },
+  title: { fontSize: typography.displaySm.fontSize, fontWeight: typography.displaySm.fontWeight },
   headerSpacer: { width: 36 },
-  bodyCenter: { flex: 1, justifyContent: 'center', alignItems: 'center', gap: 12, padding: 20 },
-  errorText: { fontSize: 14, fontWeight: '600', textAlign: 'center', paddingHorizontal: 32 },
-  emptyTitle: { fontSize: 18, fontWeight: '600' },
-  emptyHint: { fontSize: 14, textAlign: 'center' },
+  bodyCenter: { flex: 1, justifyContent: 'center', alignItems: 'center', gap: spacing[3], padding: spacing[5] },
+  errorText: { fontSize: typography.ctaLabel.fontSize, fontWeight: typography.ctaLabel.fontWeight, textAlign: 'center', paddingHorizontal: spacing[8] },
+  emptyTitle: { fontSize: typography.headingMd.fontSize, fontWeight: typography.headingMd.fontWeight },
+  emptyHint: { fontSize: typography.bodyMd.fontSize, textAlign: 'center' },
   list: { flex: 1 },
-  listContent: { gap: 16, paddingTop: 4, paddingBottom: 24 },
-  card: { gap: 12 },
+  listContent: { gap: spacing[4], paddingTop: 4, paddingBottom: spacing[6] },
+  card: { gap: spacing[3] },
   cardHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  readerId: { fontSize: 16, fontWeight: '600', flexShrink: 1 },
+  readerId: { fontSize: typography.headingSm.fontSize, fontWeight: typography.headingSm.fontWeight, flexShrink: 1 },
   badge: { paddingVertical: 4, paddingHorizontal: 10 },
-  badgeText: { fontSize: 12, fontWeight: '600' },
-  metaRow: { flexDirection: 'row', gap: 12 },
-  metaText: { fontSize: 13 },
+  badgeText: { fontSize: typography.caption.fontSize, fontWeight: typography.ctaLabel.fontWeight },
+  metaRow: { flexDirection: 'row', gap: spacing[3] },
+  metaText: { fontSize: typography.sectionLabel.fontSize },
   joinButton: { paddingVertical: 10, alignItems: 'center' },
-  joinText: { fontSize: 14, fontWeight: '600' },
+  joinText: { fontSize: typography.ctaLabel.fontSize, fontWeight: typography.ctaLabel.fontWeight },
 });

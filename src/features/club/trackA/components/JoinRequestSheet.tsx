@@ -41,6 +41,7 @@ import { getUserFriendlyMessage } from '../../../../lib/api/errors';
 import { AppError } from '../../../../errors';
 import { MESSAGE_MAX_LENGTH, validateMessageLength } from '../types';
 import type { ActiveReader } from '../types';
+import { spacing, typography, borderWidth } from '../../../../theme/tokens';
 
 export interface JoinRequestSheetProps {
   /** 책 컨텍스트 (Edge Function lazy 생성 시 사용) */
@@ -214,17 +215,17 @@ export const JoinRequestSheet: React.FC<JoinRequestSheetProps> = ({
 
 const styles = StyleSheet.create({
   overlay: { flex: 1, justifyContent: 'flex-end' },
-  sheet: { gap: 12, maxHeight: '80%' },
+  sheet: { gap: spacing[3], maxHeight: '80%' },
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  title: { fontSize: 18, fontWeight: '700' },
+  title: { fontSize: typography.headingMd.fontSize, fontWeight: typography.headingMd.fontWeight },
   closeButton: { width: 32, height: 32, alignItems: 'center', justifyContent: 'center' },
-  closeText: { fontSize: 14 },
+  closeText: { fontSize: typography.bodyMd.fontSize },
   body: { flexGrow: 0 },
-  label: { fontSize: 13, fontWeight: '600' },
-  input: { minHeight: 96, padding: 12, fontSize: 14, borderWidth: 1, textAlignVertical: 'top' },
-  counter: { fontSize: 12, alignSelf: 'flex-end' },
-  errorBox: { padding: 12 },
-  errorText: { fontSize: 13, fontWeight: '600' },
+  label: { fontSize: typography.sectionLabel.fontSize, fontWeight: typography.sectionLabel.fontWeight },
+  input: { minHeight: 96, padding: spacing[3], fontSize: typography.bodyMd.fontSize, borderWidth: borderWidth.hairline, textAlignVertical: 'top' },
+  counter: { fontSize: typography.caption.fontSize, alignSelf: 'flex-end' },
+  errorBox: { padding: spacing[3] },
+  errorText: { fontSize: typography.sectionLabel.fontSize, fontWeight: typography.sectionLabel.fontWeight },
   submitButton: { paddingVertical: 14, alignItems: 'center' },
-  submitText: { fontSize: 15, fontWeight: '700' },
+  submitText: { fontSize: typography.alarmTitle.fontSize, fontWeight: typography.headingMd.fontWeight },
 });

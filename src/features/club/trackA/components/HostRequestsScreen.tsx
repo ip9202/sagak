@@ -32,6 +32,7 @@ import { fetchIncomingJoinRequests } from '../joinRequestApi';
 import { getUserFriendlyMessage } from '../../../../lib/api/errors';
 import { AppError } from '../../../../errors';
 import type { JoinRequestRow, JoinResponseAction } from '../types';
+import { spacing, typography } from '../../../../theme/tokens';
 
 // @MX:ANCHOR: [AUTO] HostRequestsScreen — host 응답 화면 공개 컴포넌트
 // @MX:REASON: 라우팅(숨겨진 스택 host-requests.tsx)이 마운트하며, accept/decline 계약과 terminal 에러 매핑이 깨지면 host 가 "승인" 반복 시 의미없는 에러를 보게 된다.
@@ -238,29 +239,29 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingTop: 8,
+    paddingHorizontal: spacing[5],
+    paddingTop: spacing[2],
     paddingBottom: 4,
   },
   backButton: { width: 36, height: 36, alignItems: 'center', justifyContent: 'center' },
-  backText: { fontSize: 22, fontWeight: '700' },
+  backText: { fontSize: typography.displaySm.fontSize, fontWeight: typography.displaySm.fontWeight },
   // SPEC-UI-002 FROZEN: title uniformity (fontSize 22 / weight 700)
-  title: { fontSize: 22, fontWeight: '700' },
+  title: { fontSize: typography.displaySm.fontSize, fontWeight: typography.displaySm.fontWeight },
   headerSpacer: { width: 36 },
-  bodyCenter: { flex: 1, justifyContent: 'center', alignItems: 'center', gap: 12, padding: 20 },
-  errorText: { fontSize: 13, fontWeight: '600', textAlign: 'center' },
-  emptyTitle: { fontSize: 18, fontWeight: '600' },
-  emptyHint: { fontSize: 14, textAlign: 'center' },
+  bodyCenter: { flex: 1, justifyContent: 'center', alignItems: 'center', gap: spacing[3], padding: spacing[5] },
+  errorText: { fontSize: typography.sectionLabel.fontSize, fontWeight: typography.sectionLabel.fontWeight, textAlign: 'center' },
+  emptyTitle: { fontSize: typography.headingMd.fontSize, fontWeight: typography.headingMd.fontWeight },
+  emptyHint: { fontSize: typography.bodyMd.fontSize, textAlign: 'center' },
   list: { flex: 1 },
-  listContent: { gap: 16, paddingTop: 4, paddingBottom: 24 },
-  card: { gap: 8 },
-  requester: { fontSize: 16, fontWeight: '600' },
-  message: { fontSize: 14 },
-  meta: { fontSize: 12 },
-  actionRow: { flexDirection: 'row', gap: 8, marginTop: 4 },
+  listContent: { gap: spacing[4], paddingTop: 4, paddingBottom: spacing[6] },
+  card: { gap: spacing[2] },
+  requester: { fontSize: typography.headingSm.fontSize, fontWeight: typography.headingSm.fontWeight },
+  message: { fontSize: typography.bodyMd.fontSize },
+  meta: { fontSize: typography.caption.fontSize },
+  actionRow: { flexDirection: 'row', gap: spacing[2], marginTop: 4 },
   actionButton: { flex: 1, paddingVertical: 10, alignItems: 'center' },
-  actionText: { fontSize: 14, fontWeight: '600' },
+  actionText: { fontSize: typography.ctaLabel.fontSize, fontWeight: typography.ctaLabel.fontWeight },
   doneBox: { padding: 10, alignItems: 'center' },
-  doneText: { fontSize: 13, fontWeight: '600' },
+  doneText: { fontSize: typography.sectionLabel.fontSize, fontWeight: typography.sectionLabel.fontWeight },
   errorBox: { padding: 10 },
 });
