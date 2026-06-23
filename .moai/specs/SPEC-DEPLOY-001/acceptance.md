@@ -2,9 +2,9 @@
 id: SPEC-DEPLOY-001
 title: "Build, Deploy & CI/CD — Acceptance Criteria"
 version: "1.0.0"
-status: in-progress
+status: implemented
 created: 2026-06-14
-updated: 2026-06-17
+updated: 2026-06-24
 author: "강력쇠주먹"
 priority: medium
 issue_number: 0
@@ -21,6 +21,7 @@ issue_number: 0
 | 날짜       | 버전   | 내용                  | 작성자       |
 | ---------- | ------ | --------------------- | ------------ |
 | 2026-06-14 | 1.0.0  | 최초 작성 — 인수 기준 | 강력쇠주먹 |
+| 2026-06-24 | 1.0.1  | 최종 완료 — 모든 인수 기준 충족. 상태를 in-progress → implemented로 변경 | 강력쇠주먹 |
 
 ---
 

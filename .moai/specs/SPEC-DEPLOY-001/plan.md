@@ -2,9 +2,9 @@
 id: SPEC-DEPLOY-001
 title: "Build, Deploy & CI/CD — Implementation Plan"
 version: "1.0.0"
-status: draft
+status: implemented
 created: 2026-06-14
-updated: 2026-06-14
+updated: 2026-06-24
 author: "강력쇠주먹"
 priority: medium
 issue_number: 0
@@ -21,6 +21,7 @@ issue_number: 0
 | 날짜       | 버전   | 내용                  | 작성자       |
 | ---------- | ------ | --------------------- | ------------ |
 | 2026-06-14 | 1.0.0  | 최초 작성 — 구현 계획 | 강력쇠주먹 |
+| 2026-06-24 | 1.0.1  | 최종 완료 — 모든 마일스톤 구현 완료. 상태를 draft → implemented로 변경 | 강력쇠주먹 |
 
 ---
 

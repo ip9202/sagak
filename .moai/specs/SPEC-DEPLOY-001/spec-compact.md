@@ -2,9 +2,9 @@
 id: SPEC-DEPLOY-001
 title: "Build, Deploy & CI/CD — Compact Reference"
 version: "1.0.1"
-status: in-progress
+status: implemented
 created: 2026-06-14
-updated: 2026-06-17
+updated: 2026-06-24
 author: "강력쇠주먹"
 priority: medium
 issue_number: 0
