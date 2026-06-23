@@ -71,6 +71,61 @@ export function buildErrorResponse(
 }
 
 /**
+ * JWT에서 sub(user_id)를 추출한다.
+ * @MX:NOTE: [AUTO] JWT sub 추출 — M-1 보안 검증을 위해 requester_id와 JWT sub 일치 검증
+ *   @MX:REASON: service_role 키로 RLS 우회 시 애플리케이션 단 인가 로직이 필수
+ *
+ * @param authHeader — Authorization 헤더 값 (Bearer {token})
+ * @returns user_id (JWT sub) 또는 null (파싱 실패)
+ */
+export function extractJwtSub(authHeader: string | null): string | null {
+  if (!authHeader) {
+    return null;
+  }
+
+  // Authorization: Bearer {token} 형식 검증
+  const parts = authHeader.split(' ');
+  if (parts.length !== 2 || parts[0] !== 'Bearer') {
+    return null;
+  }
+
+  const token = parts[1];
+
+  try {
+    // JWT는 {header}.{payload}.{signature} 형식
+    const jwtParts = token.split('.');
+    if (jwtParts.length !== 3) {
+      return null;
+    }
+
+    // payload 디코딩 (base64url)
+    const payload = jwtParts[1];
+    // base64url을 base64로 변환 (- → +, _ → /, 패딩 추가)
+    const base64 = payload.replace(/-/g, '+').replace(/_/g, '/');
+    const padded = base64 + '='.repeat((4 - base64.length % 4) % 4);
+
+    // atob를 사용하여 디코딩 (Deno 런타임 지원)
+    const decoded = atob(padded);
+    const payloadObj = JSON.parse(decoded) as unknown;
+
+    // payload가 object이고 sub 속성이 문자열인지 검증
+    if (
+      typeof payloadObj === 'object' &&
+      payloadObj !== null &&
+      'sub' in payloadObj &&
+      typeof payloadObj.sub === 'string'
+    ) {
+      return payloadObj.sub;
+    }
+
+    return null;
+  } catch {
+    // 디코딩 또는 파싱 실패 시 null 반환
+    return null;
+  }
+}
+
+/**
  * 표준화된 JSON 성공 응답을 생성한다.
  */
 export function buildSuccessResponse(payload: ProcessJoinResponse): Response {

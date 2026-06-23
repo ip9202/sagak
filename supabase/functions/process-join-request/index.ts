@@ -21,6 +21,7 @@ import {
   parseRequestBody,
   buildErrorResponse,
   buildSuccessResponse,
+  extractJwtSub,
 } from './logic.ts';
 
 Deno.serve(async (req: Request): Promise<Response> => {
@@ -62,12 +63,52 @@ Deno.serve(async (req: Request): Promise<Response> => {
     return buildErrorResponse(parsed.status, parsed.error, parsed.detail);
   }
 
-  // parsed.value 검증 통과 — lazy 그룹 생성 + INSERT 실행 컨텍스트 확보.
-  // createClient 는 구현 단계에서 service_role 클라이언트 생성에 사용된다.
-  const _adminClient = createClient(supabaseUrl, serviceRoleKey, {
+  // @MX:NOTE: [AUTO] M-1: JWT sub 검증 — requester_id와 JWT sub 일치 확인 (PR #21 리뷰)
+  //   @MX:REASON: service_role 키로 RLS 우회 시 애플리케이션 단 인가 로직이 필수
+  const authHeader = req.headers.get('authorization');
+  const jwtSub = extractJwtSub(authHeader);
+
+  if (!jwtSub) {
+    return buildErrorResponse(401, 'invalid_jwt', 'JWT가 누락되었거나 유효하지 않습니다');
+  }
+
+  if (jwtSub !== parsed.value.requester_id) {
+    return buildErrorResponse(
+      403,
+      'forbidden',
+      'requester_id가 JWT sub와 일치하지 않습니다',
+    );
+  }
+
+  // @MX:NOTE: [AUTO] M-2: 입력 검증 — target_user_id가 public reader인지 확인 (PR #21 리뷰)
+  //   @MX:REASON: target_user_id가 존재하고 공개 프로필인지 검증 필요
+  const adminClient = createClient(supabaseUrl, serviceRoleKey, {
     auth: { persistSession: false },
   });
-  void _adminClient; // skeleton — 실제 로직 채울 때 사용
+
+  // user_books_public 뷰 조회로 target_user_id가 public reader인지 검증
+  const { data: targetUser, error: targetUserError } = await adminClient
+    .from('user_books_public')
+    .select('user_id, is_public')
+    .eq('user_id', parsed.value.target_user_id)
+    .eq('book_id', parsed.value.book_id)
+    .maybeSingle();
+
+  if (targetUserError) {
+    console.error('M-2 검증 중 DB 오류:', targetUserError);
+    return buildErrorResponse(500, 'database_error', '대상 사용자 조회 실패');
+  }
+
+  if (!targetUser || !targetUser.is_public) {
+    return buildErrorResponse(
+      400,
+      'invalid_target',
+      'target_user_id가 존재하지 않거나 공개 프로필이 아닙니다',
+    );
+  }
+
+  // @MX:NOTE: [AUTO] lazy 그룹 생성 + join_requests INSERT — target_user_id 검증 통과 후 실행
+  //   M-2 검증 통과 후 target_user_id가 public reader임이 보장됨
 
   // TODO(SPEC-CLUB-001 T-008 skeleton):
   //   1. club_members JOIN clubs 에서 target_user_id 의 활성 group 조회
