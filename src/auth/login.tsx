@@ -154,14 +154,12 @@ const styles = StyleSheet.create({
     backgroundColor: '#03C75A',
   },
   naverButtonText: {
+    ...typography.bodyMd,
     color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '600',
   },
   buttonText: {
+    ...typography.bodyMd,
     color: '#000000',
-    fontSize: 16,
-    fontWeight: '600',
   },
   error: {
     ...typography.bodySm,
