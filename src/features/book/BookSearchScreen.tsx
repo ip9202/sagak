@@ -215,73 +215,73 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   header: {
-    paddingHorizontal: 20,
-    paddingTop: 8,
-    paddingBottom: 4,
+    paddingHorizontal: 20, // spacing.5
+    paddingTop: 8, // spacing.2
+    paddingBottom: 4, // spacing.1
   },
   title: {
-    fontSize: 22,
-    fontWeight: '700',
+    fontSize: 22, // typography.displaySm.fontSize
+    fontWeight: '700', // typography.displaySm.fontWeight
   },
   scrollView: {
     flex: 1,
   },
   content: {
-    paddingHorizontal: 20,
-    paddingBottom: 40,
-    gap: 16,
+    paddingHorizontal: 20, // spacing.5
+    paddingBottom: 40, // spacing.10
+    gap: 16, // spacing.4
   },
   searchBar: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    gap: 8,
+    paddingHorizontal: 16, // spacing.4
+    paddingVertical: 12, // spacing.3
+    gap: 8, // spacing.2
   },
   searchInput: {
     flex: 1,
-    fontSize: 14,
+    fontSize: 14, // typography.bodyMd.fontSize
     paddingVertical: 0,
   },
   scanButton: {
-    padding: 8,
+    padding: 8, // spacing.2
   },
   scanIcon: {
-    fontSize: 18,
+    fontSize: 18, // 토큰에 없는 값 - 하드코딩 유지
   },
   submitButton: {
-    paddingVertical: 12,
+    paddingVertical: 12, // spacing.3
     alignItems: 'center',
   },
   submitText: {
-    fontSize: 14,
-    fontWeight: '600',
+    fontSize: 14, // typography.ctaLabel.fontSize
+    fontWeight: '600', // typography.ctaLabel.fontWeight
   },
   statusContainer: {
     alignItems: 'center',
-    paddingVertical: 32,
-    gap: 8,
+    paddingVertical: 32, // spacing.8
+    gap: 8, // spacing.2
   },
   statusText: {
-    fontSize: 14,
+    fontSize: 14, // typography.bodyMd.fontSize
   },
   errorText: {
-    fontSize: 14,
+    fontSize: 14, // typography.bodyMd.fontSize
     textAlign: 'center',
   },
   emptyTitle: {
-    fontSize: 16,
-    fontWeight: '600',
+    fontSize: 16, // typography.headingSm.fontSize
+    fontWeight: '600', // typography.headingSm.fontWeight
   },
   emptyHint: {
-    fontSize: 13,
+    fontSize: 13, // typography.bodySm.fontSize
     textAlign: 'center',
   },
   resultsSection: {
-    gap: 12,
+    gap: 12, // spacing.3
   },
   resultsLabel: {
-    fontSize: 13,
-    fontWeight: '600',
+    fontSize: 13, // typography.sectionLabel.fontSize
+    fontWeight: '600', // typography.sectionLabel.fontWeight
   },
 });

@@ -595,152 +595,152 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   content: {
-    paddingHorizontal: 20,
-    paddingVertical: 24,
+    paddingHorizontal: 20, // spacing.5
+    paddingVertical: 24, // spacing.6
     alignItems: 'center',
-    gap: 8,
+    gap: 8, // spacing.2
   },
   centerContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    gap: 12,
+    gap: 12, // spacing.3
   },
   cover: {
-    width: 160,
-    height: 220,
-    borderRadius: 8,
-    marginBottom: 12,
+    width: 160, // 토큰에 없는 값 - 하드코딩 유지
+    height: 220, // 토큰에 없는 값 - 하드코딩 유지
+    borderRadius: 8, // 토큰에 없는 값 - 하드코딩 유지
+    marginBottom: 12, // spacing.3
   },
   title: {
-    fontSize: 22,
-    fontWeight: '700',
+    fontSize: 22, // typography.displaySm.fontSize
+    fontWeight: '700', // typography.displaySm.fontWeight
     textAlign: 'center',
   },
   author: {
-    fontSize: 14,
+    fontSize: 14, // typography.bodyMd.fontSize
     textAlign: 'center',
   },
   meta: {
-    fontSize: 12,
+    fontSize: 12, // typography.caption.fontSize
     textAlign: 'center',
   },
   errorTitle: {
-    fontSize: 16,
-    fontWeight: '600',
+    fontSize: 16, // typography.headingSm.fontSize
+    fontWeight: '600', // typography.headingSm.fontWeight
     textAlign: 'center',
-    paddingHorizontal: 32,
+    paddingHorizontal: 32, // spacing.8
   },
   // --- SPEC-LIBRARY-001 TASK-010: 서재 섹션 스타일 ---
   librarySection: {
     width: '100%',
-    padding: 16,
-    gap: 16,
+    padding: 16, // spacing.4
+    gap: 16, // spacing.4
     alignItems: 'stretch',
   },
   progressInputRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: 8, // spacing.2
   },
   progressInput: {
     flex: 1,
-    borderWidth: 1,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    fontSize: 14,
+    borderWidth: 1, // borderWidth.hairline
+    paddingHorizontal: 12, // spacing.3
+    paddingVertical: 8, // spacing.2
+    fontSize: 14, // typography.bodyMd.fontSize
   },
   progressSubmitBtn: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
+    paddingHorizontal: 16, // spacing.4
+    paddingVertical: 8, // spacing.2
   },
   progressSubmitText: {
-    fontSize: 14,
-    fontWeight: '600',
+    fontSize: 14, // typography.ctaLabel.fontSize
+    fontWeight: '600', // typography.ctaLabel.fontWeight
   },
   progressMessage: {
-    fontSize: 12,
-    fontWeight: '500',
+    fontSize: 12, // typography.caption.fontSize
+    fontWeight: '500', // 토큰에 없는 값 - 하드코딩 유지
   },
   statusRow: {
-    gap: 8,
+    gap: 8, // spacing.2
   },
   sectionLabel: {
-    fontSize: 13,
-    fontWeight: '600',
+    fontSize: 13, // typography.sectionLabel.fontSize
+    fontWeight: '600', // typography.sectionLabel.fontWeight
   },
   statusChips: {
     flexDirection: 'row',
-    padding: 4,
+    padding: 4, // spacing.1
   },
   statusChip: {
     flex: 1,
-    paddingVertical: 8,
+    paddingVertical: 8, // spacing.2
     alignItems: 'center',
   },
   statusChipText: {
-    fontSize: 13,
-    fontWeight: '600',
+    fontSize: 13, // typography.sectionLabel.fontSize
+    fontWeight: '600', // typography.sectionLabel.fontWeight
   },
   statusMessage: {
-    fontSize: 12,
-    fontWeight: '500',
+    fontSize: 12, // typography.caption.fontSize
+    fontWeight: '500', // 토큰에 없는 값 - 하드코딩 유지
   },
   completeButton: {
-    paddingVertical: 12,
+    paddingVertical: 12, // spacing.3
     alignItems: 'center',
   },
   completeButtonText: {
-    fontSize: 14,
-    fontWeight: '700',
+    fontSize: 14, // typography.ctaLabel.fontSize
+    fontWeight: '700', // 토큰에 없는 값 - 하드코딩 유지
   },
   visibilityRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    gap: 12, // spacing.3
   },
   toggle: {
-    width: 48,
-    height: 28,
+    width: 48, // 토큰에 없는 값 - 하드코딩 유지
+    height: 28, // 토큰에 없는 값 - 하드코딩 유지
     justifyContent: 'center',
     alignItems: 'center',
   },
   visibilityMeta: {
     flex: 1,
-    gap: 2,
+    gap: 2, // 토큰에 없는 값 - spacing.1은 4라 하드코딩 유지
   },
   visibilityLabel: {
-    fontSize: 14,
-    fontWeight: '600',
+    fontSize: 14, // typography.ctaLabel.fontSize
+    fontWeight: '600', // typography.ctaLabel.fontWeight
   },
   visibilityHint: {
-    fontSize: 12,
+    fontSize: 12, // typography.caption.fontSize
   },
   deleteButton: {
-    paddingVertical: 12,
+    paddingVertical: 12, // spacing.3
     alignItems: 'center',
-    borderWidth: 1,
+    borderWidth: 1, // borderWidth.hairline
   },
   deleteButtonText: {
-    fontSize: 14,
-    fontWeight: '600',
+    fontSize: 14, // typography.ctaLabel.fontSize
+    fontWeight: '600', // typography.ctaLabel.fontWeight
   },
   confirmBox: {
-    padding: 16,
-    gap: 12,
+    padding: 16, // spacing.4
+    gap: 12, // spacing.3
   },
   confirmText: {
-    fontSize: 14,
-    fontWeight: '600',
+    fontSize: 14, // typography.ctaLabel.fontSize
+    fontWeight: '600', // typography.ctaLabel.fontWeight
     textAlign: 'center',
   },
   confirmActions: {
     flexDirection: 'row',
     justifyContent: 'center',
-    gap: 24,
+    gap: 24, // spacing.6
   },
   confirmBtn: {
-    paddingVertical: 8,
-    paddingHorizontal: 16,
+    paddingVertical: 8, // spacing.2
+    paddingHorizontal: 16, // spacing.4
   },
 });
