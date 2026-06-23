@@ -254,36 +254,36 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   header: {
-    paddingHorizontal: 20,
-    paddingTop: 8,
-    paddingBottom: 8,
+    paddingHorizontal: 20, // spacing[5] - 헤더 좌우 패딩
+    paddingTop: 8, // spacing[2] - 헤더 상단 패딩
+    paddingBottom: 8, // spacing[2] - 헤더 하단 패딩
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
   },
-  headerRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  title: { fontSize: 22, fontWeight: '700' },
+  headerRow: { flexDirection: 'row', alignItems: 'center', gap: 8 }, // spacing[2] - 헤더 행 간 간격
+  title: { fontSize: 22, fontWeight: '700' }, // typography.displaySm(22/700/30)
   badge: {
-    minWidth: 20,
-    height: 20,
-    borderRadius: 10,
-    paddingHorizontal: 6,
+    minWidth: 20, // 배지 최소 너비 (spacing[5]와 동일 값이나 컴포넌트 크기로 유지)
+    height: 20, // 배지 높이 (spacing[5]와 동일 값이나 컴포넌트 크기로 유지)
+    borderRadius: 10, // radius.md - 배지 모서리
+    paddingHorizontal: 6, // spacing 체계(4의 배수)로 표현 불가한 값 유지
     justifyContent: 'center',
     alignItems: 'center',
   },
-  badgeText: { color: '#FFFFFF', fontSize: 12, fontWeight: '700' },
-  markAllText: { fontSize: 14, fontWeight: '600' },
-  list: { padding: 20, paddingTop: 4, gap: 12 },
-  empty: { paddingVertical: 60, alignItems: 'center' },
-  card: { borderWidth: 1, padding: 16, gap: 6 },
+  badgeText: { color: '#FFFFFF', fontSize: 12, fontWeight: '700' }, // typography.caption(12/400/17)과 fontWeight 불일치로 유지
+  markAllText: { fontSize: 14, fontWeight: '600' }, // typography.ctaLabel(14/600/22)
+  list: { padding: 20, paddingTop: 4, gap: 12 }, // padding: spacing[5], paddingTop: spacing[1], gap: spacing[3]
+  empty: { paddingVertical: 60, alignItems: 'center' }, // spacing 체계(4의 배수)로 표현 불가한 값 유지
+  card: { borderWidth: 1, padding: 16, gap: 6 }, // borderWidth: borderWidth.hairline, padding: spacing[4], gap: spacing 체계에 없는 값 유지
   cardHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
   },
-  typeLabel: { fontSize: 12 },
-  dot: { width: 8, height: 8, borderRadius: 4 },
-  cardTitle: { fontSize: 16, lineHeight: 22 },
-  cardBody: { fontSize: 14, lineHeight: 20 },
-  cardTime: { fontSize: 12, marginTop: 2 },
+  typeLabel: { fontSize: 12 }, // typography.caption(12/400/17)
+  dot: { width: 8, height: 8, borderRadius: 4 }, // spacing 체계(4의 배수)로 표현 불가한 값 유지, radius.sm(6)과 불일치로 유지
+  cardTitle: { fontSize: 16, lineHeight: 22 }, // typography.headingSm(16/600/23)과 fontWeight/lineHeight 불일치로 유지
+  cardBody: { fontSize: 14, lineHeight: 20 }, // typography.bodySm(13/400/20)과 fontSize 불일치로 유지
+  cardTime: { fontSize: 12, marginTop: 2 }, // typography.caption(12/400/17), marginTop: spacing 체계에 없는 값 유지
 });
