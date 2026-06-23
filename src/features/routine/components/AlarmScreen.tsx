@@ -125,16 +125,16 @@ export function AlarmScreen(): React.JSX.Element {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  header: { paddingHorizontal: 20, paddingTop: 8, paddingBottom: 4 },
-  title: { fontSize: 22, fontWeight: '700' },
-  body: { flex: 1, padding: 20, gap: 16 },
+  header: { paddingHorizontal: 20, paddingTop: 8, paddingBottom: 4 }, // paddingHorizontal: spacing[5], paddingTop: spacing[2], paddingBottom: spacing[1]
+  title: { fontSize: 22, fontWeight: '700' }, // typography.displaySm(22/700/30)
+  body: { flex: 1, padding: 20, gap: 16 }, // padding: spacing[5], gap: spacing[4]
   row: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    gap: 12,
+    gap: 12, // spacing[3] - 행 간 간격
   },
-  label: { fontSize: 16 },
-  input: { borderWidth: 1, paddingHorizontal: 12, paddingVertical: 8, width: 120 },
+  label: { fontSize: 16 }, // typography.headingSm(16/600/23)과 fontWeight 불일치로 유지
+  input: { borderWidth: 1, paddingHorizontal: 12, paddingVertical: 8, width: 120 }, // borderWidth: borderWidth.hairline, paddingHorizontal: spacing[3], paddingVertical: spacing[2], width: spacing 체계(4의 배수)로 표현 불가한 값 유지
   center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
 });
