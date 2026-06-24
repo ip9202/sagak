@@ -14,18 +14,40 @@ jest.mock('@sentry/react-native', () => ({
   init: jest.fn(),
 }));
 
+// getSentryConfigInput 테스트를 위한 환경 소스 mock.
+// buildSentryConfig/initSentry 테스트는 env 를 직접 호출하지 않으므로 영향 없음.
+// 주의: mock 경로는 테스트 파일 위치(src/lib/__tests__/) 기준 — ../../config/env
+jest.mock('../../config/env', () => ({
+  getOptionalEnvVar: jest.fn(),
+}));
+
+// getSentryConfigInput 이 Constants.expoConfig.version 을 읽으므로 mock 제어.
+jest.mock('expo-constants', () => ({
+  __esModule: true,
+  default: { expoConfig: { version: '1.0.0' } },
+}));
+
 import {
   buildSentryConfig,
   initSentry,
+  getSentryConfigInput,
   SENTRY_DISABLED_DSN,
   type SentryConfigInput,
 } from '../sentry';
+import Constants from 'expo-constants';
 
 // 각 테스트마다 mock 호출 기록을 초기화하기 위해 필요한 참조.
 // 동적 require 로 mock 이 적용된 모듈을 가져온다.
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const SentryMock = require('@sentry/react-native') as { init: jest.Mock };
 const mockedInit = SentryMock.init;
+
+// getSentryConfigInput 테스트용 getOptionalEnvVar mock 참조.
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const envMock = require('../../config/env') as {
+  getOptionalEnvVar: jest.Mock;
+};
+const mockedGetOptionalEnvVar = envMock.getOptionalEnvVar;
 
 describe('Sentry configuration (SPEC-DEPLOY-001 M3)', () => {
   describe('buildSentryConfig — REQ-DEPLOY-014 (init) + REQ-DEPLOY-015 (env separation)', () => {
@@ -217,5 +239,63 @@ describe('initSentry integration — REQ-DEPLOY-014 (SDK init 호출 사슬)', (
     ).rejects.toThrow(/SENTRY_DSN/i);
 
     expect(mockedInit).not.toHaveBeenCalled();
+  });
+
+  it('StrictMode 이중 호출(동일 입력으로 2회)에서도 예외 없이 Sentry.init 을 매번 호출한다', async () => {
+    const input: SentryConfigInput = { dsn: 'https://abc@example.com/1', env: 'development', release: '1.0.0' };
+    await initSentry(input);
+    await initSentry(input);
+    expect(mockedInit).toHaveBeenCalledTimes(2); // SDK 가 멱등 처리한다 — 래퍼는 매번 전달
+  });
+});
+
+describe('getSentryConfigInput — REQ-DEPLOY-014 (app-entry 설정 조립)', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it('DSN/ENV/version 모두 존재하면 그대로 조립한다 (production 시나리오)', () => {
+    mockedGetOptionalEnvVar.mockImplementation((key: string, fallback: string) => {
+      if (key === 'EXPO_PUBLIC_SENTRY_DSN') return 'https://abc@example.com/2';
+      if (key === 'ENV') return 'production';
+      return fallback;
+    });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (Constants as any).expoConfig = { version: '2.3.4' };
+
+    const input = getSentryConfigInput();
+
+    expect(input.dsn).toBe('https://abc@example.com/2');
+    expect(input.env).toBe('production');
+    expect(input.release).toBe('2.3.4');
+  });
+
+  it('DSN 누락(dev)이어도 throw 하지 않고 조립만 수행한다 (판정은 buildSentryConfig 담당)', () => {
+    // getOptionalEnvVar 는 누락 시 fallback('')을 반환 — getSentryConfigInput 자체는 throw 안 함
+    mockedGetOptionalEnvVar.mockImplementation((key: string, fallback: string) => {
+      if (key === 'EXPO_PUBLIC_SENTRY_DSN') return fallback; // '' 반환
+      if (key === 'ENV') return 'development';
+      return fallback;
+    });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (Constants as any).expoConfig = { version: '1.0.0' };
+
+    // 조립 단계에서는 예외 없이 DSN 빈 값 그대로 반환
+    expect(() => getSentryConfigInput()).not.toThrow();
+    const input = getSentryConfigInput();
+    expect(input.dsn).toBe('');
+    expect(input.env).toBe('development');
+    expect(input.release).toBe('1.0.0');
+  });
+
+  it('app.json version 이 누락되면 release 가 1.0.0 리터럴로 폴백한다', () => {
+    mockedGetOptionalEnvVar.mockImplementation((_key: string, fallback: string) => fallback);
+    // expoConfig.version 누락 상태 시뮬레이션
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (Constants as any).expoConfig = {};
+
+    const input = getSentryConfigInput();
+
+    expect(input.release).toBe('1.0.0');
   });
 });
