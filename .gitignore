@@ -44,6 +44,10 @@ yarn-error.*
 .env.local
 .env.*.local
 
+# Sentry CLI local config (SPEC-DEPLOY-001 — contains auth token, must never commit)
+sentry.properties
+.sentryclirc
+
 # Keep staging/production env templates for EAS builds (but not actual values)
 !.env.example
 !.env.staging

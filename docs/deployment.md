@@ -182,9 +182,167 @@ eas build --profile development --platform all
 
 ---
 
+## 6. Sentry 크리덴셜 프로비저닝 (수동)
+
+sagak 은 Sentry 를 통해 프로덕션 크래시 모니터링 및 sourcemap 디버깅을 수행한다.
+GitHub Actions CI 에서 sourcemap 을 Sentry 로 업로드하며, 런타임에서는 `@sentry/react-native` SDK 가 이벤트를 전송한다.
+
+### 프로비저닝 개요
+
+다음 3가지 자격증명이 필요하다:
+
+| 크리덴셜 | 용도 | 저장 위치 |
+|---------|------|-----------|
+| `SENTRY_AUTH_TOKEN` | sourcemap 업로드 API 인증 | GitHub Secrets |
+| `SENTRY_ORG` | 조직 식별(slug) | GitHub Secrets |
+| `SENTRY_STAGING_PROJECT` | staging 프로젝트 식별(slug) | GitHub Secrets |
+| `EXPO_PUBLIC_SENTRY_DSN` | 런타임 SDK 전송용 DSN | `.env.staging` (staging) / `.env.production` (production) |
+
+> **보안 주의사항**: Auth Token 및 실제 DSN 은 절대 repo 에 커밋하지 않는다.
+> `.env.staging` / `.env.production` 은 placeholder(빈 문자열) 상태로 커밋되며,
+> 실제 값은 로컬(`.env`, gitignored) 또는 GitHub Secrets / EAS secrets 로만 주입한다.
+> 프로젝트의 secret 보호 컨벤션은 `src/lib/__tests__/credential-hygiene.test.ts` 를 참조한다.
+
+### 6.1 Sentry 계정/조직/프로젝트 생성
+
+1. **계정 생성**: https://sentry.io/signup/ 에서 회원가입 (계정이 없는 경우)
+2. **조직 확인/생성**: Sentry dashboard 에서 조직 slug 기억 (예: `my-org-slug`) — 이 값이 `SENTRY_ORG`
+3. **프로젝트 생성**:
+   - **Projects > Create Project** 클릭
+   - Platform 선택: **React Native**
+   - 프로젝트 이름 입력 (예: `sagak-staging`, `sagak-production`)
+   - **staging 환경용 프로젝트 1개를 먼저 생성** (production 은 별도 프로젝트 권장)
+
+> **참고**: Sentry UI는 변경될 수 있으므로, 정확한 메뉴 경로는 [Sentry React Native 문서](https://docs.sentry.io/platforms/react-native/) 를 참조한다.
+
+### 6.2 DSN 확보 (Client Key)
+
+DSN(Data Source Name)은 런타임 SDK 가 이벤트를 Sentry 로 전송할 때 사용하는 엔드포인트 식별자다.
+
+1. 생성한 프로젝트 dashboard 로 이동
+2. **Settings > Client Keys** (또는 **Project Settings > Client Keys**)
+   - UI 가 변경될 수 있으므로 정확한 경로는 [공식 문서](https://docs.sentry.io/product/sentry-basics/integrate-frontend/create-new-project/) 를 확인
+3. DSN 값 복사 (예: `https://examplePublicKey@o0.ingest.sentry.io/123456`)
+   - 이 값이 `EXPO_PUBLIC_SENTRY_DSN`
+
+> **DSN 보안 노트**: DSN 자체는 client 노출이 허용되는 public 성격이지만,
+> 환경별 분리(staging vs production)를 명확히 하고 실수로 production DSN을 staging 에 노출하는 것을 방지하기 위해
+> `.env` 파일만으로 관리하고 repo 에는 빈 값으로 커밋하는 것을 권장한다.
+
+### 6.3 Auth Token 생성 (sourcemap 업로드용)
+
+GitHub Actions `upload-sentry-sourcemaps` job이 sourcemap을 Sentry 로 업로드하려면 Auth Token 이 필요하다.
+
+> **CI 환경 권장 — Organization Token**: Sentry 공식 문서에 따르면 CI 환경에서는 **Organization Token**을 권장한다(권한이 미리 설정되어 최소 권한 원칙에 부합).
+
+1. Sentry dashboard 우측 상단 **User Menu > Settings**
+2. **Auth Tokens** (또는 **User Settings > Auth Tokens**) 메뉴
+3. **Create New Token** 클릭
+4. **Token type / scopes**:
+   - **Organization Token**(권장): CI / sourcemap 업로드용으로 사전 설정된 권한 세트 사용
+   - **Internal Integration**(custom scope 필요 시): `project:releases`(release 생성·sourcemap 업로드) + `org:read`(조직 정보). `project:write` 는 sourcemap 업로드에 통상 불필요하므로 최소 권한을 위해 제외한다.
+   > **정확한 scope/type 명칭은 Sentry 버전에 따라 변경될 수 있으므로 [Auth Tokens 공식 문서](https://docs.sentry.io/account/auth-tokens/) 와 [CLI sourcemap 업로드 문서](https://docs.sentry.io/platforms/javascript/sourcemaps/uploading/cli/) 를 확인한다.
+5. Token 생성 후 **값 복사** (재조회 불가 — 즉시 안전한 곳에 저장)
+
+> **주의**: Auth Token 은 절대 repo 에 커밋하지 않는다. GitHub Secrets 에만 저장한다.
+
+### 6.4 GitHub Secrets 등록
+
+repo 설정에서 3개의 Secret 을 등록한다. 정확한 키명은 `.github/workflows/deploy.yml` 이 참조하므로 오타 없이 입력한다.
+
+| GitHub Secret 키명 | 값 | 출처 |
+|-------------------|-------|------|
+| `SENTRY_AUTH_TOKEN` | 6.3절에서 생성한 Auth Token 값 | Sentry Auth Tokens 페이지 |
+| `SENTRY_ORG` | 조직 slug (예: `my-org-slug`) | Sentry dashboard URL 또는 Settings |
+| `SENTRY_STAGING_PROJECT` | staging 프로젝트 slug (예: `sagak-staging`) | Sentry dashboard 프로젝트 slug |
+
+**등록 방법**:
+
+**방법 A — GitHub UI**:
+1. repo **Settings > Secrets and variables > Actions**
+2. **New repository secret** 클릭
+3. 위 3개를 각각 등록 (Name, Value 정확히 입력)
+
+**방법 B — `gh` CLI**:
+```bash
+gh secret set SENTRY_AUTH_TOKEN
+# 프롬프트에 Auth Token 값 입력
+
+gh secret set SENTRY_ORG
+# 프롬프트에 조직 slug 입력
+
+gh secret set SENTRY_STAGING_PROJECT
+# 프롬프트에 staging 프로젝트 slug 입력
+```
+
+> **배포.yml 매핑 참고**: `.github/workflows/deploy.yml` 의 `upload-sentry-sourcemaps` job은
+> `SENTRY_STAGING_PROJECT` 키를 읽어 프로젝트 slug를 결정한다 (구현은 이미 완료된 상태).
+
+### 6.5 `.env` DSN 설정 (placeholder 커밋 규칙)
+
+> **보안 — 반드시 준수**: `.env.staging` / `.env.production` 은 `.gitignore` 예외로 **커밋된다**.
+> 따라서 `EXPO_PUBLIC_SENTRY_DSN` 은 **항상 빈 문자열로 커밋**하고, 실제 DSN 값은 로컬 `.env`(gitignored)
+> 또는 EAS 빌드 시점 secret 으로만 주입한다. `.env.staging`/`.env.production` 에 실제 DSN 을 쓰면 secret 이 repo 에 노출된다.
+
+커밋되는 `.env.*` 파일의 DSN 은 빈 값으로 유지한다:
+
+```bash
+# .env.staging (커밋됨 — 반드시 빈 값 유지)
+EXPO_PUBLIC_SUPABASE_URL=https://<project-ref>.supabase.co
+EXPO_PUBLIC_SUPABASE_ANON_KEY=<your-anon-key>
+EXPO_PUBLIC_SENTRY_DSN=
+ENV=staging
+```
+
+```bash
+# .env.production (커밋됨 — 반드시 빈 값 유지)
+EXPO_PUBLIC_SUPABASE_URL=https://<project-ref>.supabase.co
+EXPO_PUBLIC_SUPABASE_ANON_KEY=<your-anon-key>
+EXPO_PUBLIC_SENTRY_DSN=
+ENV=production
+```
+
+**실제 DSN 주입 경로** (커밋되지 않는 곳):
+- **로컬 개발**: `.env`(gitignored)에 `EXPO_PUBLIC_SENTRY_DSN=<실제 DSN>` 작성
+- **EAS 빌드**: `eas secret:create --scope project --name EXPO_PUBLIC_SENTRY_DSN --value <DSN>` — 빌드 시점 주입
+
+### 6.6 검증
+
+**CI sourcemap 업로드 검증**:
+1. `develop` 브랜치에 push (→ staging 배포)
+2. GitHub Actions **upload-sentry-sourcemaps** job 확인
+3. "SENTRY_AUTH_TOKEN is empty, skipping sourcemap upload" 메시지가 **없고** job이 성공하면 성공
+4. Sentry dashboard > **Releases** 에 sourcemap 이 연동된 release 가 생성되었는지 확인
+
+**런타임 이벤트 수신 검증**:
+1. 실기기/시뮬레이터에서 staging 빌드 앱 실행
+2. 의도적으로 크래시 발생 (예: `throw new Error('Test crash')`)
+3. Sentry dashboard > **Issues** 에 이벤트가 수신되는지 확인
+
+### 6.7 OUT OF SCOPE
+
+다음 항목은 본 가이드 범위 밖이다:
+
+- **production sourcemap 업로드 job**: `.github/workflows/deploy.yml` 에 현재 staging 환경만 구현됨.
+  production 프로젝트용 job은 SPEC-DEPLOY-001 §6 #4 해결 시 추가 예정.
+- **Expo config plugin 등록**: `@sentry/react-native` 패키지의 expo config plugin 은
+  PR #56 merge 시 이미 활성화됨 (NO-OP 옵션 제외 완료).
+  본 가이드는 크리덴셜 확보만 다루며 plugin 설정은 코드에 이미 반환됨.
+- **self-hosted Sentry**: on-prem Sentry 설치는 다루지 않는다.
+
+### 6.8 문제 해결 참조
+
+- [Sentry CLI Configuration](https://docs.sentry.io/cli/configuration/) — `SENTRY_AUTH_TOKEN`, `SENTRY_ORG`, `SENTRY_PROJECT` 환경변수 설정
+- [Sentry React Native Setup](https://docs.sentry.io/platforms/react-native/) — 프로젝트 생성 및 DSN 확인
+- [Sentry Auth Tokens](https://docs.sentry.io/account/auth-tokens/) — Auth Token scope 및 생성
+
+---
+
 ## 관련 코드
 
 - `src/auth/oauth.ts` — OAuth redirect URI 소스 (`getOAuthRedirectUri()`)
 - `app.config.ts` — build-time 환경변수 검증 호출 지점
 - `src/config/env.ts` — `validateEnv`, `REQUIRED_PROD`, `MissingEnvError`
 - `eas.json` — EAS build profile 정의
+- `.github/workflows/deploy.yml` — CI sourcemap 업로드 job (이미 구현됨, `SENTRY_STAGING_PROJECT` 키 참조)
+- `app/_layout.tsx` — 런타임 Sentry 초기화 호출 (`initSentry()`, REQ-DEPLOY-014)
