@@ -10,15 +10,15 @@
  *  4. 캐시 미스 시 Kakao API 호출(REQ-BOOK-001) + 업서트(REQ-BOOK-011)
  *  5. 정규화(REQ-BOOK-003) 후 { data } 또는 { error, code }(REQ-BOOK-004) 응답
  */
-import { normalizeKakaoDocuments, type NormalizedBook } from './normalizer';
-import { mapToBookRow } from './mapper';
+import { normalizeKakaoDocuments, type NormalizedBook } from './normalizer.ts';
+import { mapToBookRow } from './mapper.ts';
 import {
   findCachedBook,
   upsertBooks,
   type SupabaseClientLike,
   type BookCacheRow,
-} from './cacheManager';
-import { searchKakaoBooks, type KakaoSearchResponse } from './kakaoClient';
+} from './cacheManager.ts';
+import { searchKakaoBooks, type KakaoSearchResponse } from './kakaoClient.ts';
 
 /**
  * handleSearchRequest 의존성 주입 인터페이스 (테스트 가능성).

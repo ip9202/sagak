@@ -7,7 +7,7 @@
  * @MX:NOTE: [AUTO] authors → author join 은 본 모듈에서만 일어난다.
  *           클라이언트는 books.author(단일 문자열)를 그대로 읽는다.
  */
-import type { NormalizedBook } from './normalizer';
+import type { NormalizedBook } from './normalizer.ts';
 
 /**
  * books 테이블 upsert 입력 행 (id/created_at 제외 — DB 가 기본값 사용).
