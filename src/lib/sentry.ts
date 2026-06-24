@@ -2,13 +2,13 @@
 // SPEC-DEPLOY-001 M3 (REQ-DEPLOY-014/015/016/017/018)
 //
 // ARCHITECTURE NOTE:
-// @sentry/react-native is not yet installed (SPEC §6 #4 undecided). To keep
-// TDD honest without a runtime dependency, the testable logic lives in the
-// pure `buildSentryConfig` function. The `initSentry` wrapper dynamically
-// imports the SDK so the app does not hard-fail if the package is absent —
-// it logs a warning and no-ops, letting the app run without crash reporting.
-// Once the SDK is installed and the team confirms release-tracking (§6 #4),
-// remove the dynamic-import guard and call Sentry.init directly.
+// @sentry/react-native 가 정적 import 로 전환되었다. 과거 SPEC §6 #4 미결정으로
+// SDK 가 설치되지 않았을 때를 대비한 dynamic-import + try/catch 가드는 제거되었다.
+// 이제 initSentry 는 Sentry.init 을 직접 호출한다.
+// (참고) Sentry CLI 소스맵 업로드/릴리즈 트래킹(SPEC §6 #4)은 여전히 OPEN 이며,
+// 이 모듈은 SDK 초기화까지만 담당한다 — app entry 연결과 빌드 설정은 별도 작업.
+
+import * as Sentry from '@sentry/react-native';
 
 /**
  * DSN sentinel value that disables Sentry transport without throwing.
@@ -102,12 +102,14 @@ export function buildSentryConfig(input: SentryConfigInput): SentryConfig {
 /**
  * Initialize Sentry at app startup.
  *
- * Wraps @sentry/react-native init with the resolved config. If the SDK is not
- * installed, logs a warning and returns silently (no crash). This lets the
- * codebase reference initSentry() before the package is added.
+ * Wraps @sentry/react-native init with the resolved config. disabled 상태이면
+ * (DSN 누락 등) Sentry.init 을 호출하지 않고 그대로 반환한다 (dev tolerance).
  *
- * REQ-DEPLOY-014: 항상 Sentry를 초기화해야 한다 (SDK 설치 시).
+ * REQ-DEPLOY-014: 활성화된 경우 Sentry SDK 를 초기화한다.
  */
+// @MX:ANCHOR: [AUTO] Sentry SDK 초기화 진입점 — app/_layout.tsx 및 테스트가 호출 (fan_in >= 3 예상)
+// @MX:REASON: init 호출 누락/중복/잘못된 옵션은 크래시 리포팅 전체를 무력화한다. 단일 진입점 불변식.
+// @MX:SPEC: SPEC-DEPLOY-001 M3
 export async function initSentry(input: SentryConfigInput): Promise<SentryConfig> {
   const config = buildSentryConfig(input);
 
@@ -115,29 +117,15 @@ export async function initSentry(input: SentryConfigInput): Promise<SentryConfig
     return config;
   }
 
-  try {
-    // Dynamic import so this module type-checks and runs without the SDK installed.
-    // SDK 미설치 시 타입 선언이 없으므로 any 로 취급 — 패키지 설치 후 이 가드 제거.
-    const Sentry: { init: (opts: Record<string, unknown>) => void } = (
-      await import(/* @vite-ignore */ '@sentry/react-native' as string)
-    ) as { init: (opts: Record<string, unknown>) => void };
-    Sentry.init({
-      dsn: config.dsn,
-      environment: config.environment,
-      release: config.release,
-      sendDefaultPII: config.sendDefaultPII,
-      tracesSampleRate: config.tracesSampleRate,
-    });
-  } catch (err) {
-    // SDK 미설치 시 경고만 출력, 앱 실행은 계속 (REQ-DEPLOY-014 보류 상태 허용)
-    // @MX:WARN: [AUTO] @sentry/react-native 미설치 상태 — 크래시 리포팅 비활성
-    // @MX:REASON: SPEC §6 #4 미결정(Sentry 릴리즈 트래킹)으로 SDK 도입 보류 중. 패키지 설치 후 이 브랜치 제거.
-    // eslint-disable-next-line no-console
-    console.warn(
-      '[sentry] @sentry/react-native not installed — crash reporting disabled.',
-      err instanceof Error ? err.message : err
-    );
-  }
+  Sentry.init({
+    dsn: config.dsn,
+    environment: config.environment,
+    release: config.release,
+    // @sentry/react-native 옵션명은 sendDefaultPii(소문자 pii).
+    // 내부 SentryConfig 는 sendDefaultPII(대문자)를 사용하므로 여기서 매핑한다.
+    sendDefaultPii: config.sendDefaultPII,
+    tracesSampleRate: config.tracesSampleRate,
+  });
 
   return config;
 }

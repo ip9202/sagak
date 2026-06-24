@@ -1,15 +1,28 @@
-// Unit tests for Sentry configuration builder (REQ-DEPLOY-014/015/017/018)
+// Unit + integration tests for Sentry configuration builder and initSentry
+// wrapper (REQ-DEPLOY-014/015/017/018)
 // SPEC-DEPLOY-001 M3
 //
-// NOTE: @sentry/react-native SDK is not installed at authoring time.
-// We test the pure configuration builder (buildSentryConfig) which the
-// real initSentry() wrapper will consume once the SDK is added. This keeps
-// TDD discipline without forcing a runtime dependency mid-session.
+// @sentry/react-native SDK 가 정적 import 로 전환됨에 따라 initSentry 통합 테스트를
+// 추가했다. RN 네이티브 초기화는 jest-expo/node 환경에서 실행할 수 없으므로, SDK 의
+// 리프 모듈(init)만 mock 하고 buildSentryConfig -> initSentry -> Sentry.init 사슬을
+// 실제 initSentry 진입점을 통해 검증한다.
 import {
   buildSentryConfig,
+  initSentry,
   SENTRY_DISABLED_DSN,
   type SentryConfigInput,
 } from '../sentry';
+
+// RN 네이티브 SDK 초기화는 실행 불가 — init 만 mock 한다.
+jest.mock('@sentry/react-native', () => ({
+  init: jest.fn(),
+}));
+
+// 각 테스트마다 mock 호출 기록을 초기화하기 위해 필요한 참조.
+// 동적 require 로 mock 이 적용된 모듈을 가져온다.
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const SentryMock = require('@sentry/react-native') as { init: jest.Mock };
+const mockedInit = SentryMock.init;
 
 describe('Sentry configuration (SPEC-DEPLOY-001 M3)', () => {
   describe('buildSentryConfig — REQ-DEPLOY-014 (init) + REQ-DEPLOY-015 (env separation)', () => {
@@ -139,5 +152,57 @@ describe('Sentry configuration (SPEC-DEPLOY-001 M3)', () => {
 
       expect(config.tracesSampleRate).toBe(1.0);
     });
+  });
+});
+
+describe('initSentry integration — REQ-DEPLOY-014 (SDK init 호출 사슬)', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it('활성화 상태(production + DSN)에서 Sentry.init 을 정확히 한 번 호출한다', async () => {
+    await initSentry({
+      dsn: 'https://abc@example.com/1',
+      env: 'production',
+      release: '1.2.3',
+    });
+
+    expect(mockedInit).toHaveBeenCalledTimes(1);
+    expect(mockedInit).toHaveBeenCalledWith(
+      expect.objectContaining({
+        dsn: 'https://abc@example.com/1',
+        environment: 'production',
+        release: '1.2.3',
+        // SDK 옵션명은 sendDefaultPii(소문자 pii) — src/lib/sentry.ts 참조
+        sendDefaultPii: false,
+        tracesSampleRate: 0.2,
+      })
+    );
+  });
+
+  it('활성화 상태(development)에서는 tracesSampleRate 가 1.0 으로 전달된다', async () => {
+    await initSentry({
+      dsn: 'https://abc@example.com/1',
+      env: 'development',
+      release: '0.0.0-dev',
+    });
+
+    expect(mockedInit).toHaveBeenCalledTimes(1);
+    expect(mockedInit).toHaveBeenCalledWith(
+      expect.objectContaining({
+        environment: 'development',
+        tracesSampleRate: 1.0,
+      })
+    );
+  });
+
+  it('비활성 상태(DSN 누락 + development)에서는 Sentry.init 을 호출하지 않는다', async () => {
+    await initSentry({
+      dsn: undefined,
+      env: 'development',
+      release: '0.0.0-dev',
+    });
+
+    expect(mockedInit).not.toHaveBeenCalled();
   });
 });
