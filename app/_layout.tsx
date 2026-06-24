@@ -21,13 +21,14 @@
  * _dev는 프로덕션 빌드(__DEV__=false)에서 제외되어 번들에서 사라진다.
  */
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Stack } from 'expo-router';
 import { QueryClientProvider } from '@tanstack/react-query';
 import * as WebBrowser from 'expo-web-browser';
 import { ThemeProvider } from '../src/theme/theme';
 import { AuthProvider } from '../src/auth/AuthContext';
 import { getQueryClient } from '../src/lib/query/queryClient';
+import { initSentry, getSentryConfigInput } from '../src/lib/sentry';
 // SPEC-NOTIF-001 Optional (REQ-NOTIF-001~004): 클라이언트 Expo Push 통합
 import {
   usePushTokenRegistration,
@@ -40,6 +41,15 @@ import {
 WebBrowser.maybeCompleteAuthSession();
 
 export default function RootLayout() {
+  // REQ-DEPLOY-014: 앱 진입 시 Sentry 를 항상 초기화한다 (always initialize).
+  // - dev: DSN 누락 → initSentry 가 no-op (Sentry.init 미호출, buildSentryConfig dev tolerance).
+  // - prod: DSN 필수 → 누락 시 initSentry 가 throw (REQ-DEPLOY-018 fail-fast).
+  // StrictMode dev 이중 호출은 Sentry SDK 가 멱등하게 처리하므로 별도 가드 없음.
+  // void 키워드로 floating Promise 를 명시적으로 무시한다 (fire-and-forget 초기화).
+  useEffect(() => {
+    void initSentry(getSentryConfigInput());
+  }, []);
+
   return (
     <ThemeProvider>
       <QueryClientProvider client={getQueryClient()}>

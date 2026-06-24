@@ -9,6 +9,8 @@
 // 이 모듈은 SDK 초기화까지만 담당한다 — app entry 연결과 빌드 설정은 별도 작업.
 
 import * as Sentry from '@sentry/react-native';
+import Constants from 'expo-constants';
+import { getOptionalEnvVar } from '../config/env';
 
 /**
  * DSN sentinel value that disables Sentry transport without throwing.
@@ -59,6 +61,33 @@ function normalizeEnvironment(env: string): SentryEnvironment {
     default:
       return 'development';
   }
+}
+
+/**
+ * 앱 진입점(app/_layout.tsx)이 Sentry 설정 입력값을 조립하는 단일 소스.
+ * REQ-DEPLOY-014: "always initialize Sentry" — _layout 은 env 를 직접 읽지 않고
+ * 이 헬퍼를 통해 dsn/env/release 를 한 번에 수집한다.
+ *
+ * 소싱 규칙:
+ * - dsn: EXPO_PUBLIC_SENTRY_DSN (빌드타임 extra 주입). 누락 시 undefined —
+ *   buildSentryConfig 가 dev tolerance / prod fail-fast 를 판정한다.
+ * - env: ENV 키 (app.config.ts 가 주입). 누락 시 빈 문자열 → buildSentryConfig 가
+ *   unknown 을 development 로 폴백.
+ * - release: app.json 의 version. 누락 시 '1.0.0' 리터럴 폴백.
+ *
+ * 참고: getEnvVar(getOptionalEnvVar 아님)는 값 누락 시 throw 하므로 DSN/ENV 에는
+ * getOptionalEnvVar 를 사용해 누락 허용 여부를 이 함수가 아닌 buildSentryConfig 에 위임한다.
+ */
+// @MX:NOTE: [AUTO] app-entry Sentry 설정 조립점 — _layout + 향후 테스트가 소비 (fan_in 증가 예상)
+export function getSentryConfigInput(): SentryConfigInput {
+  return {
+    // DSN 누락 허용 (dev tolerance) — undefined 를 그대로 전달하면 buildSentryConfig 가 판정
+    dsn: getOptionalEnvVar('EXPO_PUBLIC_SENTRY_DSN', ''),
+    // ENV 누락 시 빈 문자열 → normalizeEnvironment 가 development 로 폴백
+    env: getOptionalEnvVar('ENV', ''),
+    // app.json version — 누락 시 '1.0.0'
+    release: Constants.expoConfig?.version ?? '1.0.0',
+  };
 }
 
 /**
