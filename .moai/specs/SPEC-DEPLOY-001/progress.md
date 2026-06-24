@@ -68,7 +68,8 @@
 - **앱 연결 (PR #54, 7a92664)**: `getSentryConfigInput()` 헬퍼 추가 (DSN/env/release 단일 조립 지점, `getOptionalEnvVar` + `Constants.expoConfig.version`). `app/_layout.tsx` `RootLayout`에 `useEffect(() => { void initSentry(getSentryConfigInput()).catch(...) }, [])` 연결 (REQ-DEPLOY-014 "항상 초기화" 런타임 실행).
 - **방어 깊이 추가**: init 프로미스에 `.catch()` 추가 (unhandled rejection 방어), `buildSentryConfig`에서 DSN 문자열 trim() 추가. prod-DSN-누락은 여전히 throw (REQ-DEPLOY-018) but 이제 호출 지점에서 catch됨.
 - **테스트**: sentry suite 이제 20개 테스트 (12 buildSentryConfig + 5 initSentry 통합 + 3 getSentryConfigInput). 전체 프로젝트 137 suites / 1204 tests 통과 (이전 1195).
-- **남은 작업**: §6 #4 (Sentry CLI source-map upload / release tracking)는 여전히 OPEN/미해결. `@sentry/react-native` Expo plugin 등록 (app.config/app.json) — 별도 빌드 config 작업, 미완료.
+- **남은 작업**: §6 #4 (Sentry CLI source-map upload / release tracking)는 여전히 OPEN/미해결.
+- **plugin 등록 연기 (PR #56 시도 → 닫음, 2026-06-24)**: `@sentry/react-native` Expo config plugin 등록을 시도했으나, 적용한 `disableAutoUpload` 옵션이 7.11.0 `PluginProps`(`{organization, project, authToken, url, experimental_android}`)에 **미존재 = NO-OP**임을 `node_modules` 타입 정의 직검으로 발견. 단독 등록 시 크리덴셜(`SENTRY_AUTH_TOKEN`/`ORG`/`PROJECT`) 없는 빌드가 iOS/Android 업로드 단계에서 실패 위험이 있어 PR 닫음. **재진행 조건**: 크리덴셜 프로비저닝 + §6 #4 해결 후 `["@sentry/react-native"]`(NO-OP 옵션 제거) + `metro.config.js` `getSentryExpoConfig`와 함께. **함정 메모**: Context7 main 인용 ≠ pinned 버전 — 외부 SDK 옵션은 반드시 `node_modules/<pkg>/**/*.d.ts`로 교차 검증 (memory lessons #14).
 - **상태**: ✅ 완료 (SDK 설치 + app-entry 연결 + 방어 깊이, source-map/release tracking 제외)
 
 ### M4 — EAS Submit 및 스토어 배포 자동화 ✅ 완료
@@ -123,6 +124,8 @@
 | 2026-06-24 | #52 (86729fb) | **모든 24개 REQ 완료** | M2b/M3/M4/M6 구현 완료 및 머지. TDD: RED→GREEN→REFACTOR. 전체 137 suites/1195 tests 통과, 커버리지 Stmts 90.48%/Bran 82.42%/Func 93.13%/Lines 91.58%. SDK 실설치(§6 #4), 크리덴셜 프로비저닝 후 스모크 테스트는 후속 작업으로 이관. |
 | 2026-06-24 | #53 (578ff82) | REQ-DEPLOY-014 SDK 설치 및 초기화 리팩터링 | `@sentry/react-native@~7.11.0` 설치 (Expo SDK 55 호환). 동적 import 가드 제거 → 정적 import + 직접 `Sentry.init`. 타입 캐스트 제거, `sendDefaultPii` 매핑 수정. initSentry 통합 테스트 3개 추가 (total 1195→1200). |
 | 2026-06-24 | #54 (7a92664) | REQ-DEPLOY-014 앱 연결 및 방어 깊이 | `getSentryConfigInput()` 헬퍼 추가. `app/_layout.tsx` `useEffect`에서 `initSentry` 호출 (런타임 초기화 실행). init 프로미스 `.catch()` 추가, DSN trim() 추가. getSentryConfigInput 테스트 3개 + _layout mount 테스트 1개 + StrictMode double-invoke 테스트 1개 추가 (total 1200→1204, 137 suites). |
+| 2026-06-24 | #55 (66b7055) | docs(sync) SPEC-DEPLOY-001 SDK 통합/연결 문서 동기화 | progress/tech/codemaps/structure/spec-compact 갱신. SDK 설치·app 연결·방어 깊이 반영, §6 #4 미해결 명시. 코드 무변경. |
+| 2026-06-24 | #56 (닫음) | Sentry Expo plugin 등록 시도 | `disableAutoUpload` 옵션이 7.11.0 PluginProps에 미존재(NO-OP). node_modules 직검 발견 → 크리덜셜 없는 빌드 실패 위험으로 PR 닫음. plugin은 크리덴셜 + §6 #4와 함께 재진행. develop 무영향. |
 
 ---
 
