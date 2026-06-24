@@ -89,12 +89,20 @@
   - `src/lib/edge-function-deploy.ts`: `EDGE_FUNCTIONS` 레지스트리(단일 진실 소스) + `resolveDeployTarget` (환경→project ref 매핑, fail-fast) — REQ-DEPLOY-013(트리거 분리), REQ-DEPLOY-023(3환경 분리)
   - `src/lib/__tests__/edge-function-deploy.test.ts`: 9 테스트 (RED→GREEN)
   - `scripts/deploy-edge-functions.sh`: TS 레지스트리를 소비하는 배포 래퍼 (fail-fast 가드 검증: ENV 미설정/잘못된 값/PROJECT_REF 누락 시 exit 1)
-- **수동 스모크 테스트 전략**:
-  1. `SUPABASE_ACCESS_TOKEN`, `SUPABASE_<ENV>_PROJECT_REF` 확보
-  2. `ENV=development bash scripts/deploy-edge-functions.sh` 실행
-  3. 5개 함수가 각 환경 project ref에 배포되는지 Supabase Dashboard 확인
-  4. `process-join-request`, `send-notification`은 실제 API 호출로 동작 검증
-- **상태**: 코드+스크립트 구현 완료 및 머지됨, 실제 배포는 크리덴셜 프로비저닝 후 수동 실행
+- **실제 배포 완료 (2026-06-24)**:
+  - dev Supabase project `lqltwbpocbgoxvhlmjdo` 에 5개 Edge Function 전부 **ACTIVE** 배포 완료
+    - `kakao-book-search` v1 (신규, SPEC-BOOK-001)
+    - `process-join-request` v1 (신규, SPEC-CLUB-001)
+    - `send-notification` v1 (신규, SPEC-NOTIF-001)
+    - `naver-userinfo-proxy` v4 (재배포, SPEC-DEPLOY-001)
+    - `naver-discovery` v2 (재배포, SPEC-DEPLOY-001)
+  - **ACCESS_TOKEN 생성 불필요**: 기존 `supabase login` 토큰이 유효하여 CLI가 `~/.supabase` 로컬 토큰 사용. `EXPO_PUBLIC_SUPABASE_URL`에서 PROJECT_REF 도출
+  - **배포 호환성 결함 3종 발견/수정** (사전 검증이 아닌 실배포 시도에서 드러남, PR #61 수정):
+    1. 로컬 import `.ts` 확장자 누락 (kakao-book-search 8곳 + send-notification/templates.ts) → Deno esbuild 요구
+    2. `send-notification/deno.json` importMap 부재 → `@supabase/supabase-js` 매핑 누락
+    3. `tsconfig.json` `allowImportingTsExtensions: true` (tsc 5097 회피)
+  - staging/production 배포: 코드 수정(#61)이 develop 머지되어 GitHub Secrets(`SUPABASE_STAGING/PROD_PROJECT_REF`) 확보 시 `ENV=staging|production bash scripts/deploy-edge-functions.sh`로 동일하게 가능. **여전히 사용자 수동(크리덴셜 확보 대기)**.
+- **상태**: ✅ dev 환경 실배포 완료 (5개 함수 ACTIVE), staging/prod는 크리덴셜 확보 시 수동 실행 가능
 
 ---
 
@@ -125,11 +133,16 @@
 | 2026-06-24 | #53 (578ff82) | REQ-DEPLOY-014 SDK 설치 및 초기화 리팩터링 | `@sentry/react-native@~7.11.0` 설치 (Expo SDK 55 호환). 동적 import 가드 제거 → 정적 import + 직접 `Sentry.init`. 타입 캐스트 제거, `sendDefaultPii` 매핑 수정. initSentry 통합 테스트 3개 추가 (total 1195→1200). |
 | 2026-06-24 | #54 (7a92664) | REQ-DEPLOY-014 앱 연결 및 방어 깊이 | `getSentryConfigInput()` 헬퍼 추가. `app/_layout.tsx` `useEffect`에서 `initSentry` 호출 (런타임 초기화 실행). init 프로미스 `.catch()` 추가, DSN trim() 추가. getSentryConfigInput 테스트 3개 + _layout mount 테스트 1개 + StrictMode double-invoke 테스트 1개 추가 (total 1200→1204, 137 suites). |
 | 2026-06-24 | #55 (66b7055) | docs(sync) SPEC-DEPLOY-001 SDK 통합/연결 문서 동기화 | progress/tech/codemaps/structure/spec-compact 갱신. SDK 설치·app 연결·방어 깊이 반영, §6 #4 미해결 명시. 코드 무변경. |
-| 2026-06-24 | #56 (닫음) | Sentry Expo plugin 등록 시도 | `disableAutoUpload` 옵션이 7.11.0 PluginProps에 미존재(NO-OP). node_modules 직검 발견 → 크리덜셜 없는 빌드 실패 위험으로 PR 닫음. plugin은 크리덴셜 + §6 #4와 함께 재진행. develop 무영향. |
+| 2026-06-24 | #56 (닫음) | Sentry Expo plugin 등록 시도 | `disableAutoUpload` 옵션이 7.11.0 PluginProps에 미존재(NO-OP). node_modules 직검 발견 → 크리덴셜 없는 빌드 실패 위험으로 PR 닫음. plugin은 크리덴셜 + §6 #4와 함께 재진행. develop 무영향. |
+| 2026-06-24 | #57 (97f9be2) | docs(sync) progress.md PR #56 plugin 연기 이력 반영 | Sentry plugin 등록 시도 및 PR 닫음 이력을 progress.md merge history 테이블에 추가. 코드 무변경. |
+| 2026-06-24 | #58 (a0e423d) | docs(deploy) Sentry 크리덴셜 수동 프로비저닝 가이드 + .gitignore 예방 | `docs/deployment.md` §6에 Sentry 크리덴셜(`SENTRY_AUTH_TOKEN`, `SENTRY_ORG`, `SENTRY_PROJECT`) 수동 프로비저닝 절차 추가. `.gitignore`에 `*.sentryclirc` 추가로 실수 커밋 방지. |
+| 2026-06-24 | #59 (b932de3) | refactor(deploy) Edge Function 목록 JSON SSOT 도입 (TS-Bash 중복 해결) | `src/lib/edge-function-deploy.ts` `EDGE_FUNCTIONS` 레지스트리를 `scripts/deploy-edge-functions.sh`가 소비하도록 단일 진실 소스(SSOT) 도입. macOS bash 호환(mapfile→while-read) 수정. |
+| 2026-06-24 | #60 (1516cf9) | docs(deploy) Edge Function 배포 가이드 + .env.example placeholder | `docs/deployment.md` §7에 Edge Function 배포 절차(dev/staging/prod) 추가. `.env.example`에 `SUPABASE_ACCESS_TOKEN`, `SUPABASE_DEVELOPMENT_PROJECT_REF` 플레이스홀더 추가. |
+| 2026-06-24 | #61 (ddb5c84) | fix(deploy) Edge Function 로컬 import .ts + send-notification deno.json + tsconfig | 배포 호환성 수정: kakao-book-search(8곳) + send-notification/templates.ts 로컬 import `.ts` 확장자 추가(Deno esbuild 요구), `send-notification/deno.json` importMap 추가(`@supabase/supabase-js` 매핑), `tsconfig.json` `allowImportingTsExtensions: true` 설정(tsc 5097 회피). dev 5개 함수 ACTIVE 배포 완료. staging/prod는 GitHub Secrets 확보 시 동일 스크립트로 배포 가능. |
 
 ---
 
-버전: 2.0.0 (완료)
+버전: 2.1.0 (완료)
 작성일: 2026-06-17
-최종 수정일: 2026-06-24
+최종 수정일: 2026-06-24 (PR #57-#61 반영)
 작성자: manager-docs (sync phase)
