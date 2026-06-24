@@ -6,17 +6,20 @@
 // 추가했다. RN 네이티브 초기화는 jest-expo/node 환경에서 실행할 수 없으므로, SDK 의
 // 리프 모듈(init)만 mock 하고 buildSentryConfig -> initSentry -> Sentry.init 사슬을
 // 실제 initSentry 진입점을 통해 검증한다.
+
+// RN 네이티브 SDK 초기화는 실행 불가 — init 만 mock 한다.
+// jest.mock 은 Jest 에 의해 자동으로 호이스팅되지만, 의도를 명확히 문서화하고
+// reader 가 import 전에 mock 설정이 적용됨을 인지하도록 파일 최상단에 배치한다.
+jest.mock('@sentry/react-native', () => ({
+  init: jest.fn(),
+}));
+
 import {
   buildSentryConfig,
   initSentry,
   SENTRY_DISABLED_DSN,
   type SentryConfigInput,
 } from '../sentry';
-
-// RN 네이티브 SDK 초기화는 실행 불가 — init 만 mock 한다.
-jest.mock('@sentry/react-native', () => ({
-  init: jest.fn(),
-}));
 
 // 각 테스트마다 mock 호출 기록을 초기화하기 위해 필요한 참조.
 // 동적 require 로 mock 이 적용된 모듈을 가져온다.
@@ -202,6 +205,16 @@ describe('initSentry integration — REQ-DEPLOY-014 (SDK init 호출 사슬)', (
       env: 'development',
       release: '0.0.0-dev',
     });
+
+    expect(mockedInit).not.toHaveBeenCalled();
+  });
+
+  it('production 환경에서 DSN 누락 시 buildSentryConfig 의 fail-fast 예외가 initSentry 를 통해 전파된다 (REQ-DEPLOY-018, SDK init 미호출)', async () => {
+    // initSentry 는 buildSentryConfig 의 throw 를 catch 하지 않고 그대로 전파한다.
+    // 예외 발생 시점이 Sentry.init 호출 이전이므로 mock 은 단 한 번도 호출되지 않는다.
+    await expect(
+      initSentry({ dsn: undefined, env: 'production', release: '1.0.0' })
+    ).rejects.toThrow(/SENTRY_DSN/i);
 
     expect(mockedInit).not.toHaveBeenCalled();
   });

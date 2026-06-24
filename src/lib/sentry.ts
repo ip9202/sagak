@@ -123,6 +123,13 @@ export async function initSentry(input: SentryConfigInput): Promise<SentryConfig
     release: config.release,
     // @sentry/react-native 옵션명은 sendDefaultPii(소문자 pii).
     // 내부 SentryConfig 는 sendDefaultPII(대문자)를 사용하므로 여기서 매핑한다.
+    //
+    // [PII 불변식 — 수정 시 주의]
+    // 프로덕션에서 이 매핑값은 반드시 false 여야 한다 (OWASP 개인정보 보호).
+    // - buildSentryConfig 는 sendDefaultPII: false 로 하드코딩한다 (위 96행 참조).
+    // - 매핑 자체(config.sendDefaultPII)를 false 리터럴로 교체하지 말 것 —
+    //   그렇게 하면 SentryConfig 필드가 dead field 가 되어 단일 진실 소스(single source of truth)가 깨진다.
+    // - 이 값은 SDK 경계(integration test)에서 sendDefaultPii: false 로 고정(pinned)되어 있다.
     sendDefaultPii: config.sendDefaultPII,
     tracesSampleRate: config.tracesSampleRate,
   });
