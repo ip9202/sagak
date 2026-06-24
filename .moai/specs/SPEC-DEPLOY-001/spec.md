@@ -2,9 +2,9 @@
 id: SPEC-DEPLOY-001
 title: "Build, Deploy & CI/CD Infrastructure"
 version: "1.0.0"
-status: in-progress
+status: implemented
 created: 2026-06-14
-updated: 2026-06-17
+updated: 2026-06-24
 author: "강력쇠주먹"
 priority: medium
 issue_number: 0
@@ -24,6 +24,7 @@ issue_number: 0
 | 2026-06-14 | 1.0.0  | 최초 작성 — EAS Build/Submit, GitHub Actions CI/CD, Sentry, 환경 분리, OAuth 인프라, Storage 버킷, Edge Function 배포, Supabase 프로비저닝 정의 | 강력쇠주먹 |
 | 2026-06-17 | 1.0.1  | OAuth 제공자 변경: apple → naver (REQ-DEPLOY-019, REQ-DEPLOY-020), 네이버 Custom OIDC 설정 추가, Apple 제외 사유 기술 | 강력쇠주먹 |
 | 2026-06-19 | 1.0.2  | 네이버 Custom OIDC: auto-discovery → oauth2 모드 + userinfo proxy 전환. "missing provider id" 해결, email_verified 매핑으로 account linking 지원 (REQ-DEPLOY-019/020) | 강력쇠주먹 |
+| 2026-06-24 | 1.0.3  | 최종 완료 — M2b/M3/M4/M6 구현 완료 및 머지 (PR #52, commit 86729fb). 모든 24개 REQ 완료. 상태를 in-progress → implemented로 변경 | 강력쇠주먹 |
 
 ---
 
