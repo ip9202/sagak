@@ -1,29 +1,42 @@
 // Edge Function deploy target resolution
 // SPEC-DEPLOY-001 M6 (REQ-DEPLOY-022 / REQ-DEPLOY-023 / REQ-DEPLOY-013)
 //
-// This module is the single source of truth for:
-// 1. Which Edge Functions the project ships (registry)
-// 2. How a build environment maps to a Supabase project ref
-// 3. How to construct the `supabase functions deploy` argument list
+// 이 모듈은 단일 진실 소스(SSOT)를 기반으로 동작한다:
+// 1. Edge Function 목록 → supabase/functions/registry.json (JSON SSOT)
+//    - TS(이 모듈)와 Bash(scripts/deploy-edge-functions.sh)가 모두 이 JSON을 읽는다.
+//    - 함수 추가/이름 변경 시 registry.json 한 곳만 수정하면 양쪽에 반영된다.
+// 2. 빌드 환경 → Supabase project ref 매핑
+// 3. `supabase functions deploy` 인자 목록 구성 방식
 //
-// The shell wrapper (scripts/deploy-edge-functions.sh) consumes the argument
-// lists produced here. Keeping resolution in TS (not bash) lets us unit-test
-// the branching logic that Git Flow + environment separation requires.
+// 셸 래퍼(scripts/deploy-edge-functions.sh)도 동일한 registry.json을 jq로 읽는다.
+// 해상도(resolution) 로직을 TS에 두는 이유는 Git Flow + 환경 분리 분기를
+// 단위 테스트할 수 있기 때문이다.
+
+// @MX:NOTE: [AUTO] SSOT — 함수 목록은 supabase/functions/registry.json에서 파생된다.
+// @MX:SPEC: SPEC-DEPLOY-001 REQ-DEPLOY-022
+import registry from '../../supabase/functions/registry.json';
 
 /**
  * Edge Functions that MUST be deployed per SPEC-DEPLOY-001 REQ-DEPLOY-022.
- * Sourced from the delegating domain SPECs (BOOK-001, CLUB-001, NOTIF-001).
+ * registry.json 에서 파생된다 (JSON SSOT).
  *
- * Additional helper functions (naver-userinfo-proxy, naver-discovery) are
- * deployed alongside — they are runtime dependencies of the auth flow.
+ * 타입 안전성: .map()은 string[]로 widen되므로, literal union을 보존하기 위해
+ * readonly tuple 단언을 사용한다. 런타임 값은 항상 JSON에서 온다.
+ * JSON↔TS literal 불일치는 edge-function-deploy.test.ts의 개수/이름 검증으로 감지된다.
  */
-export const EDGE_FUNCTIONS = [
-  'kakao-book-search', // SPEC-BOOK-001 위임
-  'process-join-request', // SPEC-CLUB-001 위임
-  'send-notification', // SPEC-NOTIF-001 위임
-  'naver-userinfo-proxy', // SPEC-DEPLOY-001 REQ-DEPLOY-019 (Naver OIDC)
-  'naver-discovery', // SPEC-DEPLOY-001 Naver OIDC discovery 보조
-] as const;
+// 런타임: JSON에서 이름 추출
+const FUNCTION_NAMES_FROM_REGISTRY = registry.functions.map((f) => f.name);
+
+// @MX:ANCHOR: [AUTO] Edge Function 레지스트리 — deploy 스크립트 + CI + 테스트가 소비 (fan_in >= 3)
+// @MX:REASON: JSON SSOT에서 파생되며, literal union 타입 보존을 위해 tuple 단언 사용. 타입 widen 시 소비처 type 좁힘이 깨짐.
+// @MX:SPEC: SPEC-DEPLOY-001 REQ-DEPLOY-022
+export const EDGE_FUNCTIONS = FUNCTION_NAMES_FROM_REGISTRY as unknown as readonly [
+  'kakao-book-search',
+  'process-join-request',
+  'send-notification',
+  'naver-userinfo-proxy',
+  'naver-discovery',
+];
 
 export type EdgeFunctionName = (typeof EDGE_FUNCTIONS)[number];
 

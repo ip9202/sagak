@@ -2,9 +2,10 @@
 # Edge Function deploy wrapper
 # SPEC-DEPLOY-001 M6 (REQ-DEPLOY-022)
 #
-# Deploys all Edge Functions in src/lib/edge-function-deploy.ts::EDGE_FUNCTIONS
-# to the Supabase project matching $ENV. Project ref resolution mirrors the
-# TS module so there is a single source of truth for the function list.
+# Deploys all Edge Functions listed in supabase/functions/registry.json (SSOT)
+# to the Supabase project matching $ENV. The function list is shared with
+# src/lib/edge-function-deploy.ts — both consume the same JSON registry, so
+# there is exactly one source of truth for the function list.
 #
 # Usage:
 #   ENV=production bash scripts/deploy-edge-functions.sh
@@ -40,15 +41,28 @@ if ! command -v supabase >/dev/null 2>&1; then
   exit 1
 fi
 
-# @MX:NOTE: [AUTO] SPEC-DEPLOY-001 REQ-DEPLOY-022 위임 3종 + Naver OIDC 보조 2종.
-# Keep in sync with src/lib/edge-function-deploy.ts::EDGE_FUNCTIONS.
-FUNCTIONS=(
-  "kakao-book-search"
-  "process-join-request"
-  "send-notification"
-  "naver-userinfo-proxy"
-  "naver-discovery"
-)
+# @MX:NOTE: [AUTO] SSOT — 함수 목록은 supabase/functions/registry.json에서 파생.
+# @MX:SPEC: SPEC-DEPLOY-001 REQ-DEPLOY-022
+# 스크립트 위치 기준으로 registry.json 경로 해상 (repo root 어디서 실행해도 동작).
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REGISTRY="${SCRIPT_DIR}/../supabase/functions/registry.json"
+
+if [[ ! -f "$REGISTRY" ]]; then
+  echo "ERROR: registry.json not found at $REGISTRY" >&2
+  exit 1
+fi
+
+if ! command -v jq >/dev/null 2>&1; then
+  echo "ERROR: jq required to read $REGISTRY (install: brew install jq)" >&2
+  exit 1
+fi
+
+mapfile -t FUNCTIONS < <(jq -r '.functions[].name' "$REGISTRY")
+
+if [[ ${#FUNCTIONS[@]} -eq 0 ]]; then
+  echo "ERROR: no functions found in $REGISTRY" >&2
+  exit 1
+fi
 
 echo "==> Deploying ${#FUNCTIONS[@]} functions to $ENV (project: $PROJECT_REF)"
 
