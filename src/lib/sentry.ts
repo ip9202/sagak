@@ -105,7 +105,10 @@ export function getSentryConfigInput(): SentryConfigInput {
 // @MX:SPEC: SPEC-DEPLOY-001 M3
 export function buildSentryConfig(input: SentryConfigInput): SentryConfig {
   const environment = normalizeEnvironment(input.env);
-  const hasDsn = Boolean(input.dsn && input.dsn.length > 0);
+  // 공백만 있는 DSN("   " 등)은 누락으로 취급 — trim 후 빈 문자열이면 비활성.
+  // 잘못된 DSN이 Sentry.init 에 전달되어 비정상 초기화되는 것을 방지.
+  const dsn = input.dsn?.trim();
+  const hasDsn = Boolean(dsn && dsn.length > 0);
 
   // REQ-DEPLOY-018: production 빌드에서 DSN 누락은 빌드 중단(fail-fast).
   // app.config.ts의 validateEnv와 이중 방어 — 런타임 진입 시에도 차단.
@@ -118,7 +121,7 @@ export function buildSentryConfig(input: SentryConfigInput): SentryConfig {
   // dev tolerance: dev/staging은 DSN 없어도 실행(비활성 상태)
   return {
     enabled: hasDsn,
-    dsn: hasDsn ? (input.dsn as string) : SENTRY_DISABLED_DSN,
+    dsn: hasDsn ? (dsn as string) : SENTRY_DISABLED_DSN,
     environment,
     release: input.release,
     // @MX:NOTE: [AUTO] PII 보호 — 프로덕션에서 자동 개인정보 전송 금지 (OWASP 관련)

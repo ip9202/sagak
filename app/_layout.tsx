@@ -45,9 +45,14 @@ export default function RootLayout() {
   // - dev: DSN 누락 → initSentry 가 no-op (Sentry.init 미호출, buildSentryConfig dev tolerance).
   // - prod: DSN 필수 → 누락 시 initSentry 가 throw (REQ-DEPLOY-018 fail-fast).
   // StrictMode dev 이중 호출은 Sentry SDK 가 멱등하게 처리하므로 별도 가드 없음.
-  // void 키워드로 floating Promise 를 명시적으로 무시한다 (fire-and-forget 초기화).
+  // 항상 초기화. prod DSN 누락은 빌드타임(app.config.ts validateEnv)에서 차단되므로
+  // 런타임 throw는 사실상 도달 불가하지만, 방어 깊이를 위해 rejection을 잡아 콘솔에 기록한다.
+  // (Sentry 없이 앱은 계속 실행 — 크래시 리포팅만 비활성)
   useEffect(() => {
-    void initSentry(getSentryConfigInput());
+    void initSentry(getSentryConfigInput()).catch((err) => {
+      // eslint-disable-next-line no-console
+      console.error('[sentry] init failed — crash reporting disabled.', err);
+    });
   }, []);
 
   return (

@@ -240,6 +240,13 @@ describe('initSentry integration — REQ-DEPLOY-014 (SDK init 호출 사슬)', (
 
     expect(mockedInit).not.toHaveBeenCalled();
   });
+
+  it('StrictMode 이중 호출(동일 입력으로 2회)에서도 예외 없이 Sentry.init 을 매번 호출한다', async () => {
+    const input: SentryConfigInput = { dsn: 'https://abc@example.com/1', env: 'development', release: '1.0.0' };
+    await initSentry(input);
+    await initSentry(input);
+    expect(mockedInit).toHaveBeenCalledTimes(2); // SDK 가 멱등 처리한다 — 래퍼는 매번 전달
+  });
 });
 
 describe('getSentryConfigInput — REQ-DEPLOY-014 (app-entry 설정 조립)', () => {

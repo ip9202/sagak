@@ -70,21 +70,25 @@ jest.mock('../../src/features/notification', () => ({
 }));
 
 // SPEC-DEPLOY-001 M3 (REQ-DEPLOY-014): _layout 이 initSentry 를 useEffect 로 호출.
-// @sentry/react-native ESM 은 jest-expo/node 변환 대상이 아니므로 sentry 모듈 전체를 no-op mock.
+// @sentry/react-native ESM 은 jest-expo/node 변환 대상이 아니므로 sentry 모듈 전체를 mock.
+// mock spy로 전환하여 _layout 이 initSentry 를 마운트 시 호출하는지 검증한다.
 // (initSentry/getSentryConfigInput 동작은 src/lib/__tests__/sentry.test.ts 에서 단위 검증)
 jest.mock('../../src/lib/sentry', () => ({
   initSentry: jest.fn().mockResolvedValue(undefined),
-  getSentryConfigInput: jest.fn().mockReturnValue({
-    dsn: '',
-    env: 'development',
-    release: '1.0.0',
-  }),
+  getSentryConfigInput: jest.fn(() => ({ dsn: '', env: 'development', release: '1.0.0' })),
 }));
 
 import RootLayout from '../_layout';
 
+// SPEC-DEPLOY-001 M3 (REQ-DEPLOY-014): _layout 마운트 시 initSentry 호출 여부 검증을 위한 spy 참조.
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const { initSentry: mockedInitSentry } = require('../../src/lib/sentry') as {
+  initSentry: jest.Mock;
+};
+
 describe('REQ-NAV-012: 루트 Stack 자식 그룹 구성', () => {
   beforeEach(() => {
+    jest.clearAllMocks();
     screenNames.length = 0;
     pushHookCalled.push = 0;
     pushHookCalled.response = 0;
@@ -113,5 +117,11 @@ describe('REQ-NAV-012: 루트 Stack 자식 그룹 구성', () => {
     // PushNotificationHost 가 AuthProvider 내부에서 두 훅을 1회씩 호출한다
     expect(pushHookCalled.push).toBeGreaterThanOrEqual(1);
     expect(pushHookCalled.response).toBeGreaterThanOrEqual(1);
+  });
+
+  it('SPEC-DEPLOY-001 M3 (REQ-DEPLOY-014): 마운트 시 initSentry 를 1회 호출한다', () => {
+    render(<RootLayout />);
+    // RootLayout 의 useEffect 가 initSentry(getSentryConfigInput()) 를 마운트 시 1회 호출한다
+    expect(mockedInitSentry).toHaveBeenCalledTimes(1);
   });
 });
