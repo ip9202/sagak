@@ -57,7 +57,12 @@ if ! command -v jq >/dev/null 2>&1; then
   exit 1
 fi
 
-mapfile -t FUNCTIONS < <(jq -r '.functions[].name' "$REGISTRY")
+# @MX:WARN: [AUTO] bash 3.2(macOS 기본 /bin/bash) 호환 — mapfile(bash 4.0+) 대신 while-read 사용.
+# CI(Ubuntu bash 5)에서는 mapfile이 작동하지만, 로컬 macOS 직접 실행 시 command not found 로 실패한다.
+FUNCTIONS=()
+while IFS= read -r fn_name; do
+  FUNCTIONS+=("$fn_name")
+done < <(jq -r '.functions[].name' "$REGISTRY")
 
 if [[ ${#FUNCTIONS[@]} -eq 0 ]]; then
   echo "ERROR: no functions found in $REGISTRY" >&2

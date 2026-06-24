@@ -338,6 +338,176 @@ ENV=production
 
 ---
 
+## 7. Edge Function 배포 (수동)
+
+sagak 은 Supabase Edge Function 5종을 배포하여 OAuth 연동, 북클럽 가입 처리, 알림 발송 등 서버 사이드 로직을 수행한다. `scripts/deploy-edge-functions.sh` 스크립트가 함수 목록(SSOT: `supabase/functions/registry.json`)을 읽어 자동 배포한다.
+
+### 프로비저닝 개요
+
+다음 4가지 자격증명이 필요하다:
+
+| 크리덴셜 | 용도 | 저장 위치 |
+|---------|------|-----------|
+| `SUPABASE_ACCESS_TOKEN` | Supabase CLI 인증 (배포 API) | 로컬 `.env`(gitignored) 또는 GitHub Secrets |
+| `SUPABASE_DEV_PROJECT_REF` | development 프로젝트 식별 | 로컬 `.env` 또는 GitHub Secrets |
+| `SUPABASE_STAGING_PROJECT_REF` | staging 프로젝트 식별 | GitHub Secrets |
+| `SUPABASE_PROD_PROJECT_REF` | production 프로젝트 식별 | GitHub Secrets |
+
+> **보안 주의사항**: `SUPABASE_ACCESS_TOKEN` 및 실제 PROJECT_REF 값은 절대 repo 에 커밋하지 않는다.
+> `.env.example` 은 빈 값(placeholder) 상태로 커밋되며, 실제 값은 로컬(`.env`, gitignored) 또는 GitHub Secrets 로만 주입한다.
+
+### 7.1 Supabase 프로젝트 ref 확보
+
+3개 환경(development/staging/production) 각각의 Supabase 프로젝트에서 Reference ID 를 확보한다.
+
+1. Supabase Dashboard > **Project Settings > API** 로 이동
+2. **Reference ID** 값 복사 (또는 Project URL `https://<ref>.supabase.co` 에서 `<ref>` 부분 추출)
+3. 각 환경별 ref 가 `SUPABASE_DEV_PROJECT_REF`, `SUPABASE_STAGING_PROJECT_REF`, `SUPABASE_PROD_PROJECT_REF`
+
+> **참고**: development 환경은 로컬 개발용이므로 ref 가 이미 있는 경우 `.env` 에만 설정한다.
+
+### 7.2 ACCESS_TOKEN 생성
+
+Supabase CLI 가 배포 API 를 호출하려면 Access Token 이 필요하다.
+
+1. Supabase Dashboard > **Account Settings > Access Tokens** (https://supabase.com/dashboard/account/tokens) 로 이동
+2. **Generate new token** 클릭
+3. Token 형식: `sbp_0102...1920` (Supabase Access Token 접두사 `sbp_` + 32자 hex)
+   - CLI 가 이 형식을 검증하므로 반드시 Supabase Dashboard 에서 생성해야 한다
+   - 생성 시점에만 표시되므로 즉시 안전한 곳(패스워드 관리자 등)에 복사
+4. 이 값이 `SUPABASE_ACCESS_TOKEN`
+
+> **주의**: Access Token 은 절대 repo 에 커밋하지 않는다. 로컬 `.env`(gitignored) 또는 GitHub Secrets 에만 저장한다.
+
+### 7.3 크리덴셜 주입 (로컬 / GitHub Secrets)
+
+두 경로 중 하나를 선택한다.
+
+**로컬 배포 경로** (development 환경):
+- `.env`(gitignored)에 4개 변수 설정:
+  ```bash
+  SUPABASE_ACCESS_TOKEN=sbp_0102...1920
+  SUPABASE_DEV_PROJECT_REF=abc123xyz
+  SUPABASE_STAGING_PROJECT_REF=def456uvw
+  SUPABASE_PROD_PROJECT_REF=ghi789rst
+  ```
+- `.env.example` 은 이미 빈 placeholder 로 커밋되어 있으므로 참고용
+- `.env` 는 절대 커밋하지 않는다 (`.gitignore` 에 포함됨)
+
+**CI 배포 경로** (staging/production 환경, GitHub Actions):
+```bash
+gh secret set SUPABASE_ACCESS_TOKEN
+# 프롬프트에 Access Token 값 입력
+
+gh secret set SUPABASE_DEV_PROJECT_REF
+# 프롬프트에 development ref 입력
+
+gh secret set SUPABASE_STAGING_PROJECT_REF
+# 프롬프트에 staging ref 입력
+
+gh secret set SUPABASE_PROD_PROJECT_REF
+# 프롬프트에 production ref 입력
+```
+
+> **GitHub UI 대안**: repo **Settings > Secrets and variables > Actions** > **New repository secret** 에서 4개를 각각 등록
+
+### 7.4 배포 실행
+
+**development 환경 배포**:
+```bash
+ENV=development bash scripts/deploy-edge-functions.sh
+```
+
+**staging 환경 배포**:
+```bash
+ENV=staging bash scripts/deploy-edge-functions.sh
+```
+
+**production 환경 배포**:
+```bash
+ENV=production bash scripts/deploy-edge-functions.sh
+```
+
+**스크립트 동작**:
+1. `ENV` 환경변수를 읽어 `SUPABASE_<ENV>_PROJECT_REF` 값을 결정 (fail-fast: 미설정/잘못된 값 시 exit 1)
+2. `SUPABASE_ACCESS_TOKEN` 은 스크립트가 직접 읽거나 검증하지 않는다. `supabase functions deploy` CLI 가 런타임에 환경변수에서 인증하며, 형식 오류 시 CLI 단에서 `Invalid access token format` 에러를 낸다 (스크립트 exit 1 아님)
+3. `supabase/functions/registry.json`(SSOT)에서 5개 함수명 읽기:
+   - `kakao-book-search` (카카오 책 검색 위임, SPEC-BOOK-001)
+   - `process-join-request` (북클럽 가입 처리, SPEC-CLUB-001)
+   - `send-notification` (알림 발송, SPEC-NOTIF-001)
+   - `naver-userinfo-proxy` (네이버 사용자 정보 프록시, SPEC-DEPLOY-001 REQ-DEPLOY-019 Naver OIDC)
+   - `naver-discovery` (네이버 OIDC discovery 보조, SPEC-DEPLOY-001)
+4. 각 함수에 대해 `supabase functions deploy <name> --project-ref <ref>` 실행
+5. 배포 완료 메시지 출력: `==> Edge Function deploy complete (<env>)`
+
+**CLI 설치** (이미 설치된 경우 생략):
+```bash
+brew install supabase/tap/supabase
+```
+> 현재 검증된 버전: v2.104.0
+
+**참고**: `supabase link` 없이도 `--project-ref` + `SUPABASE_ACCESS_TOKEN`으로 원격 배포가 가능하다 (CLI 표준 동작). `supabase/config.toml`의 `project_id = "sagak"` 은 placeholder 이며 배포에 영향을 주지 않는다.
+
+### 7.5 검증
+
+**Dashboard 확인**:
+1. Supabase Dashboard > **Edge Functions** 페이지로 이동
+2. 5개 함수가 모두 배포되었는지 확인:
+   - `kakao-book-search`
+   - `process-join-request`
+   - `send-notification`
+   - `naver-userinfo-proxy`
+   - `naver-discovery`
+
+**런타임 동작 검증** (staging/production):
+
+> 아래 예시는 배포 자체의 스모크 테스트용이다. 실제 요청 스키마·검증 규칙·인증 요구사항은 각 함수 구현(`supabase/functions/<name>/`, SPEC-CLUB-001 / SPEC-NOTIF-001) 을 참조한다. 인증된 사용자 세션(JWT) 이 필요한 함수도 있다.
+
+1. `process-join-request` 호출 (`verify_jwt=true` 기본, JWT `sub` 가 `requester_id` 와 일치해야 함):
+   ```bash
+   curl -X POST https://<ref>.supabase.co/functions/v2/process-join-request \
+     -H "Authorization: Bearer <user-jwt>" \
+     -H "Content-Type: application/json" \
+     -d '{"requester_id": "<uuid>", "target_user_id": "<uuid>"}'
+   ```
+2. `send-notification` 호출 (body: `user_id` uuid + `type` ENUM 6종 + 선택 `ref_id`/`data`):
+   ```bash
+   curl -X POST https://<ref>.supabase.co/functions/v2/send-notification \
+     -H "Authorization: Bearer <user-jwt>" \
+     -H "Content-Type: application/json" \
+     -d '{"user_id": "<uuid>", "type": "join_request", "ref_id": "<uuid>", "data": {}}'
+   ```
+3. 배포 로그 확인 (스크립트 표준 출력 형식):
+   ```
+   ==> Deploying 5 functions to development (project: <ref>)
+       deploying kakao-book-search ...
+       ...
+   ==> Edge Function deploy complete (development)
+   ```
+
+### 7.6 OUT OF SCOPE
+
+다음 항목은 본 가이드 범위 밖이다:
+
+- **Edge Function 내부 로직 구현**: `kakao-book-search`, `process-join-request`, `send-notification`, `naver-userinfo-proxy`, `naver-discovery` 의 실제 코드는 각 SPEC(SPEC-BOOK-001, SPEC-CLUB-001, SPEC-NOTIF-001, SPEC-DEPLOY-001) 에서 다룬다. 본 절은 배포 인프라만 다룬다.
+- **실제 크리덴셜 값**: `SUPABASE_ACCESS_TOKEN`, `SUPABASE_*_PROJECT_REF` 의 실제 값은 사용자가 Supabase Dashboard 에서 직접 확보해야 한다.
+- **Supabase 프로젝트 생성**: 개발용/스테이징/프로덕션 프로젝트 생성은 Supabase Dashboard 에서 수동으로 수행한다.
+
+### 7.7 문제 해결
+
+| 증상 | 원인 | 해결 방법 |
+|------|------|-----------|
+| `mapfile: command not found` | 과거 이슈 (macOS bash 3.2 호환) | 현재 스크립트는 `while-read` 패턴으로 수정되어 해결됨. 최신 버전 사용 중인지 확인 |
+| `Invalid access token format` | `SUPABASE_ACCESS_TOKEN`이 `sbp_...` 형식이 아님 | 7.2절에서 재발급. Supabase Dashboard 에서만 생성 가능 |
+| `ERROR: SUPABASE_DEV_PROJECT_REF is not set` | `ENV=development` 이지만 `SUPABASE_DEV_PROJECT_REF` 미설정 | 7.3절 확인. 로컬 `.env` 또는 GitHub Secrets 에 ref 등록 |
+| `ERROR: SUPABASE_STAGING_PROJECT_REF is not set` | `ENV=staging` 이지만 `SUPABASE_STAGING_PROJECT_REF` 미설정 | 7.3절 확인. GitHub Secrets 에 staging ref 등록 |
+| `ERROR: SUPABASE_PROD_PROJECT_REF is not set` | `ENV=production` 이지만 `SUPABASE_PROD_PROJECT_REF` 미설정 | 7.3절 확인. GitHub Secrets 에 production ref 등록 |
+| `supabase: command not found` | Supabase CLI 미설치 | `brew install supabase/tap/supabase` 실행 (v2.104.0 이상) |
+| `Error deploying function: 401 Unauthorized` | `SUPABASE_ACCESS_TOKEN` 만료 또는 잘못됨 | 7.2절에서 재발급. Token 유효기간 확인 |
+| `Error: Project not found` | PROJECT_REF 가 프로젝트와 일치하지 않음 | 7.1절에서 ref 재확인. Dashboard 의 Reference ID 와 정확히 일치해야 함 |
+
+---
+
 ## 관련 코드
 
 - `src/auth/oauth.ts` — OAuth redirect URI 소스 (`getOAuthRedirectUri()`)
