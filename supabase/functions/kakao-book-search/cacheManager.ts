@@ -7,7 +7,7 @@
  * @MX:NOTE: [AUTO] service_role 클라이언트는 RLS 를 우회한다 — 캐시 쓰기 권한 확보.
  * @MX:NOTE: [AUTO] 업서트는 단일 배치 호출(PostgREST .upsert(rows[]))로 N+1 쿼리를 방지한다.
  */
-import type { BookUpsertRow } from './mapper';
+import type { BookUpsertRow } from './mapper.ts';
 
 /** SELECT 빌더 체인(select → eq → single) */
 interface SelectBuilder {

@@ -8,7 +8,7 @@
  * @MX:WARN: [AUTO] Kakao REST API 키는 Edge Function 환경 변수로만 존재한다.
  * @MX:REASON: 클라이언트 번들에 키가 노출되면 REQ-BOOK-002 위반 — 반드시 index.ts 에서 Deno.env 로 읽어 주입.
  */
-import type { KakaoDocument } from './normalizer';
+import type { KakaoDocument } from './normalizer.ts';
 
 /** Kakao Book Search API 엔드포인트 */
 const KAKAO_BOOK_SEARCH_URL = 'https://dapi.kakao.com/v3/search/book';

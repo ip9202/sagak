@@ -12,7 +12,7 @@
  *
  * @MX:SPEC SPEC-NOTIF-001
  */
-import type { NotificationType } from './logic';
+import type { NotificationType } from './logic.ts';
 
 /** 템플릿이 생성하는 알림 콘텐츠 */
 export interface NotificationContent {
