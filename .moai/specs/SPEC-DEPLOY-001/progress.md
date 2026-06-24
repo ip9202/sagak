@@ -63,15 +63,13 @@
 ### M3 — Sentry 통합 및 관측 인프라 ✅ 완료
 
 - **범위**: REQ-DEPLOY-014~017 (Sentry SDK, 소스맵 업로드, 릴리즈 트래킹)
-- **TDD 구현 (2026-06-23, PR #52, commit 86729fb)**:
-  - `src/lib/sentry.ts`: `buildSentryConfig` (순수 함수) + `initSentry` (SDK 동적 import 래퍼)
-    - REQ-DEPLOY-014: DSN 주입 초기화 로직
-    - REQ-DEPLOY-015: production/staging/development environment 태그 분리 (알 수 없는 env → development 폴백)
-    - REQ-DEPLOY-018: production + DSN 누락 시 throw (app.config.ts validateEnv와 이중 방어)
-    - PII 보호(sendDefaultPII=false), 환경별 tracesSampleRate (dev 1.0 / prod 0.2)
-  - `src/lib/__tests__/sentry.test.ts`: 12 테스트 (RED→GREEN 검증 완료)
-- **SDK 미설치 상태**: `@sentry/react-native` 패키지 미설치(SPEC §6 #4 미결정). `initSentry`는 동적 import + try/catch 로 SDK 부재 시 경고만 출력하고 앱 실행 유지. 패키지 설치 후 `@MX:WARN` 브랜치 제거 예정.
-- **상태**: 설정 로직 TDD 완료 및 머지됨, SDK 통합은 §6 #4 해결 시 1줄 변경으로 활성화 가능
+- **SDK 설치 (PR #53, 578ff82)**: `@sentry/react-native@~7.11.0` 런타임 의존성 설치 완료 (Expo SDK 55 호환, `npx expo install` 사용)
+- **초기화 리팩터링 (PR #53)**: 동적 import + try/catch 가드 제거 → 정적 `import * as Sentry from '@sentry/react-native'` + 직접 `Sentry.init` 호출. 타입 캐스트(`as string`) 제거. `sendDefaultPii` (SDK) ↔ `sendDefaultPII` (내부) 매핑 수정.
+- **앱 연결 (PR #54, 7a92664)**: `getSentryConfigInput()` 헬퍼 추가 (DSN/env/release 단일 조립 지점, `getOptionalEnvVar` + `Constants.expoConfig.version`). `app/_layout.tsx` `RootLayout`에 `useEffect(() => { void initSentry(getSentryConfigInput()).catch(...) }, [])` 연결 (REQ-DEPLOY-014 "항상 초기화" 런타임 실행).
+- **방어 깊이 추가**: init 프로미스에 `.catch()` 추가 (unhandled rejection 방어), `buildSentryConfig`에서 DSN 문자열 trim() 추가. prod-DSN-누락은 여전히 throw (REQ-DEPLOY-018) but 이제 호출 지점에서 catch됨.
+- **테스트**: sentry suite 이제 20개 테스트 (12 buildSentryConfig + 5 initSentry 통합 + 3 getSentryConfigInput). 전체 프로젝트 137 suites / 1204 tests 통과 (이전 1195).
+- **남은 작업**: §6 #4 (Sentry CLI source-map upload / release tracking)는 여전히 OPEN/미해결. `@sentry/react-native` Expo plugin 등록 (app.config/app.json) — 별도 빌드 config 작업, 미완료.
+- **상태**: ✅ 완료 (SDK 설치 + app-entry 연결 + 방어 깊이, source-map/release tracking 제외)
 
 ### M4 — EAS Submit 및 스토어 배포 자동화 ✅ 완료
 
@@ -123,6 +121,8 @@
 | 2026-06-17 | #15 (2514263) | REQ-DEPLOY-018, 024 (env 구조), 019, 020 (OAuth 매뉴얼) | M1+M5 문서화. 빌드/CI/Sentry SDK/Submit/Edge Function 미완료 |
 | 2026-06-19 | PR 대기 (feature/SPEC-DEPLOY-001-m2-ci, 69c3bf8) | REQ-DEPLOY-009, 012, 013(develop) | M2a ci.yml(PR 게이트 + develop CI + coverage 80%). deploy.yml(M2b)·Sentry 소스맵 미완료 |
 | 2026-06-24 | #52 (86729fb) | **모든 24개 REQ 완료** | M2b/M3/M4/M6 구현 완료 및 머지. TDD: RED→GREEN→REFACTOR. 전체 137 suites/1195 tests 통과, 커버리지 Stmts 90.48%/Bran 82.42%/Func 93.13%/Lines 91.58%. SDK 실설치(§6 #4), 크리덴셜 프로비저닝 후 스모크 테스트는 후속 작업으로 이관. |
+| 2026-06-24 | #53 (578ff82) | REQ-DEPLOY-014 SDK 설치 및 초기화 리팩터링 | `@sentry/react-native@~7.11.0` 설치 (Expo SDK 55 호환). 동적 import 가드 제거 → 정적 import + 직접 `Sentry.init`. 타입 캐스트 제거, `sendDefaultPii` 매핑 수정. initSentry 통합 테스트 3개 추가 (total 1195→1200). |
+| 2026-06-24 | #54 (7a92664) | REQ-DEPLOY-014 앱 연결 및 방어 깊이 | `getSentryConfigInput()` 헬퍼 추가. `app/_layout.tsx` `useEffect`에서 `initSentry` 호출 (런타임 초기화 실행). init 프로미스 `.catch()` 추가, DSN trim() 추가. getSentryConfigInput 테스트 3개 + _layout mount 테스트 1개 + StrictMode double-invoke 테스트 1개 추가 (total 1200→1204, 137 suites). |
 
 ---
 

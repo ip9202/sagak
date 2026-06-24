@@ -93,7 +93,7 @@ SPEC-DEPLOY-001 M1(PR #15, 2514263)에서 EAS Build 인프라 파운데이션이
 - **EAS Build (Expo Application Services)**: `eas.json`에 3개 빌드 프로필 정의 — `development`(Expo Go 기반 개발), `preview`(스테이징/internal 테스트), `production`(앱 스토어 배포용)
 - **빌드 시점 환경 변수 주입**: `EXPO_PUBLIC_*` 접두사 환경 변수가 EAS Build 시점에 빌드 결과물에 인라인된다. 현재 `EXPO_PUBLIC_SENTRY_DSN`이 `app.config.ts`의 `extra`에 노출됨
 - **빌드 시점 fail-fast 환경 변수 검증 (REQ-DEPLOY-018)**: `app.config.ts`가 빌드 시작 시 `validateEnv(process.env, ENV)`를 호출하여 필수 환경 변수 누락 시 빌드를 즉시 중단(`MissingEnvError`). 프로덕션 프로필은 `REQUIRED_PROD` 키 집합에 대해 추가 검증
-- **Sentry SDK (M3 예정)**: `@sentry/react-native` 패키지는 아직 설치되지 않음 — 현재 환경 변수 키(`EXPO_PUBLIC_SENTRY_DSN`)만 스캐폴드됨. SDK 통합·`Sentry.init`·소스맵 업로드는 M3에서 처리
+- **Sentry SDK (M3 완료)**: `@sentry/react-native@~7.11.0` 설치 완료 (PR #53, PR #54). `app/_layout.tsx`에서 `useEffect` 통해 `initSentry(getSentryConfigInput())` 호출 (REQ-DEPLOY-014 "항상 초기화" 런타임 실행). `getSentryConfigInput()` 헬퍼로 dsn/env/release 단일 조립. 방어 깊이: init 프로미스 `.catch()`, DSN trim(). **남은 작업**: Sentry CLI source-map upload / release tracking (§6 #4 미해결).
 
 ## 개발 환경 요구사항
 

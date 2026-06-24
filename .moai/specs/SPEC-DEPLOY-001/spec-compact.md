@@ -97,13 +97,13 @@ issue_number: 0
 ## 8. 마일스톤 요약
 
 1. **M1 (High)**: 환경 변수 + EAS Build 파운데이션 — ✅ 완료 (PR #15, 2514263, 2026-06-17)
-2. **M2 (High)**: GitHub Actions CI 파이프라인 — ⏸️ 대기 (미착수)
-3. **M3 (High)**: Sentry 통합 및 관측 인프라 — ⏸️ 대기 (env 키만 스캐폴드, SDK 미설치)
-4. **M4 (Medium)**: EAS Submit 및 스토어 배포 자동화 — ⏸️ 대기 (미착수)
+2. **M2 (High)**: GitHub Actions CI 파이프라인 — ✅ 완료 (PR #52, 86729fb, 2026-06-24)
+3. **M3 (High)**: Sentry 통합 및 관측 인프라 — ✅ 완료 (PR #53 578ff82 + PR #54 7a92664, 2026-06-24 — SDK 설치, app-entry 연결, 방어 깊이. source-map/upload 제외 §6 #4)
+4. **M4 (Medium)**: EAS Submit 및 스토어 배포 자동화 — ✅ 완료 (PR #52, 86729fb, 2026-06-24)
 5. **M5 (Medium)**: OAuth 인프라 + Storage 버킷 프로비저닝 — ✅ 완료 (문서화만, PR #15)
-6. **M6 (Medium)**: Edge Function 배포 + Supabase 프로비저닝 (최종 통합 게이트) — 🚫 블로킹 (SPEC-CLUB-001 / SPEC-NOTIF-001 의존)
+6. **M6 (Medium)**: Edge Function 배포 + Supabase 프로비저닝 (최종 통합 게이트) — ✅ 완료 (PR #52, 86729fb, 2026-06-24)
 
-> **구현 진행 상태 (2026-06-17)**: 본 SPEC은 부분 진행 상태이다. M1(환경 변수 검증 + EAS 빌드 프로필)과 M5의 OAuth 매뉴얼 문서화(`docs/deployment.md`)만 머지되었으며, M2(CI), M3(Sentry SDK), M4(Submit), M6(Edge Function)은 미완료이다. M6은 SPEC-CLUB-001 / SPEC-NOTIF-001 머지 전까지 블로킹된다. 상세 진행 로그는 `progress.md` 참조.
+> **구현 진행 상태 (2026-06-24)**: 본 SPEC은 **완료(implemented)** 상태이다. 모든 6개 마일스톤(M1~M6) 구현 완료 및 머지됨 (PR #52, 86729fb). M3에서 Sentry SDK 설치(`@sentry/react-native@~7.11.0`) 및 app-entry 연결 완료. §6 #4 (Sentry CLI source-map upload / release tracking)는 여전히 미해결. 상세 진행 로그는 `progress.md` 참조.
 
 ---
 

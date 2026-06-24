@@ -81,6 +81,7 @@ iOS/Android 모바일 앱 (React Native + Expo SDK 55 + React 19.2)
 - **`src/lib/query/`** (React Query v5 인프라): `queryClient.ts` (QueryClient 싱글톤 — defaultOptions 3분간 staleTime, retry 1회, mutations retry 없음)
 - **`src/lib/supabase/`** (Supabase 클라이언트): `client.ts` (getSupabiceClient 싱글톤), `storageAdapter.ts` (SecureStore/AsyncStorage 폴백 세션 저장소 어댑터)
 - **`src/lib/api/`** (API 레이어): `errors.ts` (AppError 계층 구조 + normalizeError/classifyError), `retry.ts` (retryWithBackoff), `edgeFunctions.ts` (invokeEdgeFunction), `index.ts` (통합 진입점)
+- **`src/lib/sentry.ts`** (Sentry 통합, SPEC-DEPLOY-001 M3 — 2026-06-24): `buildSentryConfig` (순수 함수 — env 태그 분리, PII 보호, tracesSampleRate), `initSentry` (SDK 초기화 — 정적 import, 직접 `Sentry.init` 호출, 통합 테스트 5개), `getSentryConfigInput` (app-entry config assembly — dsn/env/release 단일 조립, `getOptionalEnvVar` + `Constants.expoConfig.version`, 테스트 3개). app/_layout.tsx에서 `useEffect` 통해 호출 (REQ-DEPLOY-014 런타임 실행). 방어 깊이: init 프로미스 `.catch()`, DSN trim(). §6 #4 (source-map/upload) 미해결.
 - **`src/errors/`** (공통 에러 처리): `AppError.ts` (AppError 기본 클래스 + 7개 서브클래스 + ErrorCategory 타입)
 
 ### 아키텍특 특징
