@@ -108,7 +108,13 @@ function invalidateLibrary(
   qc: ReturnType<typeof useQueryClient>,
   userId: string,
 ): void {
+  // 서재 목록 캐시 (status 무관 전체)
   qc.invalidateQueries({ queryKey: libraryRootKey(userId) });
+  // @MX:NOTE: [AUTO] 단일 항목 캐시(useLibraryItem, queryKey ['library-item', ...]) 도 같이
+  //           무효화 — BookDetailScreen 의 status/progress/visibility mutation 이 성공한 뒤
+  //           libraryItem 이 refetch 되어 chip 활성 전환/진행률 갱신이 즉시 반영되려면 필수.
+  //           bookId 무관 prefix 매칭으로 모든 library-item 쿼리를 무효화한다.
+  qc.invalidateQueries({ queryKey: ['library-item'] });
 }
 
 export interface UseUpdateProgressArgs {

@@ -3,6 +3,15 @@
  * Single Source of Truth for all design values
  */
 
+// @MX:NOTE: [AUTO] SPEC-UI-002 P0 — Inter 폰트(static per-weight) 매핑. @expo-google-fonts/inter
+//           가 weight별 별도 파일(Inter_400Regular 등)을 제공하므로, RN 에서 정확한 굵기 렌더링을
+//           위해 fontFamily 를 weight-specific 문자열로 지정한다. 한글 글리프는 Inter 에 없으므로
+//           OS 가 자동으로 시스템 한글 폰트(iOS: Apple SD Gothic Neo, Android: Noto Sans KR)로 폴백.
+const INTER_REGULAR = 'Inter_400Regular';
+const INTER_MEDIUM = 'Inter_500Medium';
+const INTER_SEMIBOLD = 'Inter_600SemiBold';
+const INTER_BOLD = 'Inter_700Bold';
+
 export const colors = {
   brand: {
     50: '#FDF7EE',
@@ -57,27 +66,29 @@ export const spacing = {
 
 // @MX:NOTE: [AUTO] SPEC-NAV-001/F03-Home 토큰 전용 준수(SPEC-UI-002 FROZEN)를 위해
 // displaySm / alarmTitle / sectionLabel 세 토큰을 추가. fontSize 오름차순 정렬 유지.
+// @MX:NOTE: [AUTO] SPEC-UI-002 P0 — 모든 토큰에 fontFamily(weight-specific Inter) 추가.
+//           ...theme.typography.xxx spread 로 컴포넌트에 자동 전파된다.
 export const typography = {
-  displayLg: { fontSize: 28, fontWeight: '700' as const, lineHeight: 36 },
-  displayMd: { fontSize: 24, fontWeight: '700' as const, lineHeight: 32 },
+  displayLg: { fontSize: 28, fontWeight: '700' as const, lineHeight: 36, fontFamily: INTER_BOLD },
+  displayMd: { fontSize: 24, fontWeight: '700' as const, lineHeight: 32, fontFamily: INTER_BOLD },
   // @MX:NOTE: [AUTO] 화면 타이틀 균일성(SPEC-UI-002 FROZEN: 22/700). 홈 탭 헤더 등.
-  displaySm: { fontSize: 22, fontWeight: '700' as const, lineHeight: 30 },
-  headingLg: { fontSize: 20, fontWeight: '700' as const, lineHeight: 28 },
-  headingMd: { fontSize: 18, fontWeight: '600' as const, lineHeight: 26 },
-  headingSm: { fontSize: 16, fontWeight: '600' as const, lineHeight: 23 },
+  displaySm: { fontSize: 22, fontWeight: '700' as const, lineHeight: 30, fontFamily: INTER_BOLD },
+  headingLg: { fontSize: 20, fontWeight: '700' as const, lineHeight: 28, fontFamily: INTER_BOLD },
+  headingMd: { fontSize: 18, fontWeight: '600' as const, lineHeight: 26, fontFamily: INTER_SEMIBOLD },
+  headingSm: { fontSize: 16, fontWeight: '600' as const, lineHeight: 23, fontFamily: INTER_SEMIBOLD },
   // @MX:NOTE: [AUTO] AlarmCard 타이틀(F03-Home). lineHeight 21 ≈ 15 * 1.4.
-  alarmTitle: { fontSize: 15, fontWeight: '600' as const, lineHeight: 21 },
+  alarmTitle: { fontSize: 15, fontWeight: '600' as const, lineHeight: 21, fontFamily: INTER_SEMIBOLD },
   // @MX:NOTE: [AUTO] SPEC-EMOTION-001 P1-B — 감정 입력 프롬프트/입력 본문(15/400). alarmTitle(15/600)과 가중치가 다르고 bodyMd(14/400)와 크기가 달라 추가.
-  bodyPrompt: { fontSize: 15, fontWeight: '400' as const, lineHeight: 22 },
-  bodyLg: { fontSize: 16, fontWeight: '400' as const, lineHeight: 26 },
-  bodyMd: { fontSize: 14, fontWeight: '400' as const, lineHeight: 22 },
+  bodyPrompt: { fontSize: 15, fontWeight: '400' as const, lineHeight: 22, fontFamily: INTER_REGULAR },
+  bodyLg: { fontSize: 16, fontWeight: '400' as const, lineHeight: 26, fontFamily: INTER_REGULAR },
+  bodyMd: { fontSize: 14, fontWeight: '400' as const, lineHeight: 22, fontFamily: INTER_REGULAR },
   // @MX:NOTE: [AUTO] CTA 라벨(14/600). bodyMd(14/400) 보다 강조된 버튼 텍스트.
-  ctaLabel: { fontSize: 14, fontWeight: '600' as const, lineHeight: 22 },
+  ctaLabel: { fontSize: 14, fontWeight: '600' as const, lineHeight: 22, fontFamily: INTER_SEMIBOLD },
   // @MX:NOTE: [AUTO] 섹션 라벨(13/600). bodySm(13/400) 와 동일 크기, 가중치 600.
-  sectionLabel: { fontSize: 13, fontWeight: '600' as const, lineHeight: 18 },
-  bodySm: { fontSize: 13, fontWeight: '400' as const, lineHeight: 20 },
-  caption: { fontSize: 12, fontWeight: '400' as const, lineHeight: 17 },
-  label: { fontSize: 11, fontWeight: '500' as const, lineHeight: 14 },
+  sectionLabel: { fontSize: 13, fontWeight: '600' as const, lineHeight: 18, fontFamily: INTER_SEMIBOLD },
+  bodySm: { fontSize: 13, fontWeight: '400' as const, lineHeight: 20, fontFamily: INTER_REGULAR },
+  caption: { fontSize: 12, fontWeight: '400' as const, lineHeight: 17, fontFamily: INTER_REGULAR },
+  label: { fontSize: 11, fontWeight: '500' as const, lineHeight: 14, fontFamily: INTER_MEDIUM },
 } as const;
 
 export const radius = {
@@ -130,6 +141,13 @@ export const iconSizes = {
 } as const;
 
 export const fontFamily = {
+  // @MX:NOTE: [AUTO] SPEC-UI-002 P0 — Inter static per-weight. typography 토큰이 이 값을 직접 참조.
+  //           한글 글리프는 OS 자동 폴백(iOS: Apple SD Gothic Neo, Android: Noto Sans KR).
+  regular: INTER_REGULAR,
+  medium: INTER_MEDIUM,
+  semiBold: INTER_SEMIBOLD,
+  bold: INTER_BOLD,
+  // (legacy/참고용) 한글 전용 시스템 폰트명 — 직접 지정 금지, OS 폴백에 맡김.
   ios: 'Apple SD Gothic Neo',
   android: 'Noto Sans KR',
   point: 'Noto Serif KR',

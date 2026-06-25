@@ -11,16 +11,17 @@
  * @jest-environment jsdom
  */
 import React from 'react';
-import { render, waitFor } from '@testing-library/react-native';
+import { render, waitFor, fireEvent } from '@testing-library/react-native';
 import { ThemeProvider } from '../../../src/theme/theme';
 import type { LibraryItem } from '../../../src/features/library/types';
 
-// expo-router mock
-jest.mock('expo-router', () => ({
-  useRouter: jest.fn(() => ({
-    push: jest.fn(),
-  })),
-}));
+// expo-router mock — 동일 router 인스턴스를 반환하도록 싱글톤화.
+// 매 호출마다 새 객체를 만들면 테스트의 push 와 컴포넌트가 쓰는 push 가 달라져
+// 호출 검증이 불가하다.
+jest.mock('expo-router', () => {
+  const router = { push: jest.fn() };
+  return { useRouter: jest.fn(() => router) };
+});
 
 // 네이티브 모듈 mock
 jest.mock('@react-native-async-storage/async-storage', () => ({
@@ -51,6 +52,15 @@ jest.mock('expo-linear-gradient', () => {
 jest.mock('../../../src/auth/useSession', () => ({
   useSession: jest.fn(),
 }));
+
+// @expo/vector-icons(Feather) — 네이티브 의존성 mock (SPEC-UI-002 서재 헤더 아이콘)
+jest.mock('@expo/vector-icons', () => {
+  const React = require('react');
+  const { Text } = require('react-native');
+  const MockIcon = ({ name }: { name: string }) =>
+    React.createElement(Text, { testID: `feather-${name}` }, name);
+  return { __esModule: true, Feather: MockIcon };
+});
 
 // libraryApi 전체 mock
 jest.mock('../../../src/features/library/libraryApi', () => ({
@@ -163,7 +173,7 @@ describe('SPEC-LIBRARY-001 TASK-009: 서재 탭 렌더링', () => {
         createTestQueryClient(),
       );
       await waitFor(() => {
-        expect(getByText('서재가 비어 있어요')).toBeTruthy();
+        expect(getByText('아직 담은 책이 없어요')).toBeTruthy();
       });
       expect(getByTestId('library-search-cta')).toBeTruthy();
     });
@@ -178,6 +188,17 @@ describe('SPEC-LIBRARY-001 TASK-009: 서재 탭 렌더링', () => {
       // CTA press 는 별도 테스트에서 직접 트리거
       // 여기서는 진입점이 존재하는지만 검증
       expect(push).toBeDefined();
+    });
+
+    it('책 탭 시 도서 상세로 이동한다 (/<book_id>)', async () => {
+      getLibraryMock.mockResolvedValue([sampleItem]);
+      const { push } = require('expo-router').useRouter();
+      const { getByTestId } = renderTab(createTestQueryClient());
+      await waitFor(() => {
+        expect(getByTestId('library-item-ub-1')).toBeTruthy();
+      });
+      fireEvent.press(getByTestId('library-item-ub-1'));
+      expect(push).toHaveBeenCalledWith('/b-1');
     });
   });
 
