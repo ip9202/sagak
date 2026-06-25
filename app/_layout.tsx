@@ -22,11 +22,19 @@
  */
 
 import React, { useEffect } from 'react';
+import { ActivityIndicator, View } from 'react-native';
 import { Stack } from 'expo-router';
 import { QueryClientProvider } from '@tanstack/react-query';
 import * as WebBrowser from 'expo-web-browser';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
-import { ThemeProvider } from '../src/theme/theme';
+import { useFonts } from 'expo-font';
+import {
+  Inter_400Regular,
+  Inter_500Medium,
+  Inter_600SemiBold,
+  Inter_700Bold,
+} from '@expo-google-fonts/inter';
+import { ThemeProvider, useTheme } from '../src/theme/theme';
 import { AuthProvider } from '../src/auth/AuthContext';
 import { getQueryClient } from '../src/lib/query/queryClient';
 import { initSentry, getSentryConfigInput } from '../src/lib/sentry';
@@ -42,6 +50,16 @@ import {
 WebBrowser.maybeCompleteAuthSession();
 
 export default function RootLayout() {
+  // SPEC-UI-002 P0 — Inter static per-weight 4종 로드. useFonts 게이트로 로드 완료 전까지
+  // SplashLoader 를 렌더해 FOUT(스타일 없는 텍스트 점멠)을 방지한다. 에러 시에도 앱 정지를
+  // 피하기 위해 loaded 만 분기 기준으로 쓰고, 폰트 누락 시 RN 이 시스템 폰트로 폴백한다.
+  const [fontsLoaded] = useFonts({
+    Inter_400Regular,
+    Inter_500Medium,
+    Inter_600SemiBold,
+    Inter_700Bold,
+  });
+
   // REQ-DEPLOY-014: 앱 진입 시 Sentry 를 항상 초기화한다 (always initialize).
   // - dev: DSN 누락 → initSentry 가 no-op (Sentry.init 미호출, buildSentryConfig dev tolerance).
   // - prod: DSN 필수 → 누락 시 initSentry 가 throw (REQ-DEPLOY-018 fail-fast).
@@ -59,20 +77,35 @@ export default function RootLayout() {
   return (
     <ThemeProvider>
       <SafeAreaProvider>
-        <QueryClientProvider client={getQueryClient()}>
-          <AuthProvider>
-            <PushNotificationHost />
-            <Stack screenOptions={{ headerShown: false }}>
-              <Stack.Screen name="index" />
-              <Stack.Screen name="(tabs)" />
-              <Stack.Screen name="(auth)" />
-              {/* @MX:NOTE: [AUTO] _dev는 __DEV__ 게이트 — 프로덕션 빌드에서는 Screen 선언 자체가 제외되어 접근 불가 (R3) */}
-              {__DEV__ && <Stack.Screen name="_dev" options={{ presentation: 'modal' }} />}
-            </Stack>
-          </AuthProvider>
-        </QueryClientProvider>
+        {fontsLoaded ? (
+          <QueryClientProvider client={getQueryClient()}>
+            <AuthProvider>
+              <PushNotificationHost />
+              <Stack screenOptions={{ headerShown: false }}>
+                <Stack.Screen name="index" />
+                <Stack.Screen name="(tabs)" />
+                <Stack.Screen name="(auth)" />
+                {/* @MX:NOTE: [AUTO] _dev는 __DEV__ 게이트 — 프로덕션 빌드에서는 Screen 선언 자체가 제외되어 접근 불가 (R3) */}
+                {__DEV__ && <Stack.Screen name="_dev" options={{ presentation: 'modal' }} />}
+              </Stack>
+            </AuthProvider>
+          </QueryClientProvider>
+        ) : (
+          <SplashLoader />
+        )}
       </SafeAreaProvider>
     </ThemeProvider>
+  );
+}
+
+// @MX:NOTE: [AUTO] SPEC-UI-002 P0 — 폰트 로드 전 splash 화면. ThemeProvider 내부에서
+//   호출되므로 useTheme 토큰(bg.base, brand[500])을 안전하게 사용한다.
+function SplashLoader(): React.JSX.Element {
+  const theme = useTheme();
+  return (
+    <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: theme.colors.bg.base }}>
+      <ActivityIndicator size="large" color={theme.colors.brand[500]} />
+    </View>
   );
 }
 

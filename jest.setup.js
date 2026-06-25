@@ -38,3 +38,16 @@ jest.mock('react-native-safe-area-context', () => {
   };
 });
 
+// SPEC-UI-002 P0 — Inter 폰트 로드 mock. app/_layout.tsx 의 useFonts 게이트가
+// 테스트에서 멈추지 않도록 항상 loaded=true 를 반환한다.
+jest.mock('expo-font', () => ({
+  useFonts: () => [true, null],
+  isLoaded: () => true,
+}));
+jest.mock('@expo-google-fonts/inter', () => ({
+  Inter_400Regular: 'Inter_400Regular',
+  Inter_500Medium: 'Inter_500Medium',
+  Inter_600SemiBold: 'Inter_600SemiBold',
+  Inter_700Bold: 'Inter_700Bold',
+}));
+
