@@ -260,7 +260,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 20, // spacing[5] - 헤더 좌우 패딩
-    paddingTop: 8, // spacing[2] - 헤더 상단 패딩
+    // @MX:NOTE: [AUTO] paddingTop 제거 — 상단 SafeArea spacer(insets.top) 가 노치/상태바를
+    //           밀어내므로 헤더 상단 패딩은 불필요(이중 여백으로 X 버튼이 과도하게 아래로 내려가는 현상 방지).
   },
   title: {
     fontSize: 22, // typography.displaySm(22/700/30)
