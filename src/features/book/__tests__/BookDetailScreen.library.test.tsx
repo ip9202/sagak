@@ -3,9 +3,8 @@
  *
  * 기존 책 메타데이터 표시(SPEC-BOOK-001 M4-3) 위에 서재(user_books) 데이터를 통합:
  * - 진행률 입력 + ProgressBar (calcProgressRate)
- * - status 드롭다운 (reading/completed/shelved)
+ * - status 탭 chips (reading/completed/shelved) + Alert.alert 확인 다이얼로그
  * - visibility 토글
- * - "완독 처리" 버튼 + 완독 메시지
  * - 삭제 버튼 + 확인 다이얼로그
  * - 페이지 검증 (음수/초과 거부 + 메시지)
  * - 공개 기본값 안내 (REQ-LIB-032)
@@ -13,7 +12,7 @@
  * 엣지 케이스 메시지:
  * - 409 duplicate (UNIQUE 위반) — getUserFriendlyMessage
  * - FK RESTRICT 삭제 차단 — 보관함 이동 제안
- * - 역전환(completed→reading) 경고 (정책 5.1-A)
+ * - 역전환(completed→reading) Alert 메시지 "다시 읽는중" 안내 (정책 5.1-A)
  *
  * @jest-environment jsdom
  */
@@ -49,9 +48,17 @@ jest.mock('expo-linear-gradient', () => {
   };
 });
 
-// expo-router mock — SPEC-COMPLETION-001 P1-C: handleComplete 가 router.push 호출
+// expo-router mock — SPEC-COMPLETION-001 P1-C: completed 탭 확인 시 router.push 호출.
+// @MX:NOTE: [AUTO] push/replace/back 을 외부 고정 jest.fn 으로 노출해 호출 검증 가능.
+const mockRouterPush = jest.fn();
+const mockRouterReplace = jest.fn();
+const mockRouterBack = jest.fn();
 jest.mock('expo-router', () => ({
-  useRouter: jest.fn(() => ({ push: jest.fn(), replace: jest.fn(), back: jest.fn() })),
+  useRouter: jest.fn(() => ({
+    push: mockRouterPush,
+    replace: mockRouterReplace,
+    back: mockRouterBack,
+  })),
 }));
 
 // useSession mock
@@ -166,6 +173,9 @@ function renderScreen(props: { bookId: string; onRequireAuth?: () => void }) {
 
 beforeEach(() => {
   jest.clearAllMocks();
+  mockRouterPush.mockClear();
+  mockRouterReplace.mockClear();
+  mockRouterBack.mockClear();
   mockedUseSession.mockReturnValue(authenticatedSession as any);
   mockedGetBookDetail.mockResolvedValue(sampleBook);
   // useLibraryItem 기본: 로딩 아님, 데이터 있음
@@ -178,6 +188,19 @@ beforeEach(() => {
   // addBook 기본: 성공
   addBookMock.mockResolvedValue({ ...sampleLibraryItem, id: 'ub-new' } as any);
 });
+
+/**
+ * @MX:NOTE: [AUTO] Alert.alert 확인 흐름 헬퍼 — status chip 클릭 후 Alert 의 "확인" 버튼 onPress 를 호출.
+ *           Alert.alert spy 에서 버튼 콜백을 획득해 수동 트리거한다 (RN Alert 이 jsdom 에서 자동 실행되지 않음).
+ */
+function confirmStatusAlert(alertSpy: jest.SpyInstance) {
+  expect(alertSpy).toHaveBeenCalled();
+  const callArgs = alertSpy.mock.calls[alertSpy.mock.calls.length - 1];
+  const buttons = callArgs[2] as Array<{ text: string; onPress?: () => void; style?: string }>;
+  const confirmBtn = buttons.find((b) => b.text === '확인');
+  expect(confirmBtn).toBeTruthy();
+  confirmBtn!.onPress?.();
+}
 
 describe('SPEC-LIBRARY-001 TASK-010: 진행률 섹션', () => {
   it('현재 페이지와 ProgressBar 를 렌더링한다', async () => {
@@ -208,39 +231,144 @@ describe('SPEC-LIBRARY-001 TASK-010: status 섹션', () => {
   });
 });
 
-describe('SPEC-LIBRARY-001 TASK-010: 완독 처리', () => {
-  it('"완독 처리" 버튼을 렌더링한다', async () => {
-    const { getByText } = renderScreen({ bookId: 'b-1' });
+describe('SPEC-LIBRARY-001 TASK-010: 상태 탭 Alert 확인 다이얼로그', () => {
+  // @MX:NOTE: [AUTO] "완독 처리" 버튼은 제거됨. completed 탭(status-chip-completed) 클릭 → Alert 확인 →
+  //           updateStatus(completed) 호출 + router.push completion 이동 흐름으로 재작성.
+  //           세 상태 탭이 동일한 Alert.alert 확인 패턴을 공유한다.
+
+  it('completed 탭 클릭 시 완독 처리 Alert 질문을 표시한다', async () => {
+    const alertSpy = jest
+      .spyOn(require('react-native').Alert, 'alert')
+      .mockImplementation(() => {});
+    const { getByTestId } = renderScreen({ bookId: 'b-1' });
     await waitFor(() => {
-      expect(getByText('완독 처리')).toBeTruthy();
+      expect(getByTestId('status-chip-completed')).toBeTruthy();
     });
+    fireEvent.press(getByTestId('status-chip-completed'));
+    expect(alertSpy).toHaveBeenCalledWith(
+      '완독 처리',
+      '완독 처리하고 완독 다이어리로 이동할까요?',
+      expect.any(Array),
+    );
+    alertSpy.mockRestore();
   });
 
-  it('완독 처리 시 status=completed 로 업데이트한다 (completed_at 미전송)', async () => {
+  it('completed 탭 → Alert 확인 시 status=completed 로 업데이트 + 완독 다이어리 이동', async () => {
     updateStatusMock.mockResolvedValue(undefined);
-    const { getByText } = renderScreen({ bookId: 'b-1' });
+    const alertSpy = jest
+      .spyOn(require('react-native').Alert, 'alert')
+      .mockImplementation(() => {});
+    const { getByTestId } = renderScreen({ bookId: 'b-1' });
     await waitFor(() => {
-      expect(getByText('완독 처리')).toBeTruthy();
+      expect(getByTestId('status-chip-completed')).toBeTruthy();
     });
-    fireEvent.press(getByText('완독 처리'));
+    fireEvent.press(getByTestId('status-chip-completed'));
+    confirmStatusAlert(alertSpy);
     await waitFor(() => {
       expect(updateStatusMock).toHaveBeenCalledWith(
         expect.objectContaining({ status: 'completed' }),
       );
     });
+    await waitFor(() => {
+      expect(mockRouterPush).toHaveBeenCalledWith({
+        pathname: '/completion/[bookId]',
+        params: { bookId: 'b-1' },
+      });
+    });
+    alertSpy.mockRestore();
   });
 
-  it('완독 후 완독 메시지를 표시한다', async () => {
+  it('reading 탭 → Alert 확인 시 status=reading 으로 업데이트 (router.push 미발생)', async () => {
+    // 현재 상태를 shelved 로 설정 — reading 탭은 비활성 상태이므로 Alert 트리거됨
+    mockedUseLibraryItem.mockReturnValue({
+      data: { ...sampleLibraryItem, status: 'shelved' },
+      isLoading: false,
+      isError: false,
+      error: null,
+    } as any);
     updateStatusMock.mockResolvedValue(undefined);
-    const { getByText } = renderScreen({ bookId: 'b-1' });
+    const alertSpy = jest
+      .spyOn(require('react-native').Alert, 'alert')
+      .mockImplementation(() => {});
+    const { getByTestId } = renderScreen({ bookId: 'b-1' });
     await waitFor(() => {
-      expect(getByText('완독 처리')).toBeTruthy();
+      expect(getByTestId('status-chip-reading')).toBeTruthy();
     });
-    fireEvent.press(getByText('완독 처리'));
+    fireEvent.press(getByTestId('status-chip-reading'));
+    expect(alertSpy).toHaveBeenCalledWith(
+      '읽는중으로 변경',
+      '이 책을 읽는중으로 변경할까요?',
+      expect.any(Array),
+    );
+    confirmStatusAlert(alertSpy);
     await waitFor(() => {
-      // 상태 메시지 "완독을 축하합니다!" 표시 (버튼 텍스트 "완독 처리" 와 구분)
-      expect(getByText(/축하/)).toBeTruthy();
+      expect(updateStatusMock).toHaveBeenCalledWith(
+        expect.objectContaining({ status: 'reading' }),
+      );
     });
+    // reading 변경 시 완독 다이어리 이동 미발생
+    expect(mockRouterPush).not.toHaveBeenCalled();
+    alertSpy.mockRestore();
+  });
+
+  it('shelved 탭 → Alert 확인 시 status=shelved 로 업데이트', async () => {
+    updateStatusMock.mockResolvedValue(undefined);
+    const alertSpy = jest
+      .spyOn(require('react-native').Alert, 'alert')
+      .mockImplementation(() => {});
+    const { getByTestId } = renderScreen({ bookId: 'b-1' });
+    await waitFor(() => {
+      expect(getByTestId('status-chip-shelved')).toBeTruthy();
+    });
+    fireEvent.press(getByTestId('status-chip-shelved'));
+    expect(alertSpy).toHaveBeenCalledWith(
+      '보관함으로 이동',
+      '이 책을 보관함으로 이동할까요?',
+      expect.any(Array),
+    );
+    confirmStatusAlert(alertSpy);
+    await waitFor(() => {
+      expect(updateStatusMock).toHaveBeenCalledWith(
+        expect.objectContaining({ status: 'shelved' }),
+      );
+    });
+    alertSpy.mockRestore();
+  });
+
+  it('이미 활성 상태인 탭 클릭 시 Alert 미발생 + updateStatus 미호출', async () => {
+    // 현재 reading — reading 탭은 활성 상태
+    const alertSpy = jest
+      .spyOn(require('react-native').Alert, 'alert')
+      .mockImplementation(() => {});
+    const { getByTestId } = renderScreen({ bookId: 'b-1' });
+    await waitFor(() => {
+      expect(getByTestId('status-chip-reading')).toBeTruthy();
+    });
+    fireEvent.press(getByTestId('status-chip-reading'));
+    expect(alertSpy).not.toHaveBeenCalled();
+    expect(updateStatusMock).not.toHaveBeenCalled();
+    alertSpy.mockRestore();
+  });
+
+  it('Alert 취소 버튼 선택 시 updateStatus 미호출', async () => {
+    updateStatusMock.mockResolvedValue(undefined);
+    const alertSpy = jest
+      .spyOn(require('react-native').Alert, 'alert')
+      .mockImplementation(() => {});
+    const { getByTestId } = renderScreen({ bookId: 'b-1' });
+    await waitFor(() => {
+      expect(getByTestId('status-chip-completed')).toBeTruthy();
+    });
+    fireEvent.press(getByTestId('status-chip-completed'));
+    // 취소 버튼 onPress 트리거 (onPress 미정의여도 안전)
+    expect(alertSpy).toHaveBeenCalled();
+    const callArgs = alertSpy.mock.calls[alertSpy.mock.calls.length - 1];
+    const buttons = callArgs[2] as Array<{ text: string; onPress?: () => void }>;
+    const cancelBtn = buttons.find((b) => b.text === '취소');
+    expect(cancelBtn).toBeTruthy();
+    cancelBtn!.onPress?.();
+    expect(updateStatusMock).not.toHaveBeenCalled();
+    alertSpy.mockRestore();
   });
 });
 
@@ -308,7 +436,7 @@ describe('SPEC-LIBRARY-001 TASK-010: 엣지 케이스 메시지', () => {
     });
   });
 
-  it('역전환(completed→reading) 시 경고를 표시한다 (정책 5.1-A)', async () => {
+  it('역전환(completed→reading) 시 Alert 메시지에 "다시 읽는중" 안내 (정책 5.1-A)', async () => {
     // 이미 완독 상태
     mockedUseLibraryItem.mockReturnValue({
       data: { ...sampleLibraryItem, status: 'completed' },
@@ -317,15 +445,21 @@ describe('SPEC-LIBRARY-001 TASK-010: 엣지 케이스 메시지', () => {
       error: null,
     } as any);
     updateStatusMock.mockResolvedValue(undefined);
-    const { getByTestId, getByText } = renderScreen({ bookId: 'b-1' });
+    const alertSpy = jest
+      .spyOn(require('react-native').Alert, 'alert')
+      .mockImplementation(() => {});
+    const { getByTestId } = renderScreen({ bookId: 'b-1' });
     await waitFor(() => {
       expect(getByTestId('status-select')).toBeTruthy();
     });
-    // status chip "읽는중" 을 눌러 reading 로 변경 시도
+    // status chip "읽는중" 을 눌러 reading 로 변경 시도 — 역전환 Alert 메시지 검증
     fireEvent.press(getByTestId('status-chip-reading'));
-    await waitFor(() => {
-      expect(getByText(/다시 읽|읽는중으로 변경|완독.*다시/)).toBeTruthy();
-    });
+    expect(alertSpy).toHaveBeenCalledWith(
+      '읽는중으로 변경',
+      expect.stringContaining('다시 읽는중'),
+      expect.any(Array),
+    );
+    alertSpy.mockRestore();
   });
 });
 

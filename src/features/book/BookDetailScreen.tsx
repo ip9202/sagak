@@ -91,7 +91,8 @@ function mapErrorMessage(category: string | undefined, fallback: string): string
 
 /**
  * 통일된 사용자 피드백 메시지 모델 (SPEC-UI-002).
- * 진행률 검증·상태 변경·완독 처리 메시지가 동일한 박스 UI 로 렌더된다.
+ * 진행률 검증 메시지가 동일한 박스 UI 로 렌더된다.
+ * 상태 변경 피드백은 Alert.alert 확인 다이얼로그로 대체되었다.
  */
 interface Feedback {
   text: string;
@@ -110,6 +111,35 @@ function statusLabel(s: ReadingStatus): string {
       return '완독';
     case 'shelved':
       return '보관함';
+  }
+}
+
+/**
+ * @MX:NOTE: [AUTO] 상태 탭 클릭 시 Alert.alert 의 title/message 를 반환 (세 탭 동일 패턴).
+ *           completed → reading 역전환 시 메시지를 다르게 제안 (정책 5.1-A).
+ */
+function statusAlertContent(
+  next: ReadingStatus,
+  isReverseFromCompleted: boolean,
+): { title: string; message: string } {
+  switch (next) {
+    case 'reading':
+      return {
+        title: '읽는중으로 변경',
+        message: isReverseFromCompleted
+          ? '완독한 책을 다시 읽는중으로 변경할까요?'
+          : '이 책을 읽는중으로 변경할까요?',
+      };
+    case 'completed':
+      return {
+        title: '완독 처리',
+        message: '완독 처리하고 완독 다이어리로 이동할까요?',
+      };
+    case 'shelved':
+      return {
+        title: '보관함으로 이동',
+        message: '이 책을 보관함으로 이동할까요?',
+      };
   }
 }
 
@@ -193,9 +223,9 @@ export const BookDetailScreen: React.FC<BookDetailScreenProps> = ({
 
   // 진행률 입력 로컬 상태 (검증 메시지 표시용)
   const [progressDraft, setProgressDraft] = useState<string>('');
-  // @MX:NOTE: [AUTO] SPEC-UI-002 — 통일 피드백 모델. 진행률 검증/상태 변경/완독 메시지가 같은 UI 로 렌더.
+  // @MX:NOTE: [AUTO] SPEC-UI-002 — 진행률 검증 메시지는 인라인 FeedbackBox 로 렌더.
+  //           상태 변경 피드백은 Alert.alert 확인 다이얼로그로 대체하여 statusMessage state 는 제거됨.
   const [progressMessage, setProgressMessage] = useState<Feedback | null>(null);
-  const [statusMessage, setStatusMessage] = useState<Feedback | null>(null);
   // @MX:NOTE: [AUTO] book 참조를 상위로 끌어올려 mutation 핸들러가 total_pages 에 접근.
   const book = state.book;
   // libraryItem 이 로드되면 입력란 초기값 세팅
@@ -228,52 +258,46 @@ export const BookDetailScreen: React.FC<BookDetailScreenProps> = ({
     });
   };
 
-  // status 변경
+  /**
+   * @MX:ANCHOR: [AUTO] handleStatusChange — 상태 탭 클릭 시 Alert.alert 확인 후 상태 변경
+   * @MX:REASON: 세 상태 탭(reading/completed/shelved) 이 동일한 Alert 확인 패턴으로 동작해야 한다.
+   *            이미 활성 상태면 Alert 없이 무시하고, completed 확인 시 완독 다이어리로 이동한다.
+   *            패턴이 분산되면 사용자 경험 일관성이 깨지고 completed 이동 로직이 누락될 수 있다.
+   */
   const handleStatusChange = (next: ReadingStatus) => {
     if (!libraryItem) return;
-    // @MX:NOTE: [AUTO] 정책 5.1-A: completed → reading 역전환 시 서버 확정(onSuccess) 후 경고 메시지.
-    //           정상 변경은 성공 메시지. 클릭 즉시가 아닌 mutation 성공 후 표시해 false 피드백을 방지.
-    const isReverse = libraryItem.status === 'completed' && next === 'reading';
-    updateStatusMutation.mutate(
-      { id: libraryItem.id, status: next },
-      {
-        onSuccess: () => {
-          if (isReverse) {
-            setStatusMessage({
-              text: '완독한 책을 다시 읽는중으로 변경했어요.',
-              kind: 'warning',
-            });
-          } else {
-            setStatusMessage({
-              text: `${statusLabel(next)}(으)로 변경했어요.`,
-              kind: 'success',
-            });
-          }
-        },
-      },
-    );
-  };
+    // @MX:NOTE: [AUTO] 이미 활성 상태면 Alert 없이 무시 — 사용자가 실수로 같은 탭을 누른 경우.
+    if (libraryItem.status === next) return;
 
-  // 완독 처리
-  const handleComplete = () => {
-    if (!libraryItem) return;
-    // @MX:NOTE: [AUTO] 완독 처리: status='completed' 만 UPDATE. completed_at/completion_reports
-    //           는 DB 트리거가 관리(AC-TRIG-002/003)하므로 payload 에 포함하지 않는다.
-    // @MX:NOTE: [AUTO] SPEC-COMPLETION-001 P1-C — 성공 시 완독 다이어리(completion/[bookId]) 로 이동.
-    //           bookId(books.id) param 으로 전달. 라우트가 bookId → userBookId 매핑 수행.
-    updateStatusMutation.mutate(
-      { id: libraryItem.id, status: 'completed' },
+    // 탭별 Alert title/message 구성 (세 탭 동일 패턴, 메시지만 다름)
+    const isReverseFromCompleted = libraryItem.status === 'completed' && next === 'reading';
+    const { title, message } = statusAlertContent(next, isReverseFromCompleted);
+
+    Alert.alert(title, message, [
+      { text: '취소', style: 'cancel' },
       {
-        onSuccess: () => {
-          // @MX:NOTE: [AUTO] SPEC-UI-002 — 완독 성공 피드백을 router.push 이전에 확정.
-          setStatusMessage({ text: '완독을 축하합니다!', kind: 'success' });
-          router.push({
-            pathname: '/completion/[bookId]',
-            params: { bookId },
-          });
+        text: '확인',
+        onPress: () => {
+          // @MX:NOTE: [AUTO] completed 확인 시 status='completed' 만 UPDATE.
+          //           completed_at/completion_reports 는 DB 트리거가 관리(AC-TRIG-002/003).
+          // @MX:NOTE: [AUTO] SPEC-COMPLETION-001 P1-C — 완독 확인 시 완독 다이어리(completion/[bookId]) 로 이동.
+          //           bookId(books.id) param 전달. 라우트가 bookId → userBookId 매핑 수행.
+          const onSuccess =
+            next === 'completed'
+              ? () => {
+                  router.push({
+                    pathname: '/completion/[bookId]',
+                    params: { bookId },
+                  });
+                }
+              : undefined;
+          updateStatusMutation.mutate(
+            { id: libraryItem.id, status: next },
+            onSuccess ? { onSuccess } : undefined,
+          );
         },
       },
-    );
+    ]);
   };
 
   // 공개 토글
@@ -611,33 +635,6 @@ export const BookDetailScreen: React.FC<BookDetailScreenProps> = ({
               )}
             </View>
           </View>
-          {statusMessage && (
-            <FeedbackBox
-              feedback={statusMessage}
-              theme={theme}
-              testID="status-message"
-            />
-          )}
-
-          {/* 완독 처리 버튼 */}
-          <Pressable
-            testID="complete-button"
-            onPress={handleComplete}
-            style={[
-              styles.completeButton,
-              {
-                backgroundColor: tc.brand[500],
-                borderRadius: theme.radius.md,
-              },
-            ]}
-            accessibilityRole="button"
-            accessibilityLabel="완독 처리"
-          >
-            <Text style={[styles.completeButtonText, { color: tc.text.inverse }]}>
-              완독 처리
-            </Text>
-          </Pressable>
-
           {/* 공개 토글 + 기본값 안내 (REQ-LIB-032) */}
           <View style={styles.visibilityRow}>
             <Pressable
