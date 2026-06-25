@@ -13,6 +13,7 @@ import {
   TextStyle,
 } from 'react-native';
 import { useTheme } from '../theme/theme';
+import { typography } from '../theme/tokens';
 
 export type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'destructive' | 'disabled';
 
@@ -150,9 +151,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
   },
   text: {
-    fontSize: 16, // typography.headingSm(16/600/23)와 lineHeight 1pt 차이로 유지
-    fontWeight: '600',
-    lineHeight: 22,
+    ...typography.buttonLabel,
   },
   // All 5 variants (primary, secondary, ghost, destructive, disabled)
   primary: {},

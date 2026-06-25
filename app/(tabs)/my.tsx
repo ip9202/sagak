@@ -488,7 +488,7 @@ export default function MyTab(): React.JSX.Element {
                     alignItems: 'center',
                   }}
                 >
-                  <Text style={{ color: '#FFFFFF', fontSize: 12, fontWeight: '700' }}>
+                  <Text style={{ color: theme.colors.text.inverse, fontSize: 12, fontWeight: '700' }}>
                     {unreadCount}
                   </Text>
                 </View>

@@ -136,6 +136,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: spacing[3],
   },
+  // @MX:NOTE: [AUTO] SPEC-UI-002 PR-2 — 카카오 브랜드색 #FFD400 은 OAuth 공식 가이드라인 색상으로 토큰화 금지(브랜드 정책 예외).
   kakaoButton: {
     backgroundColor: '#FFD400',
   },
@@ -149,7 +150,7 @@ const styles = StyleSheet.create({
     ...typography.headingSm,
     color: colors.text.primary,
   },
-  // AC-A3: 네이버 버튼 — 네이버 브랜드 초록(#03C75A), 텍스트는 흰색
+  // @MX:NOTE: [AUTO] SPEC-UI-002 PR-2 — 네이버 브랜드색 #03C75A / 흰색 텍스트 #FFFFFF 는 OAuth 공식 가이드라인 색상으로 토큰화 금지(브랜드 정책 예외).
   naverButton: {
     backgroundColor: '#03C75A',
   },
