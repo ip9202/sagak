@@ -78,6 +78,41 @@
 - 커밋 메시지: feat(book): SPEC-BOOK-001 M3 바코드 스캔 + M4 검색·상세 화면 (#9)
 - diff: 39 files changed, 3460 insertions(+), 69 deletions(-)
 
-### SPEC 완료 상태
+### PR 후속 (2026-06-25)
+
+#### PR #64 (c379885) — kakao-book-search service_role 클라이언트 실구현
+- **문맥**: PR #9 M1 Edge Function이 stub(mock) 상태로 머지되었음. 실기기 테스트 시 Supabase Edge Function 런타임 오류(500) 발생.
+- **해결**: kakaoClient.ts에서 `createClient(supabaseUrl, serviceRoleKey)` 실제 service_role 클라이언트 사용. async 동적 import(`import('node-fetch')`)로 Deno 런타임 호환성 확보.
+- **검증**: dev 배포 후 Deno 런타임에서 200 OK 응답 확인. 로컬 테스트 통과.
+- **회귀 맥락**: M1 stub이 dev 환경에서 작동하지 않는 블로커 발견 → 실구현으로 수정.
+
+#### PR #65 (31427af) — S13 바코드 스캔 후 ISBN 자동 검색
+- **내용**: BarcodeScanner에서 ISBN 감지 시 `router.push(\`/search?initialQuery=${isbn}&initialTarget=search\`)` 자동 검색.
+- **구현**: useEffect + useRef로 스캔 완료 후 자동 라우팅. BookSearchScreen은 initialQuery/initialTarget param을 처리하여 자동 검색 실행.
+- **실기기 회귀 발견**: 초기 구현에서 자동 검색이 작동하지 않는 회귀 → useEffect 의존성 배열 수정.
+
+#### PR #67 (124351f) — S13 initialQuery 지연 갱신 시 자동 검색 (PR #65 후속)
+- **문맥**: PR #65 이후, initialQuery param이 지연 갱신되는 경우(initialQuery가 나중에 설정됨) 자동 검색이 작동하지 않는 회귀.
+- **해결**: BookSearchScreen의 handleSubmit을 override 인자(`overrideQuery?`)를 받도록 수정. useEffect에서 `handleSubmit(initialQuery, true)` 호출 시 override 전달.
+- **state 동기화**: initialQuery/initialTarget state와 URL query params 간 동기화 강화.
+- **회귀 맥락**: PR #65 후속 실기기 테스트에서 발견된 edge case 수정.
+
+#### PR #68 (8c9cdc9) — 검색 결과 클릭 시 unmatched route 에러 수정
+- **문맥**: SearchResultCard 클릭 시 `router.push(\`/book/${id}\`)` 호출. 실제 라우트는 `app/(tabs)/[bookId].tsx` → `/1234` 형식.
+- **회귀**: 실기기에서 "unmatched route" 에러 발견. path가 `/book/1234`로 잘못 구성됨.
+- **해결**: `router.push(\`/\${id}\`)`로 수정. `app/(tabs)/[bookId].tsx` 라우트와 일치.
+- **실기기 회귀**: 라우팅 path 불일치로 인한 실기기 전용 버그.
+
+#### PR #71 (dac4ba7) — 두 번째 바코드 스캔 하얀 화면 수정 (issue #66)
+- **문맥**: 첫 스캔은 정상 작동하나, 두 번째 스캔 시 화면이 하얗게 멈추는 버그(issue #66).
+- **원인 분석**: CameraView가 key prop 없이 재마운트되지 않음. React Native에서 동일 컴포넌트 재사용 시 내부 state 초기화 누락.
+- **해결**: 
+  - `useFocusEffect`(expo-router)를 사용하여 화면 포커스 시 CameraView key 재생성(`key={\`${scannedCount}\`}`).
+  - key 변경 강제로 CameraView 재마운트 → 내부 state 초기화.
+- **검증**: 실기기에서 두 번째/세 번째 스캔 정상 작동 확인. issue #66 closed.
+- **실기기 회귀**: useFocusEffect 미사용으로 인한 카메라 수명 주기 관리 버그.
+
+### SPEC 완료 상태 (최종 갱신 2026-06-25)
 - M1~M4 전부 develop 머지 완료 → SPEC-BOOK-001 status: completed
 - ISBN→bookId 매핑은 합의된 후속 (결함 아님): search.tsx에서 ISBN으로 라우팅(/book/[isbn]), 실제 bookId 매핑은 SPEC-LIBRARY-001에서 연동 예정
+- **최종 PR 머지**: PR #71 (dac4ba7) — issue #66 closed. 실기기 회귀 3종(#65/#67/#68) 해결.

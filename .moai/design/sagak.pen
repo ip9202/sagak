@@ -1,5 +1,5 @@
 {
-  "version": "2.13",
+  "version": "2.14",
   "children": [
     {
       "type": "frame",
@@ -2015,27 +2015,29 @@
             20,
             20
           ],
+          "justifyContent": "center",
+          "alignItems": "center",
           "children": [
             {
-              "id": "vmclv",
+              "id": "zTvtn",
               "type": "ref",
-              "ref": "P5cRv",
-              "name": "Book-0",
-              "width": "fill_container"
-            },
-            {
-              "id": "xITeN",
-              "type": "ref",
-              "ref": "P5cRv",
-              "name": "Book-1",
-              "width": "fill_container"
-            },
-            {
-              "id": "u6cIk",
-              "type": "ref",
-              "ref": "P5cRv",
-              "name": "Book-2",
-              "width": "fill_container"
+              "ref": "pxhqO",
+              "name": "EmptyState",
+              "width": "fill_container",
+              "descendants": {
+                "fVx3B": {
+                  "icon": "book-open"
+                },
+                "mQkwC": {
+                  "content": "아직 담은 책이 없어요"
+                },
+                "PV7VN": {
+                  "content": "책을 검색하고 서재에 담아보세요"
+                },
+                "Aqc0a/z02QU": {
+                  "content": "책 검색하기"
+                }
+              }
             }
           ]
         },
@@ -2144,229 +2146,32 @@
           "layout": "vertical",
           "gap": 20,
           "padding": [
-            16,
+            8,
             20,
             20,
             20
           ],
+          "justifyContent": "center",
+          "alignItems": "center",
           "children": [
             {
-              "type": "text",
-              "id": "R4x5E",
-              "name": "Section",
-              "fill": "$text-tertiary",
-              "content": "함께 읽는 모임",
-              "fontFamily": "Noto Sans KR",
-              "fontSize": 13,
-              "fontWeight": "600"
-            },
-            {
-              "type": "frame",
-              "id": "CZjaL",
-              "name": "ClubCard-0",
-              "width": "fill_container",
-              "fill": "$bg-surface",
-              "cornerRadius": 16,
-              "gap": 12,
-              "padding": 16,
-              "children": [
-                {
-                  "type": "rectangle",
-                  "cornerRadius": 6,
-                  "id": "UVHPC",
-                  "name": "Cover",
-                  "fill": "$brand-200",
-                  "width": 60,
-                  "height": 84
-                },
-                {
-                  "type": "frame",
-                  "id": "hee6z",
-                  "name": "Info",
-                  "width": "fill_container",
-                  "layout": "vertical",
-                  "gap": 6,
-                  "children": [
-                    {
-                      "type": "text",
-                      "id": "AWQe0",
-                      "name": "ClubTitle",
-                      "fill": "$text-primary",
-                      "textGrowth": "fixed-width",
-                      "width": "fill_container",
-                      "content": "함께 읽는 『데미안』",
-                      "fontFamily": "Noto Sans KR",
-                      "fontSize": 15,
-                      "fontWeight": "600"
-                    },
-                    {
-                      "type": "text",
-                      "id": "AhIlt",
-                      "name": "Meta",
-                      "fill": "$text-secondary",
-                      "content": "2주 코스 · 하루 20p",
-                      "fontFamily": "Inter",
-                      "fontSize": 12,
-                      "fontWeight": "normal"
-                    },
-                    {
-                      "type": "frame",
-                      "id": "F743TJ",
-                      "name": "Progress",
-                      "width": "fill_container",
-                      "layout": "vertical",
-                      "gap": 4,
-                      "padding": [
-                        4,
-                        0,
-                        0,
-                        0
-                      ],
-                      "children": [
-                        {
-                          "type": "frame",
-                          "id": "muS5B",
-                          "name": "Track",
-                          "width": "fill_container",
-                          "height": 4,
-                          "fill": "$bg-muted",
-                          "cornerRadius": 2,
-                          "children": [
-                            {
-                              "type": "rectangle",
-                              "cornerRadius": 2,
-                              "id": "bSpPa",
-                              "name": "Fill",
-                              "fill": "$brand-500",
-                              "width": 90,
-                              "height": 4
-                            }
-                          ]
-                        },
-                        {
-                          "type": "text",
-                          "id": "UWjbF",
-                          "name": "Pct",
-                          "fill": "$text-tertiary",
-                          "content": "p.90 · 멤버 4명",
-                          "fontFamily": "Inter",
-                          "fontSize": 11,
-                          "fontWeight": "500"
-                        }
-                      ]
-                    }
-                  ]
-                }
-              ]
-            },
-            {
-              "type": "frame",
-              "id": "yHDYC",
-              "name": "ClubCard-1",
-              "width": "fill_container",
-              "fill": "$bg-surface",
-              "cornerRadius": 16,
-              "gap": 12,
-              "padding": 16,
-              "children": [
-                {
-                  "type": "rectangle",
-                  "cornerRadius": 6,
-                  "id": "aVEDa",
-                  "name": "Cover",
-                  "fill": "$brand-200",
-                  "width": 60,
-                  "height": 84
-                },
-                {
-                  "type": "frame",
-                  "id": "jpSpH",
-                  "name": "Info",
-                  "width": "fill_container",
-                  "layout": "vertical",
-                  "gap": 6,
-                  "children": [
-                    {
-                      "type": "text",
-                      "id": "KswI5",
-                      "name": "ClubTitle",
-                      "fill": "$text-primary",
-                      "textGrowth": "fixed-width",
-                      "width": "fill_container",
-                      "content": "느긋한 독서 모임",
-                      "fontFamily": "Noto Sans KR",
-                      "fontSize": 15,
-                      "fontWeight": "600"
-                    },
-                    {
-                      "type": "text",
-                      "id": "K7biU7",
-                      "name": "Meta",
-                      "fill": "$text-secondary",
-                      "content": "2주 코스 · 하루 20p",
-                      "fontFamily": "Inter",
-                      "fontSize": 12,
-                      "fontWeight": "normal"
-                    },
-                    {
-                      "type": "frame",
-                      "id": "udQBt",
-                      "name": "Progress",
-                      "width": "fill_container",
-                      "layout": "vertical",
-                      "gap": 4,
-                      "padding": [
-                        4,
-                        0,
-                        0,
-                        0
-                      ],
-                      "children": [
-                        {
-                          "type": "frame",
-                          "id": "enDYp",
-                          "name": "Track",
-                          "width": "fill_container",
-                          "height": 4,
-                          "fill": "$bg-muted",
-                          "cornerRadius": 2,
-                          "children": [
-                            {
-                              "type": "rectangle",
-                              "cornerRadius": 2,
-                              "id": "dmEu2",
-                              "name": "Fill",
-                              "fill": "$brand-500",
-                              "width": 90,
-                              "height": 4
-                            }
-                          ]
-                        },
-                        {
-                          "type": "text",
-                          "id": "XFzL5",
-                          "name": "Pct",
-                          "fill": "$text-tertiary",
-                          "content": "p.90 · 멤버 4명",
-                          "fontFamily": "Inter",
-                          "fontSize": 11,
-                          "fontWeight": "500"
-                        }
-                      ]
-                    }
-                  ]
-                }
-              ]
-            },
-            {
-              "id": "tLqUt",
+              "id": "c3K4q",
               "type": "ref",
-              "ref": "fMvNU",
-              "name": "NewClubCTA",
+              "ref": "pxhqO",
+              "name": "EmptyState",
               "width": "fill_container",
               "descendants": {
-                "z02QU": {
-                  "content": "새 모임 만들기 (0명도 OK)"
+                "fVx3B": {
+                  "icon": "users"
+                },
+                "mQkwC": {
+                  "content": "아직 참여 중인 모임이 없어요"
+                },
+                "PV7VN": {
+                  "content": "친구와 함께 읽으면 더 재밌어요"
+                },
+                "Aqc0a/z02QU": {
+                  "content": "모임 둘러보기"
                 }
               }
             }
@@ -3197,7 +3002,8 @@
                       "fill": "$text-secondary",
                       "content": "저자",
                       "fontFamily": "Noto Sans KR",
-                      "fontSize": 13
+                      "fontSize": 13,
+                      "fontWeight": "normal"
                     }
                   ]
                 }
@@ -3222,7 +3028,8 @@
                   "content": "오늘의 첫 페이지가 당신을 기다리고 있어요",
                   "textAlign": "center",
                   "fontFamily": "Noto Sans KR",
-                  "fontSize": 13
+                  "fontSize": 13,
+                  "fontWeight": "normal"
                 },
                 {
                   "type": "text",
@@ -3609,7 +3416,8 @@
               "width": "fill_container",
               "content": "매일 정해진 시간에 다정하게 독서를 알려드릴게요",
               "fontFamily": "Noto Sans KR",
-              "fontSize": 13
+              "fontSize": 13,
+              "fontWeight": "normal"
             },
             {
               "type": "frame",
@@ -3737,7 +3545,8 @@
                   "width": "fill_container",
                   "content": "알림을 켜두면 설정한 시간에 가벼운 독서 제안을 보내드려요. 언제든 끌 수 있어요.",
                   "fontFamily": "Noto Sans KR",
-                  "fontSize": 12
+                  "fontSize": 12,
+                  "fontWeight": "normal"
                 }
               ]
             }
@@ -3887,5 +3696,6 @@
       "type": "color",
       "value": "#A89585"
     }
-  }
+  },
+  "fileToken": "4a7c14cc-9fd4-4612-a1c5-6b0795f9e6ba"
 }
