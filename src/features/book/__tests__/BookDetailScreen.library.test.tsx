@@ -439,3 +439,101 @@ describe('SPEC-LIBRARY-001: 서재에 추가 진입점 (미등록 책)', () => {
     });
   });
 });
+
+describe('SPEC-LIBRARY-001: 서재에 추가 end-to-end gap 보강', () => {
+  it('AC-LIB-001: 추가 성공 후 미등록 섹션이 등록 섹션으로 전환된다 (즉시 표시)', async () => {
+    // 초기: 미등록 (libraryItem null)
+    mockedUseLibraryItem.mockReturnValue({
+      data: null,
+      isLoading: false,
+      isError: false,
+      error: null,
+    } as any);
+    addBookMock.mockResolvedValue({ ...sampleLibraryItem, id: 'ub-new' } as any);
+
+    // rerender 시 동일 QueryClient 를 유지하기 위해 자체 트리 구성.
+    // onRequireAuth 참조를 고정해 rerender 시 useEffect 재실행을 막는다.
+    const onRequireAuth = jest.fn();
+    const client = createTestQueryClient();
+    const tree = (children: React.ReactNode) => (
+      <QueryClientProvider client={client}>
+        <ThemeProvider>{children}</ThemeProvider>
+      </QueryClientProvider>
+    );
+    const { getByTestId, queryByTestId, rerender } = render(
+      tree(<BookDetailScreen bookId="b-1" onRequireAuth={onRequireAuth} />),
+    );
+
+    // 1) 미등록 — "서재에 추가" 버튼 노출, 등록 섹션 미노출
+    await waitFor(() => {
+      expect(getByTestId('add-to-library-button')).toBeTruthy();
+    });
+    expect(queryByTestId('book-detail-library-section')).toBeNull();
+
+    // 2) 추가 버튼 press → addBook 호출
+    fireEvent.press(getByTestId('add-to-library-button'));
+    await waitFor(() => {
+      expect(addBookMock).toHaveBeenCalledWith(
+        expect.objectContaining({ bookId: 'b-1', userId: 'u-1' }),
+      );
+    });
+
+    // 3) useAddBook.onSuccess 가 ['library-item'] 캐시를 무효화 →
+    //    useLibraryItem 재조회로 data 가 채워진 상태를 시뮬레이션
+    mockedUseLibraryItem.mockReturnValue({
+      data: sampleLibraryItem,
+      isLoading: false,
+      isError: false,
+      error: null,
+    } as any);
+    rerender(tree(<BookDetailScreen bookId="b-1" onRequireAuth={onRequireAuth} />));
+
+    // 4) 미등록 섹션 소멸 + 등록 섹션(ProgressBar/status/삭제) 등장
+    await waitFor(() => {
+      expect(queryByTestId('add-to-library-button')).toBeNull();
+      expect(getByTestId('book-detail-library-section')).toBeTruthy();
+      expect(getByTestId('progress-bar')).toBeTruthy();
+    });
+  });
+
+  it('AC-LIB-003: 미인증 사용자에게 서재 추가 UI가 노출되지 않는다', async () => {
+    mockedUseSession.mockReturnValue({
+      ...authenticatedSession,
+      isAuthenticated: false,
+      user: { id: '' },
+    } as any);
+    mockedUseLibraryItem.mockReturnValue({
+      data: null,
+      isLoading: false,
+      isError: false,
+      error: null,
+    } as any);
+
+    const { queryByTestId, getByTestId } = renderScreen({ bookId: 'b-1' });
+
+    // 미인증 → useEffect 가 onRequireAuth 호출 → state idle → ActivityIndicator
+    await waitFor(() => {
+      expect(getByTestId('book-detail-loading')).toBeTruthy();
+    });
+    // 서재 추가 버튼 미노출 + addBook 결코 호출 안 함
+    expect(queryByTestId('add-to-library-button')).toBeNull();
+    expect(addBookMock).not.toHaveBeenCalled();
+  });
+
+  it('libraryItem 조회 로딩 중에는 서재 추가 버튼을 노출하지 않는다 (깜빡임 방지)', async () => {
+    // book 메타는 로드됐으나 서재 등록 여부는 아직 미확정(loading)
+    mockedUseLibraryItem.mockReturnValue({
+      data: null,
+      isLoading: true,
+      isError: false,
+      error: null,
+    } as any);
+
+    const { getByText, queryByTestId } = renderScreen({ bookId: 'b-1' });
+    await waitFor(() => {
+      expect(getByText('미드나잇 라이브러리')).toBeTruthy();
+    });
+    // libraryItem 로딩 중 → "서재에 추가" 버튼 미노출 (잘못된 빈 상태 점멠 방지)
+    expect(queryByTestId('add-to-library-button')).toBeNull();
+  });
+});
