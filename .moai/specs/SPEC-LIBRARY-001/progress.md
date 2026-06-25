@@ -63,7 +63,7 @@
 **구현 내용**:
 - **BookDetailScreen 진입점**: 상세 화면 헤더 우측 또는 하단 CTA로 "서재에 추가" 버튼 추가.
 - **useAddBook hook**:
-  - `src/features/library/useAddBook.ts` 신규 작성.
+  - `src/features/library/useLibrary.ts` 내 useAddBook (개별 파일 아님 — PR #73 기록 정정).
   - `addBook` 뮤테이션 호출 후 409 중복 처리(`books.isbn UNIQUE` 제약조건 위반).
   - 중복 시 "이미 서재에 있는 책입니다" 메시지 표시.
   - 성공 시 BookDetailScreen의 `libraryItem` state 갱신하여 "서재에 추가됨" 상태 반영.
@@ -75,7 +75,7 @@
 - state 갱신으로 즉시 피드백 제공.
 
 **검증 상태**:
-- jest 통과(useAddBook 테스트 추가).
+- jest 통과.
 - 실기기 테스트 통과(서재 추가 → 중복 메시지 → state 갱신 확인).
 
 **회귀 맥락**: M1~M4에서 서재 추가 진입점 누락 → 사용자 피드백으로 PR #69 반영.
@@ -83,4 +83,35 @@
 ### SPEC 완료 상태 (최종 갱신 2026-06-25)
 - M1~M4 전부 develop 머지 완료 → SPEC-LIBRARY-001 status: completed
 - REQ-LIB-001(서재에 추가 진입점) PR #69로 완료.
-- **최신 PR**: PR #69 (fe21bd0, 2026-06-25 머지).
+- **최신 PR**: PR #73 (8c7122e, 2026-06-25 머지) — 서재 추가 end-to-end 검증 gap 보강.
+
+## PR 후속 #2 (2026-06-25)
+
+### PR #73 (8c7122e) — 서재 추가 end-to-end 검증 gap 보강
+
+**문맥**: 미등록 책 서재 추가 UX 추가 검증 요청. PR #69 구현이 이미 정상임을 확인하되,
+SPEC 인수기준(acceptance.md) ↔ 코드/테스트 매핑 결과 빈 구멍 4종 식별. 프로덕션 코드
+변경 없이 테스트로 gap 해소.
+
+**식별된 gap (PR #73로 해소)**:
+- AC-LIB-001(즉시 표시): 기존 테스트는 "addBook 호출됨"까지만 검증 → 성공 후
+  미등록 섹션 → 등록 섹션 UI 전환 렌더링 계약 미검증.
+- AC-LIB-003(미인증 차단): 클라이언트 미인증 UI 차단 미검증.
+- 로딩 중 점멠(깜빡임) 방지: `libraryItem` 로딩 중 버튼 미노출 계약 미검증.
+- useAddBook.onSuccess 캐시 무효화 계약: 이전 섹션엔 "useAddBook 테스트 추가"로
+  암시됐으나 실제론 `['library-item']` invalidate 인과 계약이 미검증이었음.
+
+**구현 내용 (테스트만 +147 LOC)**:
+- `src/features/book/__tests__/BookDetailScreen.library.test.tsx` (+98):
+  - AC-LIB-001: 추가 성공 후 동일 QueryClient + rerender 로 미등록→등록 섹션 전환 검증.
+  - AC-LIB-003: 미인증 시 ActivityIndicator + 버튼 미노출 + addBook 미호출 검증.
+  - 로딩 중 버튼 미노출(깜빡임 방지) 검증.
+- `src/features/library/__tests__/useLibrary.optimistic.test.tsx` (+49):
+  - useAddBook.onSuccess 가 `['library', {userId}]` + `['library-item', {bookId,userId}]`
+    두 queryKey 를 무효화하는지 단위 테스트 (invalidateSpy).
+
+**검증 상태**:
+- BookDetailScreen.library 21/21, useLibrary.optimistic 8/8, 전체 1221/1221.
+- tsc --noEmit clean, CI 3/3 green (Lint/Test/Typecheck).
+
+**비고**: 프로덕션 코드 변경 없음. PR #69 구현이 SPEC 인수기준 정상 충족 재확인.
