@@ -17,8 +17,8 @@ describe('handleSearchRequest (REQ-BOOK-001~005, 010~012)', () => {
         if (key === 'SUPABASE_SERVICE_ROLE_KEY') return 'test-service-role';
         return undefined;
       }),
-      createServiceClient: jest.fn().mockReturnValue({} as unknown as ReturnType<
-        SearchDeps['createServiceClient']
+      createServiceClient: jest.fn().mockResolvedValue({} as unknown as Awaited<
+        ReturnType<SearchDeps['createServiceClient']>
       >),
       searchKakao: jest.fn(),
       findCachedBook: jest.fn(),
