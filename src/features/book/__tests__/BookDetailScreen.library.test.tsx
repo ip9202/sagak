@@ -84,10 +84,8 @@ jest.mock('../../../features/library/useLibraryItem', () => ({
 import { useSession } from '../../../auth/useSession';
 import { getBookDetail } from '../bookDetailApi';
 import {
-  updateProgress,
   updateStatus,
-  updateVisibility,
-  deleteBook,
+  addBook,
 } from '../../../features/library/libraryApi';
 import { useLibraryItem } from '../../../features/library/useLibraryItem';
 import type { BookRow } from '../../../types/book';
@@ -95,10 +93,8 @@ import type { BookRow } from '../../../types/book';
 const mockedUseSession = useSession as jest.MockedFunction<typeof useSession>;
 const mockedGetBookDetail = getBookDetail as jest.MockedFunction<typeof getBookDetail>;
 const mockedUseLibraryItem = useLibraryItem as jest.MockedFunction<typeof useLibraryItem>;
-const updateProgressMock = updateProgress as jest.MockedFunction<typeof updateProgress>;
 const updateStatusMock = updateStatus as jest.MockedFunction<typeof updateStatus>;
-const updateVisibilityMock = updateVisibility as jest.MockedFunction<typeof updateVisibility>;
-const deleteBookMock = deleteBook as jest.MockedFunction<typeof deleteBook>;
+const addBookMock = addBook as jest.MockedFunction<typeof addBook>;
 
 const authenticatedSession = {
   session: { access_token: 'tok', user: { id: 'u-1' } },
@@ -179,6 +175,8 @@ beforeEach(() => {
     isError: false,
     error: null,
   } as any);
+  // addBook 기본: 성공
+  addBookMock.mockResolvedValue({ ...sampleLibraryItem, id: 'ub-new' } as any);
 });
 
 describe('SPEC-LIBRARY-001 TASK-010: 진행률 섹션', () => {
@@ -327,6 +325,117 @@ describe('SPEC-LIBRARY-001 TASK-010: 엣지 케이스 메시지', () => {
     fireEvent.press(getByTestId('status-chip-reading'));
     await waitFor(() => {
       expect(getByText(/다시 읽|읽는중으로 변경|완독.*다시/)).toBeTruthy();
+    });
+  });
+});
+
+describe('SPEC-LIBRARY-001: 서재에 추가 진입점 (미등록 책)', () => {
+  it('libraryItem null 시 "서재에 추가" 버튼을 렌더링한다', async () => {
+    // 미등록 책 — useLibraryItem 이 null 반환
+    mockedUseLibraryItem.mockReturnValue({
+      data: null,
+      isLoading: false,
+      isError: false,
+      error: null,
+    } as any);
+    const { getByTestId, queryByTestId } = renderScreen({ bookId: 'b-1' });
+    await waitFor(() => {
+      expect(getByTestId('add-to-library-button')).toBeTruthy();
+    });
+    // 기존 서재 섹션(진행률/status/삭제) 은 미노출
+    expect(queryByTestId('book-detail-library-section')).toBeNull();
+  });
+
+  it('REQ-LIB-032: 공개 설정 기본값 안내를 렌더링한다', async () => {
+    mockedUseLibraryItem.mockReturnValue({
+      data: null,
+      isLoading: false,
+      isError: false,
+      error: null,
+    } as any);
+    const { getByText } = renderScreen({ bookId: 'b-1' });
+    await waitFor(() => {
+      expect(getByText(/기본 공개/)).toBeTruthy();
+    });
+  });
+
+  it('버튼 press 시 addBook 을 호출한다 (기본 reading)', async () => {
+    addBookMock.mockResolvedValue({ ...sampleLibraryItem, id: 'ub-new' } as any);
+    mockedUseLibraryItem.mockReturnValue({
+      data: null,
+      isLoading: false,
+      isError: false,
+      error: null,
+    } as any);
+    const { getByTestId } = renderScreen({ bookId: 'b-1' });
+    await waitFor(() => {
+      expect(getByTestId('add-to-library-button')).toBeTruthy();
+    });
+    fireEvent.press(getByTestId('add-to-library-button'));
+    await waitFor(() => {
+      // useAddBook 은 status 생략 시 undefined 전달, addBook 내부 ?? 'reading' 기본값 적용
+      expect(addBookMock).toHaveBeenCalledWith(
+        expect.objectContaining({
+          bookId: 'b-1',
+          userId: 'u-1',
+        }),
+      );
+    });
+  });
+
+  it('409 중복(UNIQUE 위반) 시 "이미 등록된 항목입니다" 안내 (REQ-LIB-002)', async () => {
+    // normalizeError 가 분류한 AppError 시뮬레이션:
+    // category='VALIDATION', code='23505' (errors.ts line 331 매핑 대상)
+    const conflictError = new AppError(
+      'duplicate key value violates unique constraint',
+      '23505',
+      400,
+    );
+    conflictError.category = 'VALIDATION';
+    addBookMock.mockRejectedValue(conflictError);
+
+    // Alert.alert spy
+    const alertSpy = jest.spyOn(require('react-native').Alert, 'alert').mockImplementation(() => {});
+
+    mockedUseLibraryItem.mockReturnValue({
+      data: null,
+      isLoading: false,
+      isError: false,
+      error: null,
+    } as any);
+    const { getByTestId } = renderScreen({ bookId: 'b-1' });
+    await waitFor(() => {
+      expect(getByTestId('add-to-library-button')).toBeTruthy();
+    });
+    fireEvent.press(getByTestId('add-to-library-button'));
+    await waitFor(() => {
+      expect(addBookMock).toHaveBeenCalled();
+    });
+    await waitFor(() => {
+      expect(alertSpy).toHaveBeenCalledWith(
+        '서재에 추가할 수 없어요',
+        '이미 등록된 항목입니다',
+      );
+    });
+    alertSpy.mockRestore();
+  });
+
+  it('mutation pending 중 버튼 비활성화 + "추가 중..." 텍스트', async () => {
+    // 결코 resolve 하지 않는 promise 로 pending 상태 유지
+    addBookMock.mockReturnValue(new Promise(() => {}));
+    mockedUseLibraryItem.mockReturnValue({
+      data: null,
+      isLoading: false,
+      isError: false,
+      error: null,
+    } as any);
+    const { getByTestId, getByText } = renderScreen({ bookId: 'b-1' });
+    await waitFor(() => {
+      expect(getByTestId('add-to-library-button')).toBeTruthy();
+    });
+    fireEvent.press(getByTestId('add-to-library-button'));
+    await waitFor(() => {
+      expect(getByText('추가 중...')).toBeTruthy();
     });
   });
 });
