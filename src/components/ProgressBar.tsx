@@ -14,6 +14,12 @@ export interface ProgressBarProps {
   total: number;
   style?: ViewStyle;
   testID?: string;
+  /**
+   * 내장 캡션("X / Yp (Z%)") 표시 여부.
+   * 기본 true(하위 호환). 부모가 별도 서식(.pen BookCard 11/500 text.tertiary 등)으로
+   * 캡션을 직접 렌더링할 때 false 로 끈다.
+   */
+  showCaption?: boolean;
 }
 
 /**
@@ -31,11 +37,12 @@ export const ProgressBar: React.FC<ProgressBarProps> = ({
   total,
   style,
   testID = 'progress-bar',
+  showCaption = true,
 }) => {
   const theme = useTheme();
 
   const percentage = total > 0 ? Math.min(Math.round((current / total) * 100), 100) : 0;
-  const showLabel = total > 0;
+  const showLabel = showCaption && total > 0;
 
   return (
     <View testID={testID} style={[styles.container, style]}>
@@ -75,6 +82,7 @@ export const ProgressBar: React.FC<ProgressBarProps> = ({
           {current} / {total}p ({percentage}%)
         </Text>
       )}
+      {/* @MX:NOTE: [AUTO] showCaption=false 면 부모가 .pen 서식(예: BookCard 11/500 text.tertiary) 으로 자체 렌더링. */}
     </View>
   );
 };

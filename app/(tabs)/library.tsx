@@ -22,7 +22,9 @@ import {
   ScrollView,
 } from 'react-native';
 import { useRouter } from 'expo-router';
+import { Feather } from '@expo/vector-icons';
 import { useTheme } from '../../src/theme/theme';
+import { typography } from '../../src/theme/tokens';
 import { useSession } from '../../src/auth/useSession';
 import { useLibrary } from '../../src/features/library/useLibrary';
 import { BookCard } from '../../src/components/BookCard';
@@ -61,40 +63,48 @@ export default function LibraryTab() {
 
   return (
     <View style={[styles.container, { backgroundColor: theme.colors.bg.base }]}>
-      {/* 헤더 */}
+      {/* 헤더 (.pen F04-Library Header: padding [8,20,0,20], space-between) */}
       <View style={styles.header}>
-        <Text style={[styles.title, { color: theme.colors.text.primary }]}>
-          서재
-        </Text>
-        <Pressable
-          testID="library-search-button"
-          onPress={() => router.push('/search')}
+        <Text
           style={[
-            styles.searchIcon,
+            styles.title,
             {
-              backgroundColor: theme.colors.brand[50],
-              borderRadius: theme.radius.md,
+              color: theme.colors.text.primary,
+              ...theme.typography.displaySm,
             },
           ]}
-          accessibilityRole="button"
-          accessibilityLabel="책 검색"
-          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
         >
-          <Text style={styles.searchIconText}>🔍</Text>
-        </Pressable>
+          서재
+        </Text>
+        {/* @MX:NOTE: [AUTO] .pen Header Icons(gap 12): search(text.primary) + plus(brand[500]). Feather 사용. */}
+        <View style={styles.headerIcons}>
+          <Pressable
+            testID="library-search-button"
+            onPress={() => router.push('/search')}
+            accessibilityRole="button"
+            accessibilityLabel="책 검색"
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          >
+            <Feather
+              name="search"
+              size={22}
+              color={theme.colors.text.primary}
+            />
+          </Pressable>
+          <Pressable
+            testID="library-add-button"
+            onPress={() => router.push('/search')}
+            accessibilityRole="button"
+            accessibilityLabel="책 추가"
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          >
+            <Feather name="plus" size={22} color={theme.colors.brand[500]} />
+          </Pressable>
+        </View>
       </View>
 
-      {/* 캡슐 4탭 필터 (SPEC-UI-002 REQ-SCREEN-TABBAR — 단 화면 내 인라인 필터) */}
-      <View
-        style={[
-          styles.filterRow,
-          {
-            backgroundColor: theme.colors.bg.muted,
-            borderRadius: theme.radius.full,
-            marginHorizontal: theme.spacing[5],
-          },
-        ]}
-      >
+      {/* 필터 탭 (.pen F04-Library FilterTabs: 개별 capsule, cornerRadius 18, padding [8,16], gap 8, container padding [16,20,8,20]) */}
+      <View style={styles.filterRow}>
         {FILTER_TABS.map((tab) => {
           const active = tab.key === activeFilter;
           return (
@@ -106,9 +116,12 @@ export default function LibraryTab() {
               accessibilityLabel={`필터: ${tab.label}`}
               style={[
                 styles.filterTab,
-                active && {
-                  backgroundColor: theme.colors.brand[500],
-                  borderRadius: theme.radius.full,
+                // @MX:NOTE: [AUTO] cornerRadius 18 은 .pen FilterTabs capsule 고유값 — theme.radius 스펙트럼(6/10/16/24/9999)에 없어 .pen 특수값으로 직접 지정.
+                { borderRadius: 18 },
+                {
+                  backgroundColor: active
+                    ? theme.colors.brand[500]
+                    : theme.colors.bg.muted,
                 },
               ]}
             >
@@ -119,6 +132,7 @@ export default function LibraryTab() {
                     color: active
                       ? theme.colors.text.inverse
                       : theme.colors.text.secondary,
+                    fontWeight: active ? '600' : '500',
                   },
                 ]}
               >
@@ -148,15 +162,27 @@ export default function LibraryTab() {
         </View>
       ) : isEmpty ? (
         <View style={styles.emptyState}>
+          {/* @MX:NOTE: [AUTO] .pen F04-Library-Empty / EmptyState: Icon(book-open, 48, text.tertiary) + Title + Sub + CTA. */}
+          <Feather
+            name="book-open"
+            size={48}
+            color={theme.colors.text.tertiary}
+          />
           <Text
-            style={[styles.emptyTitle, { color: theme.colors.text.primary }]}
+            style={[
+              styles.emptyTitle,
+              { color: theme.colors.text.primary },
+            ]}
           >
-            서재가 비어 있어요
+            아직 담은 책이 없어요
           </Text>
           <Text
-            style={[styles.emptyHint, { color: theme.colors.text.secondary }]}
+            style={[
+              styles.emptyHint,
+              { color: theme.colors.text.secondary },
+            ]}
           >
-            읽고 싶은 책을 검색해서 추가해 보세요.
+            책을 검색하고 서재에 담아보세요
           </Text>
           <Pressable
             testID="library-search-cta"
@@ -210,28 +236,20 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
+  // .pen F04-Library Header: padding [8,20,0,20]
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 20,
     paddingTop: 8,
-    paddingBottom: 4,
+    paddingBottom: 0,
   },
-  // SPEC-UI-002 FROZEN: title uniformity (fontSize 22 / weight 700)
-  title: {
-    fontSize: 22,
-    fontWeight: '700',
-  },
-  searchIcon: {
-    padding: 8,
-  },
-  searchIconText: {
-    fontSize: 16,
-  },
-  center: {
-    flex: 1,
-    justifyContent: 'center',
+  // SPEC-UI-002 FROZEN: title uniformity (fontSize 22 / weight 700) — displaySm 토큰 spread 로 fontFamily(Inter) 자동 적용
+  title: {},
+  // .pen Header Icons: gap 12
+  headerIcons: {
+    flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
   },
@@ -248,51 +266,65 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     paddingHorizontal: 32,
   },
+  // .pen FilterTabs: padding [16,20,8,20], gap 8 — 자식은 개별 capsule(flex 없음)
   filterRow: {
     flexDirection: 'row',
-    padding: 4,
-    marginTop: 4,
-    marginBottom: 8,
+    flexWrap: 'wrap',
+    paddingHorizontal: 20,
+    paddingTop: 16,
+    paddingBottom: 8,
+    gap: 8,
   },
+  // .pen FT-*: padding [8,16], cornerRadius 18(인라인 지정)
   filterTab: {
-    flex: 1,
     paddingVertical: 8,
+    paddingHorizontal: 16,
     alignItems: 'center',
+    justifyContent: 'center',
   },
+  // .pen FilterTab L: fontSize 13, fontWeight active 600 / inactive 500 (fontWeight 는 인라인 오버라이드)
   filterLabel: {
-    fontSize: 13,
-    fontWeight: '600',
+    ...typography.bodySm,
   },
   list: {
     flex: 1,
   },
+  // .pen BookList: padding [8,20,20,20], gap 16 — paddingHorizontal 은 인라인(theme.spacing[5]) 으로 오버라이드됨
   listContent: {
-    gap: 12,
-    paddingTop: 4,
-    paddingBottom: 24,
+    gap: 16,
+    paddingTop: 8,
+    paddingBottom: 20,
   },
+  // .pen EmptyState: padding [40,20], gap 12, center
   emptyState: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 32,
-    gap: 8,
+    paddingHorizontal: 20,
+    paddingVertical: 40,
+    gap: 12,
   },
+  // .pen EmptyState Title: 16/600
   emptyTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-  },
-  emptyHint: {
-    fontSize: 14,
+    ...typography.headingSm,
     textAlign: 'center',
-    marginBottom: 16,
   },
+  // .pen EmptyState Sub: 13/400, lineHeight 1.5, center
+  emptyHint: {
+    ...typography.bodySm,
+    lineHeight: 20, // 13 * 1.5 ≈ 19.5 → 20
+    textAlign: 'center',
+  },
+  // .pen PrimaryButton: height 48, padding [0,24], cornerRadius 10(radius.md 인라인)
   ctaButton: {
-    paddingVertical: 12,
+    minHeight: 48,
+    paddingVertical: 0,
     paddingHorizontal: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
+  // .pen PrimaryButton label: 16/600
   ctaText: {
-    fontSize: 14,
-    fontWeight: '600',
+    ...typography.headingSm,
   },
 });

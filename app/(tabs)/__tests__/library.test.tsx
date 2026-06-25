@@ -52,6 +52,15 @@ jest.mock('../../../src/auth/useSession', () => ({
   useSession: jest.fn(),
 }));
 
+// @expo/vector-icons(Feather) — 네이티브 의존성 mock (SPEC-UI-002 서재 헤더 아이콘)
+jest.mock('@expo/vector-icons', () => {
+  const React = require('react');
+  const { Text } = require('react-native');
+  const MockIcon = ({ name }: { name: string }) =>
+    React.createElement(Text, { testID: `feather-${name}` }, name);
+  return { __esModule: true, Feather: MockIcon };
+});
+
 // libraryApi 전체 mock
 jest.mock('../../../src/features/library/libraryApi', () => ({
   __esModule: true,
@@ -163,7 +172,7 @@ describe('SPEC-LIBRARY-001 TASK-009: 서재 탭 렌더링', () => {
         createTestQueryClient(),
       );
       await waitFor(() => {
-        expect(getByText('서재가 비어 있어요')).toBeTruthy();
+        expect(getByText('아직 담은 책이 없어요')).toBeTruthy();
       });
       expect(getByTestId('library-search-cta')).toBeTruthy();
     });
