@@ -47,9 +47,11 @@ import {
   useUpdateStatus,
   useUpdateVisibility,
   useDeleteBook,
+  useAddBook,
 } from '../useLibrary';
 import {
   getLibrary,
+  addBook,
   updateProgress,
   updateStatus,
   updateVisibility,
@@ -57,6 +59,7 @@ import {
 } from '../libraryApi';
 
 const getLibraryMock = getLibrary as jest.MockedFunction<typeof getLibrary>;
+const addBookMock = addBook as jest.MockedFunction<typeof addBook>;
 const updateProgressMock = updateProgress as jest.MockedFunction<typeof updateProgress>;
 const updateStatusMock = updateStatus as jest.MockedFunction<typeof updateStatus>;
 const updateVisibilityMock = updateVisibility as jest.MockedFunction<typeof updateVisibility>;
@@ -310,5 +313,51 @@ describe('SPEC-LIBRARY-001 TASK-008: useDeleteBook', () => {
     });
 
     expect(libResult.current.data).toHaveLength(1);
+  });
+});
+
+describe('SPEC-LIBRARY-001: useAddBook onSuccess 캐시 무효화', () => {
+  it('성공 시 서재 목록 + 단일 항목 캐시를 무효화한다 (AC-LIB-001 즉시 표시)', async () => {
+    const client = createTestQueryClient();
+    const invalidateSpy = jest.spyOn(client, 'invalidateQueries');
+
+    // 서재 목록 캐시를 미리 채운다 (invalidate 대상 존재 전제)
+    renderHook(() => useLibrary({ userId: 'u-1' }), {
+      wrapper: createWrapper(client),
+    });
+    await waitFor(() => expect(getLibraryMock).toHaveBeenCalled());
+
+    addBookMock.mockResolvedValue({
+      id: 'ub-new',
+      book_id: 'b-1',
+      user_id: 'u-1',
+      status: 'reading',
+      current_page: 0,
+      is_public: true,
+    } as never);
+    const { result } = renderHook(() => useAddBook({ userId: 'u-1' }), {
+      wrapper: createWrapper(client),
+    });
+
+    await act(async () => {
+      result.current.mutate({ bookId: 'b-1' });
+      await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    });
+
+    // mutationFn 이 addBook 에 올바른 인자를 전달
+    expect(addBookMock).toHaveBeenCalledWith({
+      bookId: 'b-1',
+      userId: 'u-1',
+      status: undefined,
+    });
+    // onSuccess: 서재 목록 캐시(status 무관 전체) 무효화
+    expect(invalidateSpy).toHaveBeenCalledWith({
+      queryKey: ['library', { userId: 'u-1' }],
+    });
+    // onSuccess: 단일 항목 캐시 무효화 — useLibraryItem queryKey 와 동일 구조.
+    // BookDetailScreen 의 useLibraryItem 이 이 키로 재조회해 미등록→등록 UI 전환.
+    expect(invalidateSpy).toHaveBeenCalledWith({
+      queryKey: ['library-item', { bookId: 'b-1', userId: 'u-1' }],
+    });
   });
 });
