@@ -7,3 +7,34 @@ import '@react-native-async-storage/async-storage/jest/async-storage-mock';
 
 // jest-dom matchers for web testing
 import '@testing-library/jest-dom';
+
+// react-native-safe-area-context mock — SPEC-UI-002 REQ-SCREEN-001 상단 SafeArea 처리 도입으로
+// 모든 테스트 렌더가 SafeAreaProvider 컨텍스트 없이 useSafeAreaInsets 호출 가능하도록 글로벌 mock.
+// insets.top/bottom/left/right = 0 (단위 테스트에서는 실제 기기 인셋 불필요).
+jest.mock('react-native-safe-area-context', () => {
+  const React = require('react');
+  const RN = require('react-native');
+
+  const inset = { top: 0, bottom: 0, left: 0, right: 0 };
+
+  const SafeAreaProvider = ({ children }) => children;
+  const SafeAreaView = RN.View;
+  const SafeAreaConsumer = ({ children }) => children(inset);
+  const SafeAreaFrameContext = React.createContext({ x: 0, y: 0, width: 0, height: 0 });
+  const SafeAreaInsetsContext = React.createContext(inset);
+
+  return {
+    SafeAreaProvider,
+    SafeAreaView,
+    SafeAreaConsumer,
+    SafeAreaFrameContext,
+    SafeAreaInsetsContext,
+    useSafeAreaFrame: () => React.useContext(SafeAreaFrameContext),
+    useSafeAreaInsets: () => inset,
+    initialWindowMetrics: {
+      frame: { x: 0, y: 0, width: 0, height: 0 },
+      insets: inset,
+    },
+  };
+});
+

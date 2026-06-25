@@ -24,6 +24,7 @@ import { Tabs, useRouter } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 import { useTheme } from '../../src/theme/theme';
 import { useSession } from '../../src/auth/useSession';
+import { StatusBar } from '../../src/components/StatusBar';
 
 // @MX:ANCHOR: [AUTO] (tabs) 그룹 진입 게이트 — 미인증/온보딩미완 사용자의 보호 라우트 접근 차단
 // @MX:REASON: fan_in >= 3 (홈/서재/모임/마이 모든 탭이 이 게이트 통과). useSession 단일 진실 원천 기반으로 동작하며, 양쪽 가드(tabs/auth)가 동일 상태를 받아 EC7 리다이렉트 루프를 방지한다.
@@ -63,6 +64,8 @@ export default function TabsLayout() {
   if (loading) {
     return (
       <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: theme.colors.bg.base }}>
+        {/* @MX:NOTE: [AUTO] SPEC-UI-002 REQ-SCREEN-001 — 상단 상태바 영역 일관 처리 (로딩 화면도 동일) */}
+        <StatusBar />
         <ActivityIndicator size="large" color={theme.colors.brand[500]} />
       </View>
     );
@@ -75,24 +78,29 @@ export default function TabsLayout() {
 
   // REQ-NAV-003: 모든 스타일 값은 useTheme() 토큰 (하드코딩 금지)
   // @MX:NOTE: [AUTO] 탭바 토큰 스타일링 — bg-surface/border-default/brand-500/text-tertiary 모두 theme 토큰
+  // @MX:NOTE: [AUTO] SPEC-UI-002 REQ-SCREEN-001 — 4개 탭 전체에 일관된 상단 StatusBar 적용.
+  //           각 탭 화면의 자체 헤더 구조(REQ-SCREEN-010 타이틀 22/700)는 유지하고,
+  //           상단 상태바/노치 영역만 추가. StatusBar 는 SafeAreaInsets.top 으로 높이 결정.
   return (
-    <Tabs
-      screenOptions={{
-        headerShown: false,
-        tabBarActiveTintColor: theme.colors.brand[500],
-        tabBarInactiveTintColor: theme.colors.text.tertiary,
-        tabBarStyle: {
-          backgroundColor: theme.colors.bg.surface,
-          borderTopColor: theme.colors.border.default,
-          borderTopWidth: 0.5,
-          height: 56,
-        },
-        tabBarLabelStyle: {
-          fontSize: theme.typography.label.fontSize,
-          fontWeight: theme.typography.label.fontWeight,
-        },
-      }}
-    >
+    <View style={{ flex: 1, backgroundColor: theme.colors.bg.base }}>
+      <StatusBar />
+      <Tabs
+        screenOptions={{
+          headerShown: false,
+          tabBarActiveTintColor: theme.colors.brand[500],
+          tabBarInactiveTintColor: theme.colors.text.tertiary,
+          tabBarStyle: {
+            backgroundColor: theme.colors.bg.surface,
+            borderTopColor: theme.colors.border.default,
+            borderTopWidth: 0.5,
+            height: 56,
+          },
+          tabBarLabelStyle: {
+            fontSize: theme.typography.label.fontSize,
+            fontWeight: theme.typography.label.fontWeight,
+          },
+        }}
+      >
       <Tabs.Screen
         name="index"
         options={{
@@ -168,6 +176,7 @@ export default function TabsLayout() {
           선언 누락 시 expo-router 자동 탭 노출로 SPEC-UI-002 캡슐형 4탭 깨짐 (회귀). href:null 로 숨김. */}
       <Tabs.Screen name="completion/[bookId]" options={{ href: null, headerShown: false }} />
       <Tabs.Screen name="emotion/[bookId]" options={{ href: null, headerShown: false }} />
-    </Tabs>
+      </Tabs>
+    </View>
   );
 }

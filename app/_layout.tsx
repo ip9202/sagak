@@ -25,6 +25,7 @@ import React, { useEffect } from 'react';
 import { Stack } from 'expo-router';
 import { QueryClientProvider } from '@tanstack/react-query';
 import * as WebBrowser from 'expo-web-browser';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { ThemeProvider } from '../src/theme/theme';
 import { AuthProvider } from '../src/auth/AuthContext';
 import { getQueryClient } from '../src/lib/query/queryClient';
@@ -57,18 +58,20 @@ export default function RootLayout() {
 
   return (
     <ThemeProvider>
-      <QueryClientProvider client={getQueryClient()}>
-        <AuthProvider>
-          <PushNotificationHost />
-          <Stack screenOptions={{ headerShown: false }}>
-            <Stack.Screen name="index" />
-            <Stack.Screen name="(tabs)" />
-            <Stack.Screen name="(auth)" />
-            {/* @MX:NOTE: [AUTO] _dev는 __DEV__ 게이트 — 프로덕션 빌드에서는 Screen 선언 자체가 제외되어 접근 불가 (R3) */}
-            {__DEV__ && <Stack.Screen name="_dev" options={{ presentation: 'modal' }} />}
-          </Stack>
-        </AuthProvider>
-      </QueryClientProvider>
+      <SafeAreaProvider>
+        <QueryClientProvider client={getQueryClient()}>
+          <AuthProvider>
+            <PushNotificationHost />
+            <Stack screenOptions={{ headerShown: false }}>
+              <Stack.Screen name="index" />
+              <Stack.Screen name="(tabs)" />
+              <Stack.Screen name="(auth)" />
+              {/* @MX:NOTE: [AUTO] _dev는 __DEV__ 게이트 — 프로덕션 빌드에서는 Screen 선언 자체가 제외되어 접근 불가 (R3) */}
+              {__DEV__ && <Stack.Screen name="_dev" options={{ presentation: 'modal' }} />}
+            </Stack>
+          </AuthProvider>
+        </QueryClientProvider>
+      </SafeAreaProvider>
     </ThemeProvider>
   );
 }
