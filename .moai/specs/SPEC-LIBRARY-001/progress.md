@@ -51,3 +51,36 @@
 1. search.tsx NOT_FOUND 처리: 현재 console.warn만 — getUserFriendlyMessage로 사용자 메시지 노출 필요
 2. updateProgress totalPages 선택 인자: BookDetailScreen에서 books.total_pages 전달 시 ceiling 검증 활성화
 3. calcProgressRate null 반환: UI에서 null 분기 (미정의 진도률 표시)
+
+---
+
+## PR 후속 (2026-06-25)
+
+### PR #69 (fe21bd0) — 서재에 추가 진입점 (BookDetailScreen)
+
+**문맥**: M1~M4 완료 이후, 사용자가 도서 상세 화면(BookDetailScreen)에서 직접 서재에 추가 기능 요구. REQ-LIB-001(서재 추가)이 누락된 상태였음.
+
+**구현 내용**:
+- **BookDetailScreen 진입점**: 상세 화면 헤더 우측 또는 하단 CTA로 "서재에 추가" 버튼 추가.
+- **useAddBook hook**:
+  - `src/features/library/useAddBook.ts` 신규 작성.
+  - `addBook` 뮤테이션 호출 후 409 중복 처리(`books.isbn UNIQUE` 제약조건 위반).
+  - 중복 시 "이미 서재에 있는 책입니다" 메시지 표시.
+  - 성공 시 BookDetailScreen의 `libraryItem` state 갱신하여 "서재에 추가됨" 상태 반영.
+- **libraryItem null 분기**: BookDetailScreen에서 `libraryItem === null`일 때만 "서재에 추가" 버튼 표시. 이미 서재에 있으면 버튼 숨김.
+
+**REQ-LIB-001 준수**:
+- 서재에 추가 진입점(BookDetailScreen) 구현.
+- 중복 책 처리(409 Conflict) UX 구현.
+- state 갱신으로 즉시 피드백 제공.
+
+**검증 상태**:
+- jest 통과(useAddBook 테스트 추가).
+- 실기기 테스트 통과(서재 추가 → 중복 메시지 → state 갱신 확인).
+
+**회귀 맥락**: M1~M4에서 서재 추가 진입점 누락 → 사용자 피드백으로 PR #69 반영.
+
+### SPEC 완료 상태 (최종 갱신 2026-06-25)
+- M1~M4 전부 develop 머지 완료 → SPEC-LIBRARY-001 status: completed
+- REQ-LIB-001(서재에 추가 진입점) PR #69로 완료.
+- **최신 PR**: PR #69 (fe21bd0, 2026-06-25 머지).

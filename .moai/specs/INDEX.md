@@ -287,8 +287,8 @@ product.md "비목표" + SPEC-DB-001 "제외 범위" 기반:
 | 1 | SPEC-API-001 | ✅ | ✅ | ✅ | 구현 완료 (16/19 REQ, 84% — REQ-008~010 스키마 의존으로 SPEC-DB-001 배포 후 연기) |
 | 1 | SPEC-AUTH-001 | ✅ | ✅ | ✅ | 구현 완료 (18/18 REQ, PR #11 머지 c6630ae, 2026-06-17, OAuth 제공자: kakao/naver/google) |
 | 1 | SPEC-NAV-001 | ✅ | ✅ | ✅ | 구현 완료 (13/13 REQ, PR #7 머지 8fa545b, 317 테스트, 커버리지 82.5%) |
-| 2 | SPEC-BOOK-001 | ✅ | ✅ | ✅ | 구현 완료 (M1~M4 전부, PR #8 852f0ac M1+M2 + PR #9 a293e8d M3+M4, 2026-06-17) |
-| 2 | SPEC-LIBRARY-001 | ✅ | ✅ | ✅ | 구현 완료 (16/16 REQ, PR #10 b3a5043, 2026-06-16, 545 테스트, 커버리지 85.92%) |
+| 2 | SPEC-BOOK-001 | ✅ | ✅ | ✅ | 구현 완료 (M1~M4 전부, PR #8 852f0ac M1+M2 + PR #9 a293e8d M3+M4, 후속 PR #64/#65/#67/#68/#71 2026-06-25) |
+| 2 | SPEC-LIBRARY-001 | ✅ | ✅ | ✅ | 구현 완료 (16/16 REQ, PR #10 b3a5043, 2026-06-16, 545 테스트, 커버리지 85.92%, 후속 PR #69 2026-06-25) |
 | 2 | SPEC-EMOTION-001 | ✅ | ✅ | ✅ | 구현 완료 (10/10 REQ, PR #12 머지 a1ce6cf, 2026-06-17, 커버리지 92.47%) |
 | 2 | SPEC-COMPLETION-001 | ✅ | ✅ | ✅ | 구현 완료 (10/10 REQ, PR #14 머지 463996e, 2026-06-17, 커버리지 91.92%) |
 | 3 | SPEC-CLUB-001 | ✅ | ✅ | ✅ | 구현 완료 (12/12 REQ, PR #21 1fcf062, 2026-06-19, 789 테스트, 커버리지 93.44%) |
@@ -298,7 +298,7 @@ product.md "비목표" + SPEC-DB-001 "제외 범위" 기반:
 | 4 | SPEC-NOTIF-001 | ✅ | ✅ | ✅ | 구현 완료 (13/13 REQ — PR #34 5db38e7 + PR #38 8f532d6 + PR #41 cc87323. N3 Android FCM 해결, REQ-003 WHERE 절 수정. N7 Service Account Key 필요) |
 | 4 | SPEC-PROFILE-001 | ✅ | ✅ | ✅ | 구현 완료 (8/8 REQ, PR #36 e616614, 2026-06-20) |
 | 5 | SPEC-DEPLOY-001 | ✅ | ✅ | ✅ | 진행 중 (M1+M5 머지, PR #15 2514263, 2026-06-17; M2/M3/M4/M6 미완료 — M6 블로킹: CLUB/NOTIF 의존) |
-| 0 | SPEC-UI-002 | ✅ | ✅ | ✅ | SPEC 작성 완료 (25 REQ) — 화면 패턴, 14개 도메인 SPEC 선행 의존성 |
+| 0 | SPEC-UI-002 | ✅ | ✅ | ✅ | 구현 PR 누적 완료 (PR #63, #70, 2026-06-25) — 화면 패턴, 14개 도메인 SPEC 선행 의존성 |
 
 **총 REQ 수: 219개 / 15개 SPEC 전체 작성 완료 (2026-06-14)**
 
@@ -342,6 +342,51 @@ product.md "비목표" + SPEC-DB-001 "제외 범위" 기반:
 **Phase 3 완결 상태 (2026-06-20 기준)**: 3/3 완료 — SPEC-CLUB-001(Track A 합류형 요청), SPEC-CLUB-002(Track B 개설형 모임), SPEC-FEED-001(진도별 스포일러 방지 피드 + Realtime) 모두 구현 완료. 소셜 연결 트랙 100% 완성.
 
 **Phase 4 진행 상태 (2026-06-20 기준)**: 3/3 완료 — SPEC-ROUTINE-001(독서 루틴 및 타이머), SPEC-NOTIF-001(푸시 알림 및 알림 센터), SPEC-PROFILE-001(마이페이지/통계/보상) 모두 구현 완료.
+
+---
+
+## 10. PR Merge History (2026-06-25 기준)
+
+### PR #63-71 — 실기기 회귀 수정 + SPEC-UI-002 패턴 준수 (2026-06-25 머지)
+
+**머지 기록**: develop 브랜치 dac4ba7 (2026-06-25)
+
+**총 8개 PR**: SPEC-BOOK-001(5개), SPEC-LIBRARY-001(1개), SPEC-UI-002(2개)
+
+#### SPEC-BOOK-001 (5개 PR)
+
+| PR | 커밋 | 내용 | 회귀 유형 |
+|----|------|------|----------|
+| #64 | c379885 | kakao-book-search service_role 클라이언트 실구현 (async 동적 import, dev 배포 + Deno 500→200 해결) | dev 환경 블로커 (Edge Function 500) |
+| #65 | 31427af | S13 바코드 스캔 후 ISBN 자동 검색 (useEffect + useRef) | 실기기 회귀 (자동 검색 불작동) |
+| #67 | 124351f | S13 initialQuery 지연 갱신 시 자동 검색 (PR #65 후속 — handleSubmit override 인자, state 동기화) | 실기기 회귀 (지연 갱신 시 자동 검색 실패) |
+| #68 | 8c9cdc9 | 검색 결과 클릭 시 unmatched route 수정 (router.push(`/book/${id}`) → `/${id}`) | 실기기 회귀 (라우트 path 불일치) |
+| #71 | dac4ba7 | 두 번째 바코드 스캔 하얀 화면 수정 (issue #66 closed — useFocusEffect + key 재마운트) | 실기기 회귀 (카메라 수명 주기 관리) |
+
+**문맥**: PR #8/#9(M1~M4) 이후 실기기 테스트에서 발견된 5건의 회귀 수정.
+- **PR #64**: M1 Edge Function이 stub(mock) 상태로 머지되었으나, dev 환경에서 500 에러 발생 → service_role 클라이언트 실구현.
+- **PR #65/#67**: 바코드 스캔 후 자동 검색 flow의 실기기 회귀 2건 수정.
+- **PR #68**: 라우팅 path 불일치(``/book/${id}``` → ```/${id}```) 수정.
+- **PR #71**: 두 번째 스캔 시 하얀 화면 버그(issue #66)를 useFocusEffect로 해결.
+
+#### SPEC-LIBRARY-001 (1개 PR)
+
+| PR | 커밋 | 내용 | REQ |
+|----|------|------|-----|
+| #69 | fe21bd0 | 서재에 추가 진입점 (BookDetailScreen, REQ-LIB-001, useAddBook hook, 409 중복 처리) | REQ-LIB-001 |
+
+**문맥**: M1~M4 완료 이후, BookDetailScreen에서 서재에 추가 기능 누락 → useAddBook hook + 중복 처리(409)로 구현.
+
+#### SPEC-UI-002 (2개 PR)
+
+| PR | 커밋 | 내용 | REQ |
+|----|------|------|-----|
+| #63 | 3eefe24 | completion/emotion 하위 라우트 href:null 회귀 수정 (캡슐형 4탭 유지) | REQ-SCREEN-042/043 |
+| #70 | 502f997 | 상단 노치/상태바 SafeArea 처리 (SafeAreaProvider + StatusBar 컴포넌트, REQ-SCREEN-001 3계층) | REQ-SCREEN-001 |
+
+**문맥**: 화면 패턴 디자인 시스템(SPEC-UI-002)의 실기기 회귀 2건 수정.
+- **PR #63**: SPEC-EMOTION-001/COMPLETION-001 구현 후 탭바 href:null 누락 → 캡슐형 4탭 규격 유지.
+- **PR #70**: Dynamic Island 디바이스에서 상단 SafeArea 미적용 → SafeAreaProvider + StatusBar 컴포넌트로 3계층 레이아웃 강화.
 
 ---
 
@@ -389,9 +434,9 @@ product.md "비목표" + SPEC-DB-001 "제외 범위" 기반:
 
 ---
 
-버전: 1.3.0
+버전: 1.4.0
 분류: SPEC 카탈로그 (인덱스)
-상태: 15개 SPEC 전체 작성 완료 / Phase 3 소셜 연결 100% 완결 (CLUB-001, CLUB-002, FEED-001)
+상태: 15개 SPEC 전체 작성 완료 / Phase 2 후속 PR 누적 완료 (BOOK-001 PR #64/#65/#67/#68/#71, LIBRARY-001 PR #69, UI-002 PR #63/#70) / Phase 4 100% 완결 (ROUTINE/NOTIF/PROFILE)
 
 ---
 
