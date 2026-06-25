@@ -25,12 +25,15 @@ export interface BookCardProps {
   coverUri?: string;
   style?: ViewStyle;
   testID?: string;
+  /** 탭 시 호출 — 서재에서 책 상세로 이동 등. 전달 시 Pressable(Card) 로 렌더. */
+  onPress?: () => void;
 }
 
 /**
  * @MX:NOTE: [AUTO] BookCard — .pen P5cRv 기반. Cover 80×110/radius.sm/brand[200] placeholder,
  *           Title 15/600(alarmTitle), Author 12/400(caption), Progress 4px + caption "X / Yp (Z%)".
  *           진행률 캡션은 totalPages 0 이면 생략(currentPage/0 NaN 방지).
+ *           onPress 전달 시 Card 가 Pressable 로 전환되어 탭 가능.
  */
 export const BookCard: React.FC<BookCardProps> = ({
   title,
@@ -40,6 +43,7 @@ export const BookCard: React.FC<BookCardProps> = ({
   coverUri,
   style,
   testID = 'book-card',
+  onPress,
 }) => {
   const theme = useTheme();
 
@@ -48,7 +52,11 @@ export const BookCard: React.FC<BookCardProps> = ({
     totalPages > 0 ? Math.round((currentPage / totalPages) * 100) : 0;
 
   return (
-    <Card style={StyleSheet.flatten([styles.card, style])} testID={testID}>
+    <Card
+      style={StyleSheet.flatten([styles.card, style])}
+      testID={testID}
+      onPress={onPress}
+    >
       <View style={styles.content}>
         {/* Cover: 80×110, radius.sm(6), placeholder brand[200] (.pen Cover) */}
         {coverUri ? (

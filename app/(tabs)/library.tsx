@@ -223,6 +223,9 @@ export default function LibraryTab() {
                 currentPage={item.current_page ?? 0}
                 totalPages={book?.total_pages ?? 0}
                 coverUri={book?.cover_url ?? undefined}
+                // @MX:NOTE: [AUTO] 책 탭 → 도서 상세([bookId]) 이동. (tabs) 그룹 라우트는
+                //           URL 에서 생략되므로 /<UUID> 로 push (PR #68 route fix 와 동일 패턴).
+                onPress={() => router.push(`/${item.book_id}`)}
               />
             );
           })}
