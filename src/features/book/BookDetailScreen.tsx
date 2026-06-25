@@ -38,6 +38,7 @@ import {
   useUpdateStatus,
   useUpdateVisibility,
   useDeleteBook,
+  useAddBook,
 } from '../library/useLibrary';
 import { ProgressBar } from '../../components/ProgressBar';
 import { calcProgressRate } from '../library/progressRate';
@@ -116,6 +117,8 @@ export const BookDetailScreen: React.FC<BookDetailScreenProps> = ({
   const updateStatusMutation = useUpdateStatus({ userId });
   const updateVisibilityMutation = useUpdateVisibility({ userId });
   const deleteBookMutation = useDeleteBook({ userId });
+  // SPEC-LIBRARY-001: 서재에 추가 — 미등록 책(libraryItem null) 진입점 (REQ-LIB-001/002/032)
+  const addBookMutation = useAddBook({ userId });
 
   // 진행률 입력 로컬 상태 (검증 메시지 표시용)
   const [progressDraft, setProgressDraft] = useState<string>('');
@@ -193,6 +196,28 @@ export const BookDetailScreen: React.FC<BookDetailScreenProps> = ({
       id: libraryItem.id,
       isPublic: !libraryItem.is_public,
     });
+  };
+
+  // 서재에 추가 (미등록 책 진입점)
+  // @MX:NOTE: [AUTO] 409 정규화 경로 — addBook → normalizeError → classifyError 가
+  //           UNIQUE 위반(23505) 을 category='VALIDATION', code='23505' 로 분류.
+  //           HTTP 409 가 아니라 AppError.category 로 식별해야 함 (errors.ts line 174-182).
+  //           getUserFriendlyMessage 가 "이미 등록된 항목입니다" 반환 (errors.ts line 331).
+  const handleAddToLibrary = () => {
+    // 인증 가드: 미인증(useEffect 가 onRequireAuth 호출 전 사용자 누름 가능) 시 가드
+    if (!isAuthenticated || !userId) {
+      onRequireAuth();
+      return;
+    }
+    addBookMutation.mutate(
+      { bookId },
+      {
+        onError: (err) => {
+          const friendly = getUserFriendlyMessage(err as never);
+          Alert.alert('서재에 추가할 수 없어요', friendly);
+        },
+      },
+    );
   };
 
   // 삭제: 확인 다이얼로그
@@ -339,7 +364,49 @@ export const BookDetailScreen: React.FC<BookDetailScreenProps> = ({
         </Text>
       )}
 
-      {/* --- SPEC-LIBRARY-001 TASK-010: 서재 섹션 --- */}
+      {/* --- SPEC-LIBRARY-001: 서재에 추가 진입점 (미등록 책) --- */}
+      {libraryItem === null && !libraryItemQuery.isLoading && (
+        <View
+          testID="book-detail-add-to-library"
+          style={[
+            styles.addToLibrarySection,
+            {
+              backgroundColor: tc.bg.surface,
+              borderRadius: theme.radius.lg,
+              marginTop: theme.spacing[5],
+            },
+          ]}
+        >
+          <Pressable
+            testID="add-to-library-button"
+            onPress={handleAddToLibrary}
+            disabled={addBookMutation.isPending}
+            style={[
+              styles.completeButton,
+              {
+                backgroundColor: tc.brand[500],
+                borderRadius: theme.radius.md,
+                opacity: addBookMutation.isPending ? 0.6 : 1,
+              },
+            ]}
+            accessibilityRole="button"
+            accessibilityLabel="서재에 추가"
+            accessibilityState={{ disabled: addBookMutation.isPending }}
+          >
+            <Text style={[styles.completeButtonText, { color: tc.text.inverse }]}>
+              {addBookMutation.isPending ? '추가 중...' : '서재에 추가'}
+            </Text>
+          </Pressable>
+          {/* REQ-LIB-032: 공개 설정 기본값 안내 */}
+          <Text
+            style={[styles.visibilityHint, { color: tc.text.tertiary }]}
+          >
+            서재에 추가하면 다른 사람이 내 감정 기록을 볼 수 있어요 (기본 공개)
+          </Text>
+        </View>
+      )}
+
+      {/* --- SPEC-LIBRARY-001 TASK-010: 서재 섹션 (등록된 책) --- */}
       {libraryItem && (
         <View
           testID="book-detail-library-section"
@@ -636,6 +703,13 @@ const styles = StyleSheet.create({
     width: '100%',
     padding: 16,
     gap: 16,
+    alignItems: 'stretch',
+  },
+  // --- SPEC-LIBRARY-001: 서재에 추가 섹션 (미등록 책) ---
+  addToLibrarySection: {
+    width: '100%',
+    padding: 16,
+    gap: 12,
     alignItems: 'stretch',
   },
   progressInputRow: {

@@ -18,13 +18,14 @@
  */
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
+  addBook,
   deleteBook,
   getLibrary,
   updateProgress,
   updateStatus,
   updateVisibility,
 } from './libraryApi';
-import type { LibraryFilter, LibraryItem, ReadingStatus } from './types';
+import type { AddBookInput, LibraryFilter, LibraryItem, ReadingStatus } from './types';
 
 // @MX:ANCHOR: [AUTO] useLibrary 계열 — 서재 목록 조회/뮤테이션 공개 훅 (fan_in >= 2: LibraryScreen, BookDetail 확장)
 // @MX:REASON: 서재 탭 화면과 상세 화면의 서재 섹션이 모두 이 훅에 의존하며, queryKey/필터 계약이 바뀌면 두 화면의 캐시 일관성이 깨진다.
@@ -234,6 +235,46 @@ export function useUpdateVisibility(args: UseUpdateVisibilityArgs) {
     },
     onSuccess: () => {
       invalidateLibrary(qc, args.userId);
+    },
+  });
+}
+
+export interface UseAddBookArgs {
+  userId: string;
+}
+export interface AddBookMutationInput {
+  bookId: string;
+  status?: ReadingStatus;
+}
+
+/**
+ * 서재에 책 추가 mutation (REQ-LIB-001 / REQ-LIB-002).
+ * - 기본 status='reading', current_page=0, is_public=true (DB default 의존)
+ * - UNIQUE(user_id, book_id) 위반 → AppError category='VALIDATION', code='23505'
+ *   (libraryApi.addBook → normalizeError → classifyError 경유, HTTP 409 아님에 주의)
+ *
+ * onSuccess: 서재 목록 + 단일 항목 캐시 모두 무효화.
+ * optimistic update 는 신규 항목이라 캐시에 예상 데이터가 없어 생략.
+ *
+ * @MX:NOTE: [AUTO] invalidate 대상에 ['library-item', { bookId, userId }] 포함 — BookDetailScreen 의 useLibraryItem 이 이 키로 재조회해 미등록 → 등록으로 UI 전환.
+ * @MX:SPEC SPEC-LIBRARY-001
+ */
+export function useAddBook(args: UseAddBookArgs) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: AddBookMutationInput) =>
+      addBook({
+        bookId: input.bookId,
+        userId: args.userId,
+        status: input.status,
+      } satisfies AddBookInput),
+    onSuccess: (_data, input) => {
+      // 서재 목록 캐시 (status 무관 전체)
+      invalidateLibrary(qc, args.userId);
+      // 단일 항목 캐시 — useLibraryItem queryKey 와 동일 구조
+      qc.invalidateQueries({
+        queryKey: ['library-item', { bookId: input.bookId, userId: args.userId }],
+      });
     },
   });
 }
