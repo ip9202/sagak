@@ -106,3 +106,26 @@
 - status: draft → 구현 PR 누적 중 (PR #63, #70 완료)
 - 본 SPEC은 "14개 도메인 SPEC의 선행 의존성"이므로, 개별 도메인 SPEC run이 완료될 때마다 본 SPEC의 준수 여부가 검증됨.
 - 최종 완료: 14개 도메인 SPEC 전체 run 완료 시점.
+
+## Pencil ↔ 앱 디자인 차이 수정 (PR #76-#78, 2026-06-26)
+
+**문맥**: Pencil(`.pen`) 디자인을 앱에 포팅했으나 실행 결과가 디자인과 다른 구조적 차이 6종 audit → 3개 PR로 수정. 계획: `.moai/plans/stateless-prancing-squirrel.md`.
+
+### PR #76 (811bf59) — Inter 폰트 도입 + 서재 화면 재포팅 + 책 탭 + 상태/Alert UX
+- **P0 Inter 폰트**: `@expo-google-fonts/inter`(static per-weight 4종) + `useFonts` 게이트 + typography 토큰에 weight-specific fontFamily 추가(spread 자동 전파). 한글은 OS 자동 폴백.
+- **서재 `.pen F04-Library` 재포팅**: 헤더 Feather search+plus 아이콘, 필터 개별 capsule(cornerRadius 18), 빈 상태 book-open 아이콘 + .pen 텍스트, BookCard Row 레이아웃 + 진행률 캡션.
+- **책 탭 → 상세 이동**: Card onPress 지원(Pressable 전환), library.tsx에서 `router.push(/${book_id})`.
+- **상세 상태 변경**: invalidateLibrary에 `['library-item']` 무효화 추가(chip 즉시 전환) → "완독 처리" 버튼 제거 + 세 상태 탭 Alert 확인 질문(completed 시 완독 다이어리 이동).
+
+### PR #77 (8408da6) — 토큰 정합성
+- tokens 확장: `radius.xs: 4`, `typography.buttonLabel(16/600/22)`.
+- 하드코딩 → 토큰: Button(buttonLabel), ReadersScreen/HostRequestsScreen(typography 매핑 + lineHeight 정합), EmotionRecordCard(radius.xs), my.tsx(text.inverse), login.tsx(OAuth 브랜드색 예외 명시).
+- trackB(Clubs/ClubCreate/ClubDetail/JoinRequestSheet)는 별도 PR.
+
+### PR #78 (082a7a2) — 비탭 화면 SafeArea
+- PR #70 (tabs) 그룹에 이어 비탭 화면으로 SafeArea 확장: (auth)/_layout(3화면), emotion/completion ScrollView 외곽, scan 카메라(투명 spacer + ExpoStatusBar light, paddingTop 이중 제거).
+- jest.setup.js: expo-status-bar noop mock.
+
+**검증**: 전체 1225/1225, tsc/lint clean, CI 3/3 green (각 PR). 실기기(Pixel 6) 한글 폰트 폴백 + 서재/상세/scan 확인 완료.
+
+**잔여**: trackB 토큰화(별도 PR), 다른 화면 .pen 대조 재포팅(필요 시).
