@@ -26,7 +26,8 @@ import { searchKakaoBooks, type KakaoSearchResponse } from './kakaoClient.ts';
  */
 export interface SearchDeps {
   getEnv(key: string): string | undefined;
-  createServiceClient(): SupabaseClientLike;
+  // @MX:NOTE: [AUTO] createServiceClient 는 async — supabase-js 동적 import 로 인해 Promise 반환.
+  createServiceClient(): Promise<SupabaseClientLike>;
   searchKakao(params: {
     query: string;
     target: 'title' | 'author' | 'isbn';
@@ -120,7 +121,8 @@ export async function handleSearchRequest(
     };
   }
 
-  const client = deps.createServiceClient();
+  // @MX:NOTE: [AUTO] createServiceClient 는 동적 import(supabase-js)를 수반해 async — await 필요.
+  const client = await deps.createServiceClient();
 
   // target=isbn 인 경우 캐시 히트 우선 조회 (REQ-BOOK-010)
   if (target === 'isbn') {
@@ -198,7 +200,7 @@ if (isDenoEnvironment()) {
   DenoGlobal.serve(async (req: Request): Promise<Response> => {
     const deps: SearchDeps = {
       getEnv: (key: string) => DenoGlobal.env.get(key),
-      createServiceClient: () => {
+      createServiceClient: async () => {
         // service_role 클라이언트 생성 (RLS 우회)
         // @MX:WARN: [AUTO] SUPABASE_SERVICE_ROLE_KEY 사용 — 클라이언트 노출 금지 (REQ-BOOK-002)
         // @MX:REASON: 캐시 쓰기(upsert)는 RLS 를 우회해야 하므로 service_role 필수. anon 키로는 INSERT 권한 없음.
@@ -237,14 +239,36 @@ if (isDenoEnvironment()) {
 }
 
 /**
- * service_role Supabase 클라이언트 생성 (Deno 환경).
- * supabase-js 를 동적 import 해 클라이언트 번들에 포함되지 않도록 한다.
+ * service_role Supabase 클라이언트 생성 (Deno 환경 전용).
+ *
+ * supabase-js 를 동적 import 해 클라이언트 번들에 포함되지 않도록 한다 (memory lesson #16).
+ * jest 환경에서는 호출되지 않는다 — Deno.serve 셸 내에서만 실행.
+ *
+ * @MX:WARN: [AUTO] service_role 키로 RLS 우회 클라이언트 생성 — 키 절대 로깅 금지.
+ * @MX:REASON: anon 키로는 books INSERT 권한이 없다 (REQ-DB-013b). Edge Function 만 service_role 키를 보유해야 한다.
+ *
+ * @param url - Supabase 프로젝트 URL
+ * @param serviceRoleKey - service_role 키 (RLS 우회)
+ * @returns supabase-js 클라이언트 (SupabaseClientLike 로 캐스팅)
+ * @throws URL 또는 키가 비어 있을 때
  */
-function createServiceRoleClient(
-  _url: string,
-  _serviceRoleKey: string
-): SupabaseClientLike {
-  // 실제 배포 시: const { createClient } = await import('@supabase/supabase-js');
-  // 테스트 환경에서는 호출되지 않는다 (Deno 환경 전용).
-  throw new Error('createServiceRoleClient must be implemented in Deno runtime');
+async function createServiceRoleClient(
+  url: string,
+  serviceRoleKey: string
+): Promise<SupabaseClientLike> {
+  if (!url || !serviceRoleKey) {
+    throw new Error(
+      'SUPABASE_URL 또는 SUPABASE_SERVICE_ROLE_KEY 가 설정되지 않았습니다'
+    );
+  }
+
+  // 동적 import — 정적 import 시 클라이언트 번들에 supabase-js 가 포함된다 (lesson #16).
+  // deno.json importMap 이 @supabase/supabase-js → esm.sh 매핑을 제공한다.
+  const { createClient } = await import('@supabase/supabase-js');
+
+  // supabase-js 클라이언트를 최소 계약(SupabaseClientLike)으로 안전 캐스팅.
+  // 전체 타입을 캐시 매니저에 노출하지 않기 위해 SupabaseClientLike 사용.
+  return createClient(url, serviceRoleKey, {
+    auth: { persistSession: false },
+  }) as unknown as SupabaseClientLike;
 }
