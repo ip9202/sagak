@@ -51,3 +51,15 @@ jest.mock('@expo-google-fonts/inter', () => ({
   Inter_700Bold: 'Inter_700Bold',
 }));
 
+// expo-status-bar mock — SPEC-UI-002 REQ-SCREEN-001.
+// src/components/StatusBar.tsx 와 BarcodeScanner.tsx 가 expo-status-bar 의 StatusBar 컴포넌트를
+// 렌더링하는데, 실제 구현은 RN 내부 타이머(clearImmediate/setImmediate)를 사용해 jsdom 환경에서
+// ReferenceError: clearImmediate is not defined 를 발생시킨다.
+// PR #70 ((tabs)/_layout) 은 expo-router mock 으로 실제 트리 마운트가 일어나지 않아 우회됐으나,
+// 비탭 화면(auth/emotion/completion/scan) 테스트는 실제 StatusBar 를 마운트하므로 글로벌 noop mock 이 필요하다.
+// StatusBar 컴포넌트 자체(useSafeAreaInsets 기반 View)는 별도 검증 대상이 아님 — OS 상태바 제어는
+// 런타임 전용 기능이므로 테스트에서는 null 로 렌더링한다.
+jest.mock('expo-status-bar', () => ({
+  StatusBar: () => null,
+}));
+

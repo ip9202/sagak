@@ -12,12 +12,16 @@
  */
 
 import { useEffect } from 'react';
+import { View } from 'react-native';
 import { Stack, useRouter } from 'expo-router';
 import { useSession } from '../../src/auth/useSession';
+import { useTheme } from '../../src/theme/theme';
+import { StatusBar } from '../../src/components/StatusBar';
 
 export default function AuthLayout() {
   const s = useSession();
   const router = useRouter();
+  const theme = useTheme();
 
   // G5: 인증+온보딩 완료 사용자의 (auth) 접근 차단
   const redirectAway = s !== null && s.isAuthenticated && s.isOnboarded;
@@ -39,11 +43,17 @@ export default function AuthLayout() {
     return null;
   }
 
+  // @MX:NOTE: [AUTO] SPEC-UI-002 REQ-SCREEN-001 — auth 그룹(login/onboarding/callback) 상단
+  //           상태바/노치 영역 일관 처리. (tabs)/_layout.tsx 와 동일한 3계층 레이아웃(StatusBar → Content).
+  //           배경 bg.base 토큰 — 로딩/게이트 화면과 색 일관.
   return (
-    <Stack screenOptions={{ headerShown: false }}>
-      <Stack.Screen name="login" />
-      <Stack.Screen name="onboarding" />
-      <Stack.Screen name="auth/callback" />
-    </Stack>
+    <View style={{ flex: 1, backgroundColor: theme.colors.bg.base }}>
+      <StatusBar />
+      <Stack screenOptions={{ headerShown: false }}>
+        <Stack.Screen name="login" />
+        <Stack.Screen name="onboarding" />
+        <Stack.Screen name="auth/callback" />
+      </Stack>
+    </View>
   );
 }
