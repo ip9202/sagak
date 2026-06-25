@@ -185,6 +185,59 @@ describe('BookSearchScreen — ScanButton', () => {
   });
 });
 
+describe('BookSearchScreen — S13: 스캔 후 자동 ISBN 검색', () => {
+  it('initialQuery + initialTarget prop 전달 시 검색 버튼 press 없이 searchBooks 를 자동 호출한다', async () => {
+    // SPEC-BOOK-001 S13: 바코드 스캔 → router.replace 로 initialQuery(ISBN), initialTarget('isbn') 전달
+    // 사용자가 검색 버튼을 누르기 전에 자동 검색이 실행되어야 함 (프리즈 방지)
+    mockedSearchBooks.mockResolvedValueOnce([]);
+    const { getByTestId } = renderScreen({
+      onNavigateScan: jest.fn(),
+      onSelectBook: jest.fn(),
+      initialQuery: '9788932917245',
+      initialTarget: 'isbn',
+    });
+
+    // 검색 버튼 press 없이 자동 호출 대기
+    await waitFor(() => {
+      expect(mockedSearchBooks).toHaveBeenCalledWith('9788932917245', 'isbn');
+    });
+
+    // 입력 필드에도 ISBN 이 채워져 있어야 함
+    expect(getByTestId('search-input').props.value).toBe('9788932917245');
+  });
+
+  it('initialQuery 가 비어 있을 때 자동 검색을 호출하지 않는다', async () => {
+    // 기본 진입(직접 탭 이동) 시 자동 검색 실행 X — 빈 쿼리 검증(S5)과 일관성
+    renderScreen({
+      onNavigateScan: jest.fn(),
+      onSelectBook: jest.fn(),
+    });
+    // 자동 검색이 비활성화되어 있는지 약간 대기 후 확인
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    expect(mockedSearchBooks).not.toHaveBeenCalled();
+  });
+
+  it('자동 검색은 1회만 실행된다 (중복/무한 호출 방지)', async () => {
+    // ref 가드가 없으면 query/target 변경 시 effect 재실행으로 중복 호출 가능
+    mockedSearchBooks.mockResolvedValue([]);
+    renderScreen({
+      onNavigateScan: jest.fn(),
+      onSelectBook: jest.fn(),
+      initialQuery: '9788932917245',
+      initialTarget: 'isbn',
+    });
+
+    // 첫 자동 검색 대기
+    await waitFor(() => {
+      expect(mockedSearchBooks).toHaveBeenCalledTimes(1);
+    });
+
+    // 충분한 시간 대기 후에도 1회만 호출되었는지 확인 (무한 루프/중복 방지)
+    await new Promise((resolve) => setTimeout(resolve, 100));
+    expect(mockedSearchBooks).toHaveBeenCalledTimes(1);
+  });
+});
+
 describe('BookSearchScreen — 결과 카드 선택', () => {
   it('결과 카드 탭 시 onSelectBook(result) 을 호출한다', async () => {
     mockedSearchBooks.mockResolvedValueOnce(sampleResults);
