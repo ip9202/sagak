@@ -21,6 +21,7 @@ import { useSession } from '../../../src/auth/useSession';
 import { useLibraryItem } from '../../../src/features/library/useLibraryItem';
 import { useTheme } from '../../../src/theme/theme';
 import { CompletionDiaryScreen } from '../../../src/features/completion/CompletionDiaryScreen';
+import { StatusBar } from '../../../src/components/StatusBar';
 
 export default function CompletionBookRoute(): React.ReactElement | null {
   const { bookId } = useLocalSearchParams<{ bookId: string }>();
@@ -52,6 +53,8 @@ export default function CompletionBookRoute(): React.ReactElement | null {
         testID="completion-route-loading"
         style={[styles.center, { backgroundColor: theme.colors.bg.base }]}
       >
+        {/* @MX:NOTE: [AUTO] SPEC-UI-002 REQ-SCREEN-001 — 로딩 상태도 상단 상태바 영역 일관 처리 */}
+        <StatusBar />
         <ActivityIndicator size="large" color={theme.colors.brand[500]} />
       </View>
     );
@@ -62,13 +65,18 @@ export default function CompletionBookRoute(): React.ReactElement | null {
     return null;
   }
 
+  // @MX:NOTE: [AUTO] SPEC-UI-002 REQ-SCREEN-001 — 비탭 화면 상단 상태바/노치 영역 처리.
+  //           (tabs)/_layout.tsx 와 동일한 3계층 레이아웃: StatusBar → ScrollView(content).
   return (
-    <ScrollView
-      testID="completion-route-screen"
-      style={[styles.container, { backgroundColor: theme.colors.bg.base }]}
-    >
-      <CompletionDiaryScreen userBookId={userBookId} />
-    </ScrollView>
+    <View style={{ flex: 1, backgroundColor: theme.colors.bg.base }}>
+      <StatusBar />
+      <ScrollView
+        testID="completion-route-screen"
+        style={[styles.container, { backgroundColor: theme.colors.bg.base }]}
+      >
+        <CompletionDiaryScreen userBookId={userBookId} />
+      </ScrollView>
+    </View>
   );
 }
 

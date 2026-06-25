@@ -30,6 +30,7 @@ import type { EmotionSortOption } from '../../../src/features/emotion/types';
 import { useTheme } from '../../../src/theme/theme';
 import { EmotionInputScreen } from '../../../src/features/emotion/EmotionInputScreen';
 import { TimelineScreen } from '../../../src/features/emotion/TimelineScreen';
+import { StatusBar } from '../../../src/components/StatusBar';
 
 export default function EmotionBookRoute() {
   const { bookId } = useLocalSearchParams<{ bookId: string }>();
@@ -88,6 +89,8 @@ export default function EmotionBookRoute() {
         testID="emotion-route-loading"
         style={[styles.center, { backgroundColor: theme.colors.bg.base }]}
       >
+        {/* @MX:NOTE: [AUTO] SPEC-UI-002 REQ-SCREEN-001 — 로딩 상태도 상단 상태바 영역 일관 처리 */}
+        <StatusBar />
         <ActivityIndicator size="large" color={theme.colors.brand[500]} />
       </View>
     );
@@ -98,29 +101,34 @@ export default function EmotionBookRoute() {
     return null;
   }
 
+  // @MX:NOTE: [AUTO] SPEC-UI-002 REQ-SCREEN-001 — 비탭 화면 상단 상태바/노치 영역 처리.
+  //           (tabs)/_layout.tsx 와 동일한 3계층 레이아웃: StatusBar → ScrollView(content).
   return (
-    <ScrollView
-      style={[styles.container, { backgroundColor: theme.colors.bg.base }]}
-      testID="emotion-route-screen"
-    >
-      <EmotionInputScreen
-        bookId={bookId}
-        userId={userId}
-        currentPage={currentPage}
-        totalPages={totalPages}
-        onSubmit={(input) => createMutation.mutate(input)}
-      />
-      <TimelineScreen
-        bookId={bookId}
-        userId={userId}
-        currentPage={currentPage}
-        data={recordsQuery.data ?? { safe: [], spoiler: [] }}
-        isLoading={recordsQuery.isLoading}
-        error={recordsQuery.error}
-        sort={sort}
-        onSortChange={setSort}
-      />
-    </ScrollView>
+    <View style={{ flex: 1, backgroundColor: theme.colors.bg.base }}>
+      <StatusBar />
+      <ScrollView
+        style={[styles.container, { backgroundColor: theme.colors.bg.base }]}
+        testID="emotion-route-screen"
+      >
+        <EmotionInputScreen
+          bookId={bookId}
+          userId={userId}
+          currentPage={currentPage}
+          totalPages={totalPages}
+          onSubmit={(input) => createMutation.mutate(input)}
+        />
+        <TimelineScreen
+          bookId={bookId}
+          userId={userId}
+          currentPage={currentPage}
+          data={recordsQuery.data ?? { safe: [], spoiler: [] }}
+          isLoading={recordsQuery.isLoading}
+          error={recordsQuery.error}
+          sort={sort}
+          onSortChange={setSort}
+        />
+      </ScrollView>
+    </View>
   );
 }
 

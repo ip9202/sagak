@@ -9,6 +9,8 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 import { CameraView, useCameraPermissions } from 'expo-camera';
+import { StatusBar as ExpoStatusBar } from 'expo-status-bar';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../../theme/theme';
 import { isValidIsbn } from './isbn';
 import { shouldSuppressDuplicate } from './debounce';
@@ -57,6 +59,10 @@ export const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
   testID = 'barcode-scanner',
 }) => {
   const theme = useTheme();
+  // @MX:NOTE: [AUTO] SPEC-UI-002 REQ-SCREEN-001 — 상단 상태바/노치 영역 처리.
+  //           카메라 전체화면이므로 StatusBar 컴포넌트(bg.base 불투명 View)를 쓰면 카메라가 가려진다.
+  //           대신 insets.top 크기의 투명 spacer + ExpoStatusBar style="light"(어두운 카메라 배경 대비) 사용.
+  const insets = useSafeAreaInsets();
   const [scanning, setScanning] = useState(true);
   const lastIsbnRef = useRef<string | null>(null);
   const lastScannedAtRef = useRef<number>(0);
@@ -121,6 +127,12 @@ export const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
       testID={testID}
       style={[styles.container, { backgroundColor: themeColors.text.primary }]}
     >
+      {/* @MX:NOTE: [AUTO] SPEC-UI-002 REQ-SCREEN-001 — 카메라 전체화면용 상단 SafeArea 처리.
+                  어두운 카메라 배경(text.primary)에 맞춰 상태바 텍스트는 밝게(light).
+                  insets.top 크기의 투명 spacer 가 헤더를 상태바/노치 아래로 밀어낸다. */}
+      <ExpoStatusBar style="light" />
+      <View style={{ height: insets.top }} pointerEvents="none" />
+
       {/* Header (Pencil F07-Scan: KNyfR) */}
       <View style={styles.header}>
         <Text
@@ -248,7 +260,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 20, // spacing[5] - 헤더 좌우 패딩
-    paddingTop: 8, // spacing[2] - 헤더 상단 패딩
+    // @MX:NOTE: [AUTO] paddingTop 제거 — 상단 SafeArea spacer(insets.top) 가 노치/상태바를
+    //           밀어내므로 헤더 상단 패딩은 불필요(이중 여백으로 X 버튼이 과도하게 아래로 내려가는 현상 방지).
   },
   title: {
     fontSize: 22, // typography.displaySm(22/700/30)
