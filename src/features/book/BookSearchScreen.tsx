@@ -12,7 +12,7 @@
  *
  * token-only 스타일링 (SPEC-UI-002 FROZEN). useTheme() 사용, 하드코딩 금지.
  */
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Pressable,
@@ -91,6 +91,17 @@ export const BookSearchScreen: React.FC<BookSearchScreenProps> = ({
       setState({ status: 'error', results: [], errorMessage: message });
     }
   }, [query, target]);
+
+  // S13: 바코드 스캔 후 라우팅(initialQuery/initialTarget) 으로 진입 시 자동 검색.
+  // 무한 루프 방지: ref 가드로 최초 1회만 실행 — handleSubmit 은 query/target 이 동일하면
+  // useCallback 메모이제이션으로 재생성되지 않지만, ref 를 추가 이중 안전망으로 사용.
+  const didAutoSearchRef = useRef(false);
+  useEffect(() => {
+    if (didAutoSearchRef.current) return;
+    if (!initialQuery || initialQuery.trim().length === 0) return;
+    didAutoSearchRef.current = true;
+    void handleSubmit();
+  }, [initialQuery, handleSubmit]);
 
   return (
     <View style={[styles.container, { backgroundColor: tc.bg.base }]}>
