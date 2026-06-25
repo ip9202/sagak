@@ -26,6 +26,7 @@ import {
   TextInput,
   View,
 } from 'react-native';
+import { Feather } from '@expo/vector-icons';
 import { useTheme } from '../../theme/theme';
 import { useRouter } from 'expo-router';
 import { useSession } from '../../auth/useSession';
@@ -89,6 +90,76 @@ function mapErrorMessage(category: string | undefined, fallback: string): string
 }
 
 /**
+ * 통일된 사용자 피드백 메시지 모델 (SPEC-UI-002).
+ * 진행률 검증·상태 변경·완독 처리 메시지가 동일한 박스 UI 로 렌더된다.
+ */
+interface Feedback {
+  text: string;
+  kind: 'success' | 'info' | 'warning';
+}
+
+/**
+ * @MX:NOTE: [AUTO] ReadingStatus 라벨 매핑 — status chip 라벨과 피드백 메시지가 동일 라벨을 공유.
+ *           chip 렌더 블록과 handleStatusChange 양쪽에서 참조하므로 단일 소스로 통합.
+ */
+function statusLabel(s: ReadingStatus): string {
+  switch (s) {
+    case 'reading':
+      return '읽는중';
+    case 'completed':
+      return '완독';
+    case 'shelved':
+      return '보관함';
+  }
+}
+
+// @MX:NOTE: [AUTO] SPEC-UI-002 — 피드백 박스 kind 별 Feather 아이콘 이름 매핑.
+const FEEDBACK_ICON: Record<Feedback['kind'], 'check-circle' | 'alert-triangle' | 'info'> = {
+  success: 'check-circle',
+  warning: 'alert-triangle',
+  info: 'info',
+};
+
+/**
+ * @MX:ANCHOR: [AUTO] FeedbackBox — 통일된 피드백 메시지 박스 (SPEC-UI-002)
+ * @MX:REASON: 진행률 검증·상태 변경·완독 처리 세 곳에서 동일 박스 UI 로 렌더되어야 한다.
+ *            스타일/아이콘/색상 매핑이 한 곳에서 변경되지 않으면 메시지 UI 가 분산되어 사용자 경험이 깨진다.
+ */
+function FeedbackBox({
+  feedback,
+  theme,
+  testID,
+}: {
+  feedback: Feedback;
+  theme: ReturnType<typeof useTheme>;
+  testID: string;
+}) {
+  const tc = theme.colors;
+  const color =
+    feedback.kind === 'success'
+      ? tc.semantic.success
+      : feedback.kind === 'warning'
+        ? tc.semantic.warning
+        : tc.semantic.info;
+  return (
+    <View
+      testID={testID}
+      style={[
+        styles.feedbackBox,
+        {
+          backgroundColor: tc.bg.muted,
+          borderRadius: theme.radius.md,
+          borderLeftColor: color,
+        },
+      ]}
+    >
+      <Feather name={FEEDBACK_ICON[feedback.kind]} size={16} color={color} />
+      <Text style={[styles.feedbackText, { color }]}>{feedback.text}</Text>
+    </View>
+  );
+}
+
+/**
  * @MX:ANCHOR: [AUTO] BookDetailScreen — 도서 상세 화면 공개 컴포넌트
  * @MX:REASON: 라우팅([bookId].tsx)이 직접 마운트하며, 세션 가드·NOT_FOUND/RLS 에러 처리·bookId 전달 계약을 위반하면 상세 플로우가 고장난다.
  */
@@ -122,8 +193,9 @@ export const BookDetailScreen: React.FC<BookDetailScreenProps> = ({
 
   // 진행률 입력 로컬 상태 (검증 메시지 표시용)
   const [progressDraft, setProgressDraft] = useState<string>('');
-  const [progressMessage, setProgressMessage] = useState<string | null>(null);
-  const [statusMessage, setStatusMessage] = useState<string | null>(null);
+  // @MX:NOTE: [AUTO] SPEC-UI-002 — 통일 피드백 모델. 진행률 검증/상태 변경/완독 메시지가 같은 UI 로 렌더.
+  const [progressMessage, setProgressMessage] = useState<Feedback | null>(null);
+  const [statusMessage, setStatusMessage] = useState<Feedback | null>(null);
   // @MX:NOTE: [AUTO] book 참조를 상위로 끌어올려 mutation 핸들러가 total_pages 에 접근.
   const book = state.book;
   // libraryItem 이 로드되면 입력란 초기값 세팅
@@ -138,14 +210,14 @@ export const BookDetailScreen: React.FC<BookDetailScreenProps> = ({
     if (!libraryItem) return;
     const parsed = Number(progressDraft);
     if (Number.isNaN(parsed)) {
-      setProgressMessage('숫자를 입력해 주세요.');
+      setProgressMessage({ text: '숫자를 입력해 주세요.', kind: 'warning' });
       return;
     }
     const totalPages = book?.total_pages ?? null;
     const validationError = validatePage(parsed, totalPages);
     if (validationError) {
       // @MX:NOTE: [AUTO] validatePage 메시지(한국어) 를 그대로 노출 — 음수/초과 케이스
-      setProgressMessage(validationError.message);
+      setProgressMessage({ text: validationError.message, kind: 'warning' });
       return;
     }
     setProgressMessage(null);
@@ -159,13 +231,27 @@ export const BookDetailScreen: React.FC<BookDetailScreenProps> = ({
   // status 변경
   const handleStatusChange = (next: ReadingStatus) => {
     if (!libraryItem) return;
-    // 정책 5.1-A: completed → reading 역전환 경고
-    if (libraryItem.status === 'completed' && next === 'reading') {
-      setStatusMessage('완독한 책을 다시 읽는중으로 변경합니다.');
-    } else {
-      setStatusMessage(null);
-    }
-    updateStatusMutation.mutate({ id: libraryItem.id, status: next });
+    // @MX:NOTE: [AUTO] 정책 5.1-A: completed → reading 역전환 시 서버 확정(onSuccess) 후 경고 메시지.
+    //           정상 변경은 성공 메시지. 클릭 즉시가 아닌 mutation 성공 후 표시해 false 피드백을 방지.
+    const isReverse = libraryItem.status === 'completed' && next === 'reading';
+    updateStatusMutation.mutate(
+      { id: libraryItem.id, status: next },
+      {
+        onSuccess: () => {
+          if (isReverse) {
+            setStatusMessage({
+              text: '완독한 책을 다시 읽는중으로 변경했어요.',
+              kind: 'warning',
+            });
+          } else {
+            setStatusMessage({
+              text: `${statusLabel(next)}(으)로 변경했어요.`,
+              kind: 'success',
+            });
+          }
+        },
+      },
+    );
   };
 
   // 완독 처리
@@ -179,6 +265,8 @@ export const BookDetailScreen: React.FC<BookDetailScreenProps> = ({
       { id: libraryItem.id, status: 'completed' },
       {
         onSuccess: () => {
+          // @MX:NOTE: [AUTO] SPEC-UI-002 — 완독 성공 피드백을 router.push 이전에 확정.
+          setStatusMessage({ text: '완독을 축하합니다!', kind: 'success' });
           router.push({
             pathname: '/completion/[bookId]',
             params: { bookId },
@@ -186,7 +274,6 @@ export const BookDetailScreen: React.FC<BookDetailScreenProps> = ({
         },
       },
     );
-    setStatusMessage('완독을 축하합니다!');
   };
 
   // 공개 토글
@@ -465,11 +552,11 @@ export const BookDetailScreen: React.FC<BookDetailScreenProps> = ({
             </Pressable>
           </View>
           {progressMessage && (
-            <Text
-              style={[styles.progressMessage, { color: tc.semantic.warning }]}
-            >
-              {progressMessage}
-            </Text>
+            <FeedbackBox
+              feedback={progressMessage}
+              theme={theme}
+              testID="progress-message"
+            />
           )}
 
           {/* status 선택 */}
@@ -490,12 +577,7 @@ export const BookDetailScreen: React.FC<BookDetailScreenProps> = ({
               {(['reading', 'completed', 'shelved'] as ReadingStatus[]).map(
                 (s) => {
                   const active = libraryItem.status === s;
-                  const label =
-                    s === 'reading'
-                      ? '읽는중'
-                      : s === 'completed'
-                        ? '완독'
-                        : '보관함';
+                  const label = statusLabel(s);
                   return (
                     <Pressable
                       key={s}
@@ -530,11 +612,11 @@ export const BookDetailScreen: React.FC<BookDetailScreenProps> = ({
             </View>
           </View>
           {statusMessage && (
-            <Text
-              style={[styles.statusMessage, { color: tc.semantic.info }]}
-            >
-              {statusMessage}
-            </Text>
+            <FeedbackBox
+              feedback={statusMessage}
+              theme={theme}
+              testID="status-message"
+            />
           )}
 
           {/* 완독 처리 버튼 */}
@@ -732,9 +814,18 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
   },
-  progressMessage: {
+  // @MX:NOTE: [AUTO] SPEC-UI-002 — 통일 피드백 박스 스타일 (진행률/상태/완독 메시지 공유).
+  feedbackBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    padding: 12,
+    borderLeftWidth: 3,
+  },
+  feedbackText: {
+    flex: 1,
     fontSize: 12,
-    fontWeight: '500',
+    fontWeight: '400',
   },
   statusRow: {
     gap: 8,
@@ -755,10 +846,6 @@ const styles = StyleSheet.create({
   statusChipText: {
     fontSize: 13,
     fontWeight: '600',
-  },
-  statusMessage: {
-    fontSize: 12,
-    fontWeight: '500',
   },
   completeButton: {
     paddingVertical: 12,
