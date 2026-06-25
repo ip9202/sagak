@@ -69,39 +69,55 @@ export const BookSearchScreen: React.FC<BookSearchScreenProps> = ({
   const [target] = useState<SearchTarget>(initialTarget);
   const [state, setState] = useState<SearchState>(initialState);
 
-  const handleSubmit = useCallback(async () => {
-    // REQ-BOOK-005: 빈/공백 쿼리를 searchApi 호출 전에 선제 차단 (UX: API 호출 방지)
-    if (!query || query.trim().length === 0) {
-      setState({
-        status: 'error',
-        results: [],
-        errorMessage: '검색어를 입력해 주세요',
-      });
-      return;
-    }
+  // @MX:NOTE: [AUTO] handleSubmit 은 overrideQuery/overrideTarget 인자를 옵션으로 받는다.
+  //   자동 검색(useEffect)은 initialQuery/initialTarget 이 마운트 후 갱신되어도 state 의존 없이
+  //   prop 으로 직접 검색하기 위함 (expo-router params 지연 갱신 대응, PR #65 후속).
+  const handleSubmit = useCallback(
+    async (
+      overrideQuery?: string,
+      overrideTarget?: SearchTarget
+    ) => {
+      const effectiveQuery = overrideQuery ?? query;
+      const effectiveTarget = overrideTarget ?? target;
+      // REQ-BOOK-005: 빈/공백 쿼리를 searchApi 호출 전에 선제 차단 (UX: API 호출 방지)
+      if (!effectiveQuery || effectiveQuery.trim().length === 0) {
+        setState({
+          status: 'error',
+          results: [],
+          errorMessage: '검색어를 입력해 주세요',
+        });
+        return;
+      }
 
-    // 유효 쿼리 — searchApi 호출 (빈 결과/네트워크 에러는 catch 에서 처리)
-    setState({ status: 'loading', results: [], errorMessage: null });
-    try {
-      const results = await searchBooks(query, target);
-      setState({ status: 'success', results, errorMessage: null });
-    } catch (err) {
-      const message =
-        err instanceof Error ? err.message : '검색 중 오류가 발생했습니다.';
-      setState({ status: 'error', results: [], errorMessage: message });
-    }
-  }, [query, target]);
+      // 유효 쿼리 — searchApi 호출 (빈 결과/네트워크 에러는 catch 에서 처리)
+      setState({ status: 'loading', results: [], errorMessage: null });
+      try {
+        const results = await searchBooks(effectiveQuery, effectiveTarget);
+        setState({ status: 'success', results, errorMessage: null });
+      } catch (err) {
+        const message =
+          err instanceof Error ? err.message : '검색 중 오류가 발생했습니다.';
+        setState({ status: 'error', results: [], errorMessage: message });
+      }
+    },
+    [query, target]
+  );
 
   // S13: 바코드 스캔 후 라우팅(initialQuery/initialTarget) 으로 진입 시 자동 검색.
-  // 무한 루프 방지: ref 가드로 최초 1회만 실행 — handleSubmit 은 query/target 이 동일하면
-  // useCallback 메모이제이션으로 재생성되지 않지만, ref 를 추가 이중 안전망으로 사용.
-  const didAutoSearchRef = useRef(false);
+  // @MX:REASON: expo-router 가 같은 search 라우트를 재사용하며 params 만 갱신하면
+  //   BookSearchScreen 인스턴스가 재마운트되지 않아 useState(initialQuery) 초기값이
+  //   첫 마운트(빈 값)에 고정된다. 따라서 initialQuery prop 을 직접 관찰해 query 를
+  //   동기화하고 handleSubmit(initialQuery) 로 검색한다. lastSearchedInitialRef 로 이미
+  //   검색한 ISBN 의 중복 자동 검색을 막고, 다른 ISBN 은 새 자동 검색을 허용한다.
+  const lastSearchedInitialRef = useRef<string | null>(null);
   useEffect(() => {
-    if (didAutoSearchRef.current) return;
-    if (!initialQuery || initialQuery.trim().length === 0) return;
-    didAutoSearchRef.current = true;
-    void handleSubmit();
-  }, [initialQuery, handleSubmit]);
+    const q = initialQuery?.trim() ?? '';
+    if (!q) return;
+    if (lastSearchedInitialRef.current === q) return;
+    lastSearchedInitialRef.current = q;
+    setQuery(q); // 입력 필드를 ISBN 으로 동기화 (시각적 일관성)
+    void handleSubmit(q, initialTarget); // state 의존 없이 initialQuery/initialTarget 로 직접 검색
+  }, [initialQuery, initialTarget, handleSubmit]);
 
   return (
     <View style={[styles.container, { backgroundColor: tc.bg.base }]}>
@@ -132,7 +148,7 @@ export const BookSearchScreen: React.FC<BookSearchScreenProps> = ({
             placeholder="제목, 저자 검색"
             placeholderTextColor={tc.text.tertiary}
             style={[styles.searchInput, { color: tc.text.primary }]}
-            onSubmitEditing={handleSubmit}
+            onSubmitEditing={() => handleSubmit()}
             returnKeyType="search"
             accessibilityLabel="검색어 입력"
           />
@@ -156,7 +172,7 @@ export const BookSearchScreen: React.FC<BookSearchScreenProps> = ({
         {/* 검색 제출 버튼 (접근성 — onSubmitEditing 외에 명시적 버튼) */}
         <Pressable
           testID="search-submit-button"
-          onPress={handleSubmit}
+          onPress={() => handleSubmit()}
           style={[
             styles.submitButton,
             { backgroundColor: tc.brand[500], borderRadius: theme.radius.md },

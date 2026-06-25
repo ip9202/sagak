@@ -256,3 +256,62 @@ describe('BookSearchScreen — 결과 카드 선택', () => {
     expect(onSelectBook).toHaveBeenCalledWith(sampleResults[0]);
   });
 });
+
+describe('BookSearchScreen — S13: initialQuery 지연 갱신 시 자동 검색 (PR #65 후속)', () => {
+  it('initialQuery 빈 값 마운트 후 ISBN 으로 rerender 시 자동 검색한다', async () => {
+    // expo-router 가 같은 라우트 재사용 시 params 지연 갱신 — useState(initialQuery) 고정 문제 재현
+    mockedSearchBooks.mockResolvedValue(sampleResults);
+    const { rerender } = renderScreen({
+      onNavigateScan: jest.fn(),
+      onSelectBook: jest.fn(),
+    });
+    // 초기 마운트: initialQuery 없음 → 자동 검색 안 함
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    expect(mockedSearchBooks).not.toHaveBeenCalled();
+
+    // 스캔 후 initialQuery 갱신 (params 지연 도착)
+    rerender(
+      <ThemeProvider>
+        <BookSearchScreen
+          onNavigateScan={jest.fn()}
+          onSelectBook={jest.fn()}
+          initialQuery="9788932917245"
+          initialTarget="isbn"
+        />
+      </ThemeProvider>
+    );
+
+    await waitFor(() => {
+      expect(mockedSearchBooks).toHaveBeenCalledWith('9788932917245', 'isbn');
+    });
+  });
+
+  it('다른 ISBN 으로 재스캔(rerender) 시 새 자동 검색한다', async () => {
+    mockedSearchBooks.mockResolvedValue(sampleResults);
+    const { rerender } = renderScreen({
+      onNavigateScan: jest.fn(),
+      onSelectBook: jest.fn(),
+      initialQuery: '9788932917245',
+      initialTarget: 'isbn',
+    });
+    await waitFor(() => {
+      expect(mockedSearchBooks).toHaveBeenCalledWith('9788932917245', 'isbn');
+    });
+
+    // 다른 책 ISBN 으로 재스캔
+    rerender(
+      <ThemeProvider>
+        <BookSearchScreen
+          onNavigateScan={jest.fn()}
+          onSelectBook={jest.fn()}
+          initialQuery="9791194330424"
+          initialTarget="isbn"
+        />
+      </ThemeProvider>
+    );
+
+    await waitFor(() => {
+      expect(mockedSearchBooks).toHaveBeenCalledWith('9791194330424', 'isbn');
+    });
+  });
+});
