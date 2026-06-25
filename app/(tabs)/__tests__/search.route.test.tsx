@@ -61,7 +61,7 @@ describe('SPEC-LIBRARY-001 TASK-003: search.tsx ISBN→UUID 라우팅', () => {
     jest.clearAllMocks();
   });
 
-  it('onSelectBook 은 resolveBookId 로 UUID 를 얻어 router.push(/book/<UUID>) 수행한다', async () => {
+  it('onSelectBook 은 resolveBookId 로 UUID 를 얻어 router.push(/<UUID>) 수행한다', async () => {
     mockResolveBookId.mockResolvedValue('uuid-abc-123');
     const { getByTestId } = render(<SearchRoute />);
 
@@ -69,7 +69,7 @@ describe('SPEC-LIBRARY-001 TASK-003: search.tsx ISBN→UUID 라우팅', () => {
 
     await waitFor(() => {
       expect(mockResolveBookId).toHaveBeenCalledWith('9791186565873');
-      expect(mockPush).toHaveBeenCalledWith('/book/uuid-abc-123');
+      expect(mockPush).toHaveBeenCalledWith('/uuid-abc-123');
     });
   });
 
