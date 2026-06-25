@@ -8,15 +8,27 @@
  * - onManualEntry → router.back() (검색 화면으로 복귀, 수동 입력 유도)
  * - onClose → router.back()
  */
-import React from 'react';
-import { useRouter } from 'expo-router';
+import React, { useCallback, useState } from 'react';
+import { useRouter, useFocusEffect } from 'expo-router';
 import { BarcodeScanner } from '../../src/features/book/BarcodeScanner';
 
 export default function ScanRoute() {
   const router = useRouter();
 
+  // @MX:NOTE: [AUTO] issue #66 — (tabs) 그룹 내 /scan 재진입 시 BarcodeScanner 인스턴스가
+  //   재사용되어 첫 스캔 종료 시의 scanning=false state 가 유지 → CameraView 미렌더(하얀 화면).
+  //   useFocusEffect 로 매 진입마다 key 를 증가시켜 강제 재마운트 → useState(true) 초기값으로
+  //   scanning 이 리셋되어 CameraView 가 정상 렌더된다.
+  const [scanKey, setScanKey] = useState(0);
+  useFocusEffect(
+    useCallback(() => {
+      setScanKey((k) => k + 1);
+    }, [])
+  );
+
   return (
     <BarcodeScanner
+      key={scanKey}
       onIsbnDetected={(isbn) => {
         // REQ-BOOK-008: ISBN 감지 → 검색 화면으로 replace (백스택에서 스캔 제거)
         router.replace({
