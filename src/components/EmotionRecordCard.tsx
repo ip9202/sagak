@@ -8,7 +8,7 @@ import { View, Text, StyleSheet, ViewStyle } from 'react-native';
 import { BlurView } from 'expo-blur';
 import { Card } from './Card';
 import { useTheme } from '../theme/theme';
-import { spacing, iconSizes } from '../theme/tokens';
+import { spacing, iconSizes, radius } from '../theme/tokens';
 
 export interface EmotionRecordCardProps {
   nickname: string;
@@ -206,7 +206,7 @@ const styles = StyleSheet.create({
   spoilerLabel: {
     paddingHorizontal: spacing[3],
     paddingVertical: 6,
-    borderRadius: 4,
+    borderRadius: radius.xs,
     fontSize: 12,
     fontWeight: '500',
   },

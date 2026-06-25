@@ -26,6 +26,7 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useTheme } from '../../../../theme/theme';
+import { typography } from '../../../../theme/tokens';
 import { useSession } from '../../../../auth/useSession';
 import { useRespondToJoinRequest } from '../hooks';
 import { fetchIncomingJoinRequests } from '../joinRequestApi';
@@ -243,24 +244,33 @@ const styles = StyleSheet.create({
     paddingBottom: 4,
   },
   backButton: { width: 36, height: 36, alignItems: 'center', justifyContent: 'center' },
-  backText: { fontSize: 22, fontWeight: '700' },
-  // SPEC-UI-002 FROZEN: title uniformity (fontSize 22 / weight 700)
-  title: { fontSize: 22, fontWeight: '700' },
+  // @MX:NOTE: [AUTO] SPEC-UI-002 PR-2 — displaySm(22/700/30) 토큰 적용. lineHeight 30 추가.
+  backText: { ...typography.displaySm },
+  // SPEC-UI-002 FROZEN: title uniformity (22/700) — displaySm 토큰
+  title: { ...typography.displaySm },
   headerSpacer: { width: 36 },
   bodyCenter: { flex: 1, justifyContent: 'center', alignItems: 'center', gap: 12, padding: 20 },
-  errorText: { fontSize: 13, fontWeight: '600', textAlign: 'center' },
-  emptyTitle: { fontSize: 18, fontWeight: '600' },
-  emptyHint: { fontSize: 14, textAlign: 'center' },
+  // @MX:NOTE: [AUTO] SPEC-UI-002 PR-2 — sectionLabel(13/600/18) 토큰 적용. lineHeight 18 추가.
+  errorText: { ...typography.sectionLabel, textAlign: 'center' },
+  // @MX:NOTE: [AUTO] SPEC-UI-002 PR-2 — headingMd(18/600/26) 토큰 적용. lineHeight 26 추가.
+  emptyTitle: { ...typography.headingMd },
+  // @MX:NOTE: [AUTO] SPEC-UI-002 PR-2 — bodyMd(14/400/22) 토큰 적용. lineHeight 22 추가.
+  emptyHint: { ...typography.bodyMd, textAlign: 'center' },
   list: { flex: 1 },
   listContent: { gap: 16, paddingTop: 4, paddingBottom: 24 },
   card: { gap: 8 },
-  requester: { fontSize: 16, fontWeight: '600' },
-  message: { fontSize: 14 },
-  meta: { fontSize: 12 },
+  // @MX:NOTE: [AUTO] SPEC-UI-002 PR-2 — headingSm(16/600/23) 토큰 적용. lineHeight 23 추가.
+  requester: { ...typography.headingSm },
+  // @MX:NOTE: [AUTO] SPEC-UI-002 PR-2 — bodyMd(14/400/22) 토큰 적용. lineHeight 22 추가.
+  message: { ...typography.bodyMd },
+  // @MX:NOTE: [AUTO] SPEC-UI-002 PR-2 — caption(12/400/17) 토큰 적용. lineHeight 17 추가.
+  meta: { ...typography.caption },
   actionRow: { flexDirection: 'row', gap: 8, marginTop: 4 },
   actionButton: { flex: 1, paddingVertical: 10, alignItems: 'center' },
-  actionText: { fontSize: 14, fontWeight: '600' },
+  // @MX:NOTE: [AUTO] SPEC-UI-002 PR-2 — ctaLabel(14/600/22) 토큰 적용. lineHeight 22 추가.
+  actionText: { ...typography.ctaLabel },
   doneBox: { padding: 10, alignItems: 'center' },
-  doneText: { fontSize: 13, fontWeight: '600' },
+  // @MX:NOTE: [AUTO] SPEC-UI-002 PR-2 — sectionLabel(13/600/18) 토큰 적용. lineHeight 18 추가.
+  doneText: { ...typography.sectionLabel },
   errorBox: { padding: 10 },
 });

@@ -30,6 +30,7 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useTheme } from '../../../../theme/theme';
+import { typography } from '../../../../theme/tokens';
 import { useSession } from '../../../../auth/useSession';
 import { useActiveReaders } from '../hooks';
 import { getUserFriendlyMessage } from '../../../../lib/api/errors';
@@ -201,23 +202,31 @@ const styles = StyleSheet.create({
     paddingBottom: 4, // spacing[1] - 헤더 하단 패딩
   },
   backButton: { width: 36, height: 36, alignItems: 'center', justifyContent: 'center' }, // spacing 체계(4의 배수)로 표현 불가한 값 유지
-  backText: { fontSize: 22, fontWeight: '700' }, // typography.displaySm(22/700/30)
-  // SPEC-UI-002 FROZEN: title uniformity (fontSize 22 / weight 700)
-  title: { fontSize: 22, fontWeight: '700' }, // typography.displaySm(22/700/30)
+  // @MX:NOTE: [AUTO] SPEC-UI-002 PR-2 — displaySm(22/700/30) 토큰 적용. lineHeight 30 추가로 행간 확보.
+  backText: { ...typography.displaySm },
+  // SPEC-UI-002 FROZEN: title uniformity (22/700) — displaySm 토큰
+  title: { ...typography.displaySm },
   headerSpacer: { width: 36 }, // spacing 체계(4의 배수)로 표현 불가한 값 유지
   bodyCenter: { flex: 1, justifyContent: 'center', alignItems: 'center', gap: 12, padding: 20 }, // gap: spacing[3], padding: spacing[5]
-  errorText: { fontSize: 14, fontWeight: '600', textAlign: 'center', paddingHorizontal: 32 }, // typography.ctaLabel(14/600/22), paddingHorizontal: spacing[8]
-  emptyTitle: { fontSize: 18, fontWeight: '600' }, // typography.headingMd(18/600/26)
-  emptyHint: { fontSize: 14, textAlign: 'center' }, // typography.bodyMd(14/400/22)
+  // @MX:NOTE: [AUTO] SPEC-UI-002 PR-2 — ctaLabel(14/600/22) 토큰 적용. lineHeight 22 추가.
+  errorText: { ...typography.ctaLabel, textAlign: 'center', paddingHorizontal: 32 },
+  // @MX:NOTE: [AUTO] SPEC-UI-002 PR-2 — headingMd(18/600/26) 토큰 적용. lineHeight 26 추가.
+  emptyTitle: { ...typography.headingMd },
+  // @MX:NOTE: [AUTO] SPEC-UI-002 PR-2 — bodyMd(14/400/22) 토큰 적용. lineHeight 22 추가.
+  emptyHint: { ...typography.bodyMd, textAlign: 'center' },
   list: { flex: 1 },
   listContent: { gap: 16, paddingTop: 4, paddingBottom: 24 }, // gap: spacing[4], paddingTop: spacing[1], paddingBottom: spacing[6]
   card: { gap: 12 }, // spacing[3] - 카드 내부 간 간격
   cardHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  readerId: { fontSize: 16, fontWeight: '600', flexShrink: 1 }, // typography.headingSm(16/600/23)
+  // @MX:NOTE: [AUTO] SPEC-UI-002 PR-2 — headingSm(16/600/23) 토큰 적용. lineHeight 23 추가.
+  readerId: { ...typography.headingSm, flexShrink: 1 },
   badge: { paddingVertical: 4, paddingHorizontal: 10 }, // paddingVertical: spacing[1], paddingHorizontal: spacing 체계(4의 배수)로 표현 불가한 값 유지
-  badgeText: { fontSize: 12, fontWeight: '600' }, // typography.sectionLabel(13/600/18)과 fontSize 불일치로 유지
+  // @MX:NOTE: [AUTO] SPEC-UI-002 PR-2 — caption(12/400/17) + fontWeight 600 override. 뱃지 텍스트 강조.
+  badgeText: { ...typography.caption, fontWeight: '600' as const },
   metaRow: { flexDirection: 'row', gap: 12 }, // gap: spacing[3] - 메타 행 간 간격
-  metaText: { fontSize: 13 }, // typography.bodySm(13/400/20)
+  // @MX:NOTE: [AUTO] SPEC-UI-002 PR-2 — bodySm(13/400/20) 토큰 적용. lineHeight 20 추가.
+  metaText: { ...typography.bodySm },
   joinButton: { paddingVertical: 10, alignItems: 'center' }, // paddingVertical: spacing 체계(4의 배수)로 표현 불가한 값 유지
-  joinText: { fontSize: 14, fontWeight: '600' }, // typography.ctaLabel(14/600/22)
+  // @MX:NOTE: [AUTO] SPEC-UI-002 PR-2 — ctaLabel(14/600/22) 토큰 적용. lineHeight 22 추가.
+  joinText: { ...typography.ctaLabel },
 });

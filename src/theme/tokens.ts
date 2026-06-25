@@ -81,6 +81,8 @@ export const typography = {
   // @MX:NOTE: [AUTO] SPEC-EMOTION-001 P1-B — 감정 입력 프롬프트/입력 본문(15/400). alarmTitle(15/600)과 가중치가 다르고 bodyMd(14/400)와 크기가 달라 추가.
   bodyPrompt: { fontSize: 15, fontWeight: '400' as const, lineHeight: 22, fontFamily: INTER_REGULAR },
   bodyLg: { fontSize: 16, fontWeight: '400' as const, lineHeight: 26, fontFamily: INTER_REGULAR },
+  // @MX:NOTE: [AUTO] SPEC-UI-002 PR-2 — Button 전용 라벨(16/600/22). headingSm(16/600/23)과 lineHeight 1pt 차이로 별도 토큰 유지.
+  buttonLabel: { fontSize: 16, fontWeight: '600' as const, lineHeight: 22, fontFamily: INTER_SEMIBOLD },
   bodyMd: { fontSize: 14, fontWeight: '400' as const, lineHeight: 22, fontFamily: INTER_REGULAR },
   // @MX:NOTE: [AUTO] CTA 라벨(14/600). bodyMd(14/400) 보다 강조된 버튼 텍스트.
   ctaLabel: { fontSize: 14, fontWeight: '600' as const, lineHeight: 22, fontFamily: INTER_SEMIBOLD },
@@ -92,6 +94,7 @@ export const typography = {
 } as const;
 
 export const radius = {
+  xs: 4,
   sm: 6,
   md: 10,
   lg: 16,
