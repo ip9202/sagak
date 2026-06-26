@@ -26,7 +26,10 @@ import {
   TextInput,
   View,
 } from 'react-native';
-import { Feather } from '@expo/vector-icons';
+// @MX:NOTE: [AUTO] SPEC-UI-002 — 아이콘 라이브러리를 Feather(@expo/vector-icons)에서
+//           lucide-react-native 로 이관 (.pen library: "lucide" 준거).
+//           success→CircleCheck, warning→TriangleAlert, info→Info 컴포넌트 직접 매핑.
+import { CircleCheck, TriangleAlert, Info, type LucideIcon } from 'lucide-react-native';
 import { useTheme } from '../../theme/theme';
 import { useRouter } from 'expo-router';
 import { useSession } from '../../auth/useSession';
@@ -143,11 +146,12 @@ function statusAlertContent(
   }
 }
 
-// @MX:NOTE: [AUTO] SPEC-UI-002 — 피드백 박스 kind 별 Feather 아이콘 이름 매핑.
-const FEEDBACK_ICON: Record<Feedback['kind'], 'check-circle' | 'alert-triangle' | 'info'> = {
-  success: 'check-circle',
-  warning: 'alert-triangle',
-  info: 'info',
+// @MX:NOTE: [AUTO] SPEC-UI-002 — 피드백 박스 kind 별 lucide 아이콘 컴포넌트 매핑.
+//           Feather(check-circle/alert-triangle/info) → lucide(CircleCheck/TriangleAlert/Info) 이관.
+const FEEDBACK_ICON: Record<Feedback['kind'], LucideIcon> = {
+  success: CircleCheck,
+  warning: TriangleAlert,
+  info: Info,
 };
 
 /**
@@ -183,7 +187,10 @@ function FeedbackBox({
         },
       ]}
     >
-      <Feather name={FEEDBACK_ICON[feedback.kind]} size={16} color={color} />
+      {(() => {
+        const Icon = FEEDBACK_ICON[feedback.kind];
+        return <Icon size={16} color={color} />;
+      })()}
       <Text style={[styles.feedbackText, { color }]}>{feedback.text}</Text>
     </View>
   );

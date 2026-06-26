@@ -22,7 +22,9 @@ import {
   ScrollView,
 } from 'react-native';
 import { useRouter } from 'expo-router';
-import { Feather } from '@expo/vector-icons';
+// @MX:NOTE: [AUTO] SPEC-UI-002 — 아이콘 라이브러리를 Feather(@expo/vector-icons)에서
+//           lucide-react-native 로 이관 (.pen library: "lucide" 준거). search/plus/book-open 3종.
+import { Search, Plus, BookOpen } from 'lucide-react-native';
 import { useTheme } from '../../src/theme/theme';
 import { typography } from '../../src/theme/tokens';
 import { useSession } from '../../src/auth/useSession';
@@ -76,7 +78,7 @@ export default function LibraryTab() {
         >
           서재
         </Text>
-        {/* @MX:NOTE: [AUTO] .pen Header Icons(gap 12): search(text.primary) + plus(brand[500]). Feather 사용. */}
+        {/* @MX:NOTE: [AUTO] .pen Header Icons(gap 12): search(text.primary) + plus(brand[500]). lucide-react-native 사용 (SPEC-UI-002 Feather→lucide 이관). */}
         <View style={styles.headerIcons}>
           <Pressable
             testID="library-search-button"
@@ -85,8 +87,7 @@ export default function LibraryTab() {
             accessibilityLabel="책 검색"
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
           >
-            <Feather
-              name="search"
+            <Search
               size={22}
               color={theme.colors.text.primary}
             />
@@ -98,7 +99,7 @@ export default function LibraryTab() {
             accessibilityLabel="책 추가"
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
           >
-            <Feather name="plus" size={22} color={theme.colors.brand[500]} />
+            <Plus size={22} color={theme.colors.brand[500]} />
           </Pressable>
         </View>
       </View>
@@ -162,9 +163,8 @@ export default function LibraryTab() {
         </View>
       ) : isEmpty ? (
         <View style={styles.emptyState}>
-          {/* @MX:NOTE: [AUTO] .pen F04-Library-Empty / EmptyState: Icon(book-open, 48, text.tertiary) + Title + Sub + CTA. */}
-          <Feather
-            name="book-open"
+          {/* @MX:NOTE: [AUTO] .pen F04-Library-Empty / EmptyState: Icon(book-open, 48, text.tertiary) + Title + Sub + CTA. lucide-react-native 사용 (SPEC-UI-002 Feather→lucide 이관). */}
+          <BookOpen
             size={48}
             color={theme.colors.text.tertiary}
           />

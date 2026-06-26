@@ -51,6 +51,29 @@ jest.mock('@expo-google-fonts/inter', () => ({
   Inter_700Bold: 'Inter_700Bold',
 }));
 
+// SPEC-UI-002 — lucide-react-native mock. ESM(.mjs) 배포이고 react-native-svg(네이티브) 에
+// 의존하므로 Jest/jsdom 환경에서 렌더링 불가. 모든 아이콘을 동일한 Text mock 컴포넌트로 반환한다.
+// Proxy 로 임의 이름의 named export 를 모두 커버한다 (Home/Bell/Search/Plus/BookOpen/User/Users/CircleCheck/TriangleAlert/Info/LucideIcon 등).
+// 개별 테스트의 @expo/vector-icons Feather mock 은 이관 후 소스에서 사용되지 않아 dead-code 가 됐지만
+// 기존 테스트 안정성을 위해 그대로 둔다 (Feather 의존 화면이 0개이므로 영향 없음).
+jest.mock('lucide-react-native', () => {
+  const React = require('react');
+  const { Text } = require('react-native');
+  const MockIcon = (props) =>
+    React.createElement(Text, { testID: 'lucide-icon' }, props.name || '');
+  // Proxy: 모든 named import 를 MockIcon 으로 응답.
+  // type LucideIcon 등 타입 전용 import 는 런타임에 undefined 여도 tsc 가 처리하므로 무방.
+  return new Proxy(
+    {},
+    {
+      get: (_target, prop) => {
+        if (prop === '__esModule') return true;
+        return MockIcon;
+      },
+    },
+  );
+});
+
 // expo-status-bar mock — SPEC-UI-002 REQ-SCREEN-001.
 // src/components/StatusBar.tsx 와 BarcodeScanner.tsx 가 expo-status-bar 의 StatusBar 컴포넌트를
 // 렌더링하는데, 실제 구현은 RN 내부 타이머(clearImmediate/setImmediate)를 사용해 jsdom 환경에서
