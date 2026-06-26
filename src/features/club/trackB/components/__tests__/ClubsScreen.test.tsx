@@ -84,6 +84,12 @@ describe('SPEC-CLUB-002 ClubsScreen 헤더/레이아웃', () => {
     expect(onCreate).toHaveBeenCalled();
   });
 
+  // SPEC-UI-002 PR-3: 헤더 search 아이콘 추가 (.pen ocxFV search 22 + K54AFO plus 24).
+  it('헤더 search 아이콘(모임 검색 버튼)을 렌더링한다', () => {
+    const { getByTestId } = renderScreen();
+    expect(getByTestId('clubs-search-button')).toBeTruthy();
+  });
+
   it('NewClubCTA "새 모임 만들기 (0명도 OK)" 렌더링', () => {
     const { getByText } = renderScreen();
     expect(getByText('새 모임 만들기 (0명도 OK)')).toBeTruthy();
@@ -116,15 +122,18 @@ describe('SPEC-CLUB-002 ClubsScreen 상태 패턴', () => {
 });
 
 describe('SPEC-CLUB-002 ClubsScreen 모임 카드 (비과시 원칙)', () => {
-  it('모임 카드에 이름과 진도 메타 표시 (멤버 수·좋아요 없음)', () => {
+  // SPEC-UI-002 PR-3: 메타 라인이 .pen "2주 코스 · 하루 20p" 형식으로 확장.
+  it('모임 카드에 코스 기간 + 일일 페이지 메타를 " · " 결합으로 표시', () => {
     useHostClubsMock.mockReturnValue({
       data: [
         {
           id: 'c1',
           name: '데미안 읽는 모임',
           status: 'active',
+          duration_days: 14,
           daily_pages: 20,
           host_id: 'u1',
+          member_count: 4,
         },
       ],
       isLoading: false,
@@ -132,10 +141,53 @@ describe('SPEC-CLUB-002 ClubsScreen 모임 카드 (비과시 원칙)', () => {
     } as any);
     const { getByText, queryByText } = renderScreen();
     expect(getByText('데미안 읽는 모임')).toBeTruthy();
-    expect(getByText('하루 20p')).toBeTruthy();
+    expect(getByText('2주 코스 · 하루 20p')).toBeTruthy();
+    expect(getByText('멤버 4명')).toBeTruthy();
     // 비과시: 좋아요/팔로워/랭킹 표시 없음
     expect(queryByText(/좋아요/)).toBeNull();
     expect(queryByText(/팔로워/)).toBeNull();
+  });
+
+  it('duration_days 미설정 시 "하루 Np" 만 표시', () => {
+    useHostClubsMock.mockReturnValue({
+      data: [
+        {
+          id: 'c1b',
+          name: '느긋한 모임',
+          status: 'active',
+          duration_days: null,
+          daily_pages: 15,
+          host_id: 'u1',
+          member_count: 2,
+        },
+      ],
+      isLoading: false,
+      isError: false,
+    } as any);
+    const { getByText } = renderScreen();
+    expect(getByText('하루 15p')).toBeTruthy();
+    expect(getByText('멤버 2명')).toBeTruthy();
+  });
+
+  it('member_count 누락/0 시 "멤버 0명" 으로 폴백', () => {
+    useHostClubsMock.mockReturnValue({
+      data: [
+        {
+          id: 'c1c',
+          name: '새 모임',
+          status: 'active',
+          duration_days: null,
+          daily_pages: null,
+          host_id: 'u1',
+          member_count: 0,
+        },
+      ],
+      isLoading: false,
+      isError: false,
+    } as any);
+    const { getByText } = renderScreen();
+    expect(getByText('멤버 0명')).toBeTruthy();
+    expect(getByText('진도 미설정')).toBeTruthy();
   });
 
   it('종료된 모임 "종료됨" 표시', () => {
@@ -146,7 +198,9 @@ describe('SPEC-CLUB-002 ClubsScreen 모임 카드 (비과시 원칙)', () => {
           name: '느긋한 모임',
           status: 'closed',
           daily_pages: null,
+          duration_days: null,
           host_id: 'u1',
+          member_count: 1,
         },
       ],
       isLoading: false,

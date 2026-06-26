@@ -1,9 +1,9 @@
 /**
  * SPEC-CLUB-002 M4 ClubsScreen (모임 목록 UI)
  *
- * 사용자가 host 인 모임 목록을 표시한다. useHostClubs(userId) 로 ClubRow[] 조회.
+ * 사용자가 host 인 모임 목록을 표시한다. useHostClubs(userId) 로 HostClubWithCount[] 조회.
  * F11-Clubs Pencil 디자인(.pen ELyXX) 기반:
- * - Header: Title "모임"(fontSize 22/weight 700) + plus 아이콘 (모임 생성入口)
+ * - Header: Title "모임"(fontSize 22/weight 700) + Icons(search 22 + plus 24, gap 12)
  * - Content: Section label "함께 읽는 모임"(text-tertiary) + ClubCard 리스트 + NewClubCTA
  *
  * SPEC-UI-002 (FROZEN) 준수:
@@ -14,10 +14,12 @@
  * - token-only 스타일링 (REQ-SCREEN-005)
  *
  * 비과시 원칙 (constitution FROZEN): 좋아요/팔로워/랭킹 표시 없음.
- * 모임 카드는 독서 컨텍스트(이름, 진도 메타, 상태)만 표시한다.
+ * 모임 카드는 독서 컨텍스트(이름, 진도 메타, 멤버 수, 상태)만 표시한다.
+ * 멤버 수 표시는 과시(랭킹/좋아요)가 아닌 모임 운영 컨텍스트(참여 인원)이므로 허용된다.
  *
- * @MX:NOTE: [AUTO] 모임 목록 화면 — useHostClubs + ClubCard 리스트 + NewClubCTA + 상태 패턴. 비과시 원칙 준수.
+ * @MX:NOTE: [AUTO] 모임 목록 화면 — useHostClubs(멤버 수 집계 포함) + ClubCard + NewClubCTA + 상태 패턴. 비과시 원칙 준수.
  * @MX:SPEC SPEC-CLUB-002
+ * @MX:SPEC SPEC-UI-002
  */
 import React from 'react';
 import {
@@ -29,12 +31,14 @@ import {
   ScrollView,
 } from 'react-native';
 import { useRouter } from 'expo-router';
+// @MX:NOTE: [AUTO] SPEC-UI-002 PR-3 — 헤더 아이콘을 lucide-react-native 로 이관 (Feather text "+" → lucide Search/Plus). 빈 상태 Users 아이콘 추가.
+import { Search, Plus, Users } from 'lucide-react-native';
 import { useTheme } from '../../../../theme/theme';
 import { typography } from '../../../../theme/tokens';
 import { useHostClubs } from '../hooks';
+import type { HostClubWithCount } from '../hooks';
 import { getUserFriendlyMessage } from '../../../../lib/api/errors';
 import { AppError } from '../../../../errors';
-import type { ClubRow } from '../types';
 
 export interface ClubsScreenProps {
   /** auth.uid() — host 필터 기준 */
@@ -69,30 +73,29 @@ export const ClubsScreen: React.FC<ClubsScreenProps> = ({
         <Text style={[styles.title, { color: theme.colors.text.primary }]}>
           모임
         </Text>
-        <Pressable
-          testID="clubs-create-button"
-          onPress={onCreateClub}
-          accessibilityRole="button"
-          accessibilityLabel="새 모임 만들기"
-          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-          style={[
-            styles.createIcon,
-            {
-              width: theme.iconSizes.lg,
-              height: theme.iconSizes.lg,
-            },
-          ]}
-        >
-          {/* .pen K54AFO — plus 아이콘 (모임 생성入口). 토큰 색상 brand-500. */}
-          <Text
-            style={[
-              styles.createIconText,
-              { color: theme.colors.brand[500] },
-            ]}
+        {/* .pen k32Fv Header Icons(gap 12): search(22, text.primary) + plus(24, brand-500). */}
+        <View style={styles.headerIcons}>
+          <Pressable
+            testID="clubs-search-button"
+            onPress={() => router.push('/search')}
+            accessibilityRole="button"
+            accessibilityLabel="모임 검색"
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
           >
-            +
-          </Text>
-        </Pressable>
+            {/* .pen ocxFV — search 아이콘. /search 라우트(검색 탭)로 이동. */}
+            <Search size={22} color={theme.colors.text.primary} />
+          </Pressable>
+          <Pressable
+            testID="clubs-create-button"
+            onPress={onCreateClub}
+            accessibilityRole="button"
+            accessibilityLabel="새 모임 만들기"
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          >
+            {/* .pen K54AFO — plus 아이콘 (모임 생성 入口). lucide Plus 24×24 brand-500. */}
+            <Plus size={24} color={theme.colors.brand[500]} />
+          </Pressable>
+        </View>
       </View>
 
       {/* 본문: 상태 패턴 (REQ-SCREEN-STATE) */}
@@ -159,6 +162,8 @@ export const ClubsScreen: React.FC<ClubsScreenProps> = ({
                 },
               ]}
             >
+              {/* .pen F11-Clubs-Empty / EmptyState: Icon(48, text.tertiary). EmptyState 기본은 book-open 이나 clubs 컨텍스트에서는 users 오버라이드. */}
+              <Users size={48} color={theme.colors.text.tertiary} />
               <Text
                 style={[
                   styles.emptyTitle,
@@ -214,25 +219,48 @@ export const ClubsScreen: React.FC<ClubsScreenProps> = ({
 };
 
 /**
- * 모임 카드 (.pen zlR3h/g0Y6M — Cover 60×84 brand-200 cornerRadius 6 + Info vertical).
- * 비과시 원칙: 멤버 수·좋아요 표시 없음. 이름/진도 메타/상태만.
+ * 모임 카드 메타 라인 포맷 (.pen TI83b Meta — "2주 코스 · 하루 20p").
+ * duration_days 가 14일 이상이면 주 단위, 미만이면 일 단위로 코스 기간을 표시.
+ * duration_days 가 null 이면 코스 기간은 생략. daily_pages 가 null 이면 "하루 Np" 생략.
+ * 둘 다 없으면 "진도 미설정".
  */
-const ClubCard: React.FC<{ club: ClubRow; onPress: () => void }> = ({
-  club,
-  onPress,
-}) => {
+function formatClubMeta(club: HostClubWithCount): string {
+  const parts: string[] = [];
+  const duration = club.duration_days;
+  if (duration != null) {
+    if (duration >= 14) {
+      const weeks = Math.round(duration / 7);
+      parts.push(`${weeks}주 코스`);
+    } else {
+      parts.push(`${duration}일 코스`);
+    }
+  }
+  if (club.daily_pages != null) {
+    parts.push(`하루 ${club.daily_pages}p`);
+  }
+  return parts.length > 0 ? parts.join(' · ') : '진도 미설정';
+}
+
+/**
+ * 모임 카드 (.pen zlR3h/g0Y6M — Cover 60×84 brand-200 cornerRadius 6 + Info vertical).
+ * 비과시 원칙: 좋아요/팔로워/랭킹 표시 없음. 이름/코스 메타/멤버 수/상태만.
+ * 멤버 수는 useHostClubs 의 embedded count 집계 결과(member_count) 사용.
+ */
+const ClubCard: React.FC<{
+  club: HostClubWithCount;
+  onPress: () => void;
+}> = ({ club, onPress }) => {
   const theme = useTheme();
   const isClosed = club.status === 'closed';
-  const meta = club.daily_pages
-    ? `하루 ${club.daily_pages}p`
-    : '진도 미설정';
+  const meta = formatClubMeta(club);
+  const memberCount = club.member_count ?? 0;
 
   return (
     <Pressable
       testID={`club-card-${club.id}`}
       onPress={onPress}
       accessibilityRole="button"
-      accessibilityLabel={`모임 ${club.name}`}
+      accessibilityLabel={`모임 ${club.name}, 멤버 ${memberCount}명`}
       style={[
         styles.card,
         {
@@ -270,6 +298,21 @@ const ClubCard: React.FC<{ club: ClubRow; onPress: () => void }> = ({
         >
           {meta}
         </Text>
+        {/* 멤버 수 (.pen RmILS Progress 의 Pct 일부 — "멤버 N명"). 단일 라인 표시. */}
+        <Text
+          style={[styles.memberCount, { color: theme.colors.text.tertiary }]}
+          numberOfLines={1}
+        >
+          멤버 {memberCount}명
+        </Text>
+        {/*
+         * @MX:TODO: [AUTO] 진도 표시(progress track/fill/pct) 미구현.
+         * @MX:REASON clubs 에 현재 읽기 페이지(current_page) 컬럼이 없어 진행률을 계산할 수 없다.
+         *          SPEC-CLUB-002 는 목표치(daily_pages/trigger_page)만 추적하므로, .pen Track/Fill/Pct 노드와
+         *          "p.X · 멤버 N명" Pct 라인 중 페이지 진도 부분은 데이터 부재로 보류한다.
+         * @MX:SPEC SPEC-CLUB-002
+         * @MX:SPEC SPEC-UI-002
+         */}
         {isClosed && (
           <Text
             style={[
@@ -317,7 +360,9 @@ const styles = StyleSheet.create({
   listContent: { gap: 16, paddingTop: 4 },
   // @MX:NOTE: [AUTO] SPEC-UI-002 PR-3 trackB — sectionLabel(13/600/18) 토큰 적용.
   section: { ...typography.sectionLabel },
-  emptyCard: { gap: 8 },
+  // .pen k32Fv Header Icons: gap 12
+  headerIcons: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  emptyCard: { gap: 8, alignItems: 'center' },
   // @MX:NOTE: [AUTO] SPEC-UI-002 PR-3 trackB — headingMd(18/600/26) 토큰 적용.
   emptyTitle: { ...typography.headingMd },
   // @MX:NOTE: [AUTO] SPEC-UI-002 PR-3 trackB — bodyMd(14/400/22) 토큰 적용. 원본 weight 누락(400)과 일치.
@@ -333,12 +378,11 @@ const styles = StyleSheet.create({
   clubTitle: { ...typography.alarmTitle },
   // @MX:NOTE: [AUTO] SPEC-UI-002 PR-3 trackB — caption(12/400/17) 토큰 적용. 원본 weight 누락(400)과 일치.
   meta: { ...typography.caption },
+  // @MX:NOTE: [AUTO] SPEC-UI-002 PR-3 trackB — .pen Pct(11/500) 멤버 수 라인. label 토큰(11/500/14) 적용.
+  memberCount: { ...typography.label },
   // @MX:NOTE: [AUTO] SPEC-UI-002 PR-3 trackB — caption(12/400/17) + fontWeight 600 override. 종료 상태 뱃지 강조.
   status: { ...typography.caption, fontWeight: '600' as const },
   ctaButton: { paddingVertical: 14, alignItems: 'center' },
   // @MX:NOTE: [AUTO] SPEC-UI-002 PR-3 trackB — ctaStrong(15/700/21) 토큰 적용. primary CTA 강조 라벨.
   ctaText: { ...typography.ctaStrong },
-  createIcon: { alignItems: 'center', justifyContent: 'center' },
-  // @MX:NOTE: [AUTO] SPEC-UI-002 PR-3 trackB — plusGlyph(26/400/28) 토큰 적용. 헤더 "+" 글리프 전용.
-  createIconText: { ...typography.plusGlyph },
 });

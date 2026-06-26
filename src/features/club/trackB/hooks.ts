@@ -36,6 +36,17 @@ import type {
   CreateClubInput as DomainCreateClubInput,
 } from './types';
 
+/**
+ * 호스트 모임 목록 + 멤버 수.
+ *
+ * useHostClubs 가 `clubs` 행에 더해 `club_members` 집계(count) 를 단일 라운드트립으로
+ * 함께 가져온 결과 행. `member_count` 는 queryFn 에서 PostgREST embedded aggregate
+ * (`club_members(count)`) 결과를 평탄화한 값이다.
+ *
+ * @MX:SPEC SPEC-UI-002
+ */
+export type HostClubWithCount = ClubRow & { member_count: number };
+
 // @MX:NOTE: [AUTO] trackB 캐시 queryKey 접두부 — host/detail/members 계열을 일괄 매칭용
 const CLUBB_KEY_ROOT = ['club', 'trackb'] as const;
 
@@ -57,31 +68,56 @@ export interface ClubFormInput {
 }
 
 /**
- * 현재 사용자가 host 인 모임 목록을 조회한다.
+ * 현재 사용자가 host 인 모임 목록을 멤버 수와 함께 조회한다.
  *
  * - clubs SELECT 를 host_id 로 필터.
- * - RLS(clubs_select_all — USING(true))가 모든 authenticated 의 SELECT 를 허용하므로
+ * - PostgREST embedded aggregate `club_members(count)` 로 각 모임의 멤버 수를
+ *   본문 목록과 단일 라운드트립으로 함께 가져온다 (N+1 회피). clubs.id ←
+ *   club_members.club_id FK 를 PostgREST 가 자동 탐지한다.
+ * - RLS(clubs_select_all — USING(true))가 모든 authenticated 의 clubs SELECT 를 허용.
  *   host_id 필터는 클라이언트 보조 검증. 빈 userId 면 비활성화.
+ * - club_members SELECT RLS(fn_user_in_club)는 같은 모임 멤버만 노출하나,
+ *   host 본인이 모든 host 모임에 가입되어 있으므로 host 모임의 멤버 수는 정확.
  * - 최신 생성순(created_at DESC).
+ *
+ * @MX:ANCHOR: [AUTO] useHostClubs — 모임 탭 목록 단일 진입점. member_count 계약이 ClubsScreen ClubCard 에 전파된다.
+ * @MX:REASON: clubs 목록 + 멤버 수를 단일 라운드트립으로 결합하며, select 문자열/평탄화 로직이 바뀌면 ClubsScreen 의 `멤버 N명` 표시가 깨진다.
  */
 export function useHostClubs(userId: string) {
-  return useQuery<ClubRow[]>({
+  return useQuery<HostClubWithCount[]>({
     queryKey: [...CLUBB_KEY_ROOT, 'host', userId],
     enabled: userId.length > 0,
-    queryFn: async (): Promise<ClubRow[]> => {
+    queryFn: async (): Promise<HostClubWithCount[]> => {
       const client = getSupabaseClient();
-      let result: { data: ClubRow[] | null; error: unknown };
+      // PostgREST embedded aggregate — 단일 라운드트립으로 clubs 본문 + club_members 집계.
+      let result: {
+        data:
+          | (ClubRow & {
+              club_members: { count: number }[] | null;
+            })[]
+          | null;
+        error: unknown;
+      };
       try {
         result = await client
           .from('clubs')
-          .select('*')
+          .select('*, club_members(count)')
           .eq('host_id', userId)
           .order('created_at', { ascending: false });
       } catch (error) {
         throw normalizeError(error);
       }
       if (result.error) throw normalizeError(result.error);
-      return result.data ?? [];
+      // club_members 집계 배열 → 단일 member_count 로 평탄화 (누락/에러 시 0).
+      const rows = result.data ?? [];
+      return rows.map((row) => {
+        const count = row.club_members?.[0]?.count;
+        const { club_members: _drop, ...rest } = row;
+        return {
+          ...rest,
+          member_count: typeof count === 'number' ? count : 0,
+        };
+      });
     },
   });
 }
