@@ -133,10 +133,10 @@ describe('T6: 탭 헤더/placeholder 렌더링', () => {
     expect(screen.getByText('모임')).toBeTruthy();
   });
 
-  // SPEC-AUTH-001 PR #19: 마이 탭이 placeholder → 실제 화면으로 교체됨.
-  // 헤더 타이틀 "마이" 렌더링으로 crash 없음 검증.
-  it('마이 탭이 헤더 타이틀 "마이"를 렌더링한다', () => {
+  // SPEC-UI-002 PR-2: 마이 탭 헤더 타이틀이 .pen F15-My 기준 "마이페이지"로 재포팅됨.
+  // (구 "마이" 단정은 .pen F15-My Title content="마이페이지" 에 맞게 정정)
+  it('마이 탭이 헤더 타이틀 "마이페이지"를 렌더링한다', () => {
     withTheme(<MyTab />);
-    expect(screen.getByText('마이')).toBeTruthy();
+    expect(screen.getByText('마이페이지')).toBeTruthy();
   });
 });

@@ -1,21 +1,19 @@
 /**
- * 마이 탭
- * SPEC-NAV-001 — REQ-NAV-002 (T6) 골격에서 실제 화면으로 전환.
+ * 마이 탭 — .pen F15-My 재포팅 (SPEC-UI-002 PR-2)
  *
- * 카카오 account-linking 회귀 테스트를 위한 최소 마이 페이지:
- * - 현재 로그인 사용자 정보 표시 (닉네임, 제공자, 이메일)
- * - 로그아웃 버튼 → useSession().signOut() 호출
- * - 로딩 / 미인증 / 프로필 누락 상태를 안전하게 처리 (crash 없음)
+ * .pen F15-My 구조에 충실한 헤더/프로필/메뉴리스트를 렌더링하되, 기존 앱 확장
+ * 기능(배지/포인트/이용약관/로그아웃)은 .pen 이외의 앱 추가 기능으로 유지한다.
  *
  * SPEC-UI-002 준수:
- * - 3계층 레이아웃 (헤더 타이틀 fontSize 22 / weight 700)
- * - 카드 패턴 (cornerRadius 16 / padding 16-20)
- * - 빈/로딩 상태 패턴
+ * - 3계층 레이아웃 (헤더 타이틀 displaySm = 22/700)
+ * - 카드 패턴 (cornerRadius 16 / padding 14-20)
  * - token-only 스타일링 (useTheme + tokens.ts 변수만 사용, 하드코딩 금지)
+ * - 빈/로딩 상태 패턴
  *
  * 비과시 원칙(SPEC-UI-002 FROZEN): 좋아요/팔로워/랭킹 표시 없음.
  *
- * @MX:NOTE: [AUTO] 마이 탭 화면 — useSession 컨슘 + signOut 연결. account-linking 회귀용 최소 진입점.
+ * @MX:NOTE: [AUTO] 마이 탭 화면 — useSession 컨슘 + signOut 연결. F15-My 로 재포팅.
+ * @MX:SPEC SPEC-UI-002
  */
 import React, { useState } from 'react';
 import {
@@ -26,8 +24,17 @@ import {
   StyleSheet,
   ActivityIndicator,
   Alert,
+  Image,
 } from 'react-native';
 import { useRouter } from 'expo-router';
+import {
+  Settings,
+  Hourglass,
+  TrendingUp,
+  Bell,
+  Heart,
+  ChevronRight,
+} from 'lucide-react-native';
 import { useTheme } from '../../src/theme/theme';
 import { useSession } from '../../src/auth/useSession';
 import { useUnreadCount } from '../../src/features/notification';
@@ -56,6 +63,10 @@ const PROVIDER_LABEL: Record<AuthProvider, string> = {
   google: '구글',
 };
 
+// @MX:NOTE: [AUTO] SPEC-UI-002 F15-My Bio 고정 문구 — profile.bio 스키마 필드가 아직 없어
+//           .pen 기본 문구를 정적 플레이스홀더로 렌더링. 향후 bio 필드 추가 시 동적 바인딩 전환.
+const BIO_PLACEHOLDER = '매일 조금씩, 종이책과 함께';
+
 export default function MyTab(): React.JSX.Element {
   const theme = useTheme();
   const router = useRouter();
@@ -71,11 +82,23 @@ export default function MyTab(): React.JSX.Element {
         testID="my-loading"
         style={[styles.container, { backgroundColor: theme.colors.bg.base }]}
       >
-        <View style={styles.header}>
+        <View
+          style={[
+            styles.header,
+            {
+              paddingHorizontal: theme.spacing[5],
+              paddingTop: theme.spacing[2],
+              paddingBottom: 0,
+            },
+          ]}
+        >
           <Text
-            style={[styles.title, { color: theme.colors.text.primary }]}
+            style={[
+              theme.typography.displaySm,
+              { color: theme.colors.text.primary },
+            ]}
           >
-            마이
+            마이페이지
           </Text>
         </View>
         <View style={styles.bodyCenter}>
@@ -115,11 +138,23 @@ export default function MyTab(): React.JSX.Element {
         testID="my-signed-out"
         style={[styles.container, { backgroundColor: theme.colors.bg.base }]}
       >
-        <View style={styles.header}>
+        <View
+          style={[
+            styles.header,
+            {
+              paddingHorizontal: theme.spacing[5],
+              paddingTop: theme.spacing[2],
+              paddingBottom: 0,
+            },
+          ]}
+        >
           <Text
-            style={[styles.title, { color: theme.colors.text.primary }]}
+            style={[
+              theme.typography.displaySm,
+              { color: theme.colors.text.primary },
+            ]}
           >
-            마이
+            마이페이지
           </Text>
         </View>
         <View style={styles.emptyState}>
@@ -167,72 +202,142 @@ export default function MyTab(): React.JSX.Element {
     ? PROVIDER_LABEL[profile.provider]
     : '알 수 없음';
   const email = user.email ?? null;
+  const avatarUrl = profile?.avatar_url ?? null;
 
   return (
     <View
       testID="my-screen"
       style={[styles.container, { backgroundColor: theme.colors.bg.base }]}
     >
-      {/* 헤더 (SPEC-UI-002 REQ-SCREEN-HEADER — 타이틀 균일성) */}
-      <View style={styles.header}>
-        <Text style={[styles.title, { color: theme.colors.text.primary }]}>
-          마이
+      {/* 헤더 (.pen F15-My Header — padding [8,20,0,20], space_between)
+          타이틀 "마이페이지" (displaySm=22/700) + Settings 아이콘 (22×22) */}
+      <View
+        style={[
+          styles.header,
+          {
+            paddingHorizontal: theme.spacing[5],
+            paddingTop: theme.spacing[2],
+            paddingBottom: 0,
+          },
+        ]}
+      >
+        <Text
+          style={[
+            theme.typography.displaySm,
+            { color: theme.colors.text.primary },
+          ]}
+        >
+          마이페이지
         </Text>
+        <Pressable
+          testID="my-settings-button"
+          onPress={() => router.push('/my/edit')}
+          accessibilityRole="button"
+          accessibilityLabel="설정"
+          accessibilityHint="프로필 및 설정 화면으로 이동합니다."
+          hitSlop={8}
+        >
+          <Settings size={22} color={theme.colors.text.primary} />
+        </Pressable>
       </View>
 
       <ScrollView
         style={{ flex: 1 }}
         contentContainerStyle={{
-          paddingTop: 12,
-          gap: 16,
+          paddingTop: theme.spacing[2],
+          gap: theme.spacing[6],
           paddingHorizontal: theme.spacing[5],
+          paddingBottom: theme.spacing[5],
         }}
         keyboardShouldPersistTaps="handled"
       >
-        {/* 사용자 정보 카드 (SPEC-UI-002 REQ-SCREEN-CARD — cornerRadius 16 / padding 16-20) */}
+        {/* 프로필 (.pen F15-My Profile — 아바타 64×64 + NameCol gap 4, center)
+            Bio 는 profile.bio 스키마 부재로 .pen 기본 문구 정적 렌더링.
+            provider/email 은 .pen 외 앱 확장 — 프로필 카드 아래 보조 라인으로 유지. */}
+        <View style={styles.profileRow}>
+          {avatarUrl ? (
+            <Image
+              source={{ uri: avatarUrl }}
+              style={[
+                styles.avatar,
+                { borderRadius: theme.radius.full },
+              ]}
+              accessibilityRole="image"
+              accessibilityLabel="프로필 아바타"
+            />
+          ) : (
+            <View
+              style={[
+                styles.avatar,
+                {
+                  borderRadius: theme.radius.full,
+                  backgroundColor: theme.colors.brand[200],
+                },
+              ]}
+              accessibilityRole="image"
+              accessibilityLabel="기본 프로필 아바타"
+            />
+          )}
+          <View style={styles.nameCol}>
+            <Text
+              style={[
+                theme.typography.displayXs,
+                { color: theme.colors.text.primary },
+              ]}
+              numberOfLines={1}
+            >
+              {nickname}
+            </Text>
+            <Text
+              style={[
+                theme.typography.bodySm,
+                { color: theme.colors.text.secondary },
+              ]}
+              numberOfLines={1}
+            >
+              {BIO_PLACEHOLDER}
+            </Text>
+          </View>
+        </View>
+
+        {/* SPEC-PROFILE-001: 프로필 수정 진입점 + provider/email (.pen 외 앱 확장).
+            기능 삭제 금지 조건 — 기존 my-edit 테스트가 provider/email 노출을 검증하므로
+            프로필 행 아래 컴팩트한 보조 라인으로 유지. */}
         <View
           style={[
-            styles.card,
+            styles.accountCard,
             {
               backgroundColor: theme.colors.bg.surface,
               borderRadius: theme.radius.lg,
               padding: theme.spacing[5],
-              borderWidth: 1,
+              borderWidth: theme.borderWidth.hairline,
               borderColor: theme.colors.border.default,
             },
           ]}
         >
-          <Text
-            style={[
-              styles.nickname,
-              { color: theme.colors.text.primary },
-            ]}
-            numberOfLines={1}
-          >
-            {nickname}
-          </Text>
-
           <View style={styles.metaRow}>
             <Text
-              style={[styles.metaLabel, { color: theme.colors.text.tertiary }]}
+              style={[
+                theme.typography.bodySm,
+                { color: theme.colors.text.tertiary },
+              ]}
             >
               연결 계정
             </Text>
             <Text
               style={[
-                styles.metaValue,
+                theme.typography.bodyMd,
                 { color: theme.colors.text.secondary },
               ]}
             >
               {providerLabel}
             </Text>
           </View>
-
           {email ? (
             <View style={styles.metaRow}>
               <Text
                 style={[
-                  styles.metaLabel,
+                  theme.typography.bodySm,
                   { color: theme.colors.text.tertiary },
                 ]}
               >
@@ -240,7 +345,7 @@ export default function MyTab(): React.JSX.Element {
               </Text>
               <Text
                 style={[
-                  styles.metaValue,
+                  theme.typography.bodyMd,
                   { color: theme.colors.text.secondary },
                 ]}
                 numberOfLines={1}
@@ -267,7 +372,7 @@ export default function MyTab(): React.JSX.Element {
           >
             <Text
               style={[
-                styles.editText,
+                theme.typography.ctaLabel,
                 { color: theme.colors.text.secondary },
               ]}
             >
@@ -276,10 +381,13 @@ export default function MyTab(): React.JSX.Element {
           </Pressable>
         </View>
 
-        {/* SPEC-PROFILE-001: 통계 섹션 (.pen F15-My "Stats" — 3-stat horizontal) */}
+        {/* 통계 섹션 (.pen F15-My "나의 독서 발자국" — 3-stat horizontal) */}
         <View style={styles.sectionLabelWrap}>
           <Text
-            style={[styles.sectionLabel, { color: theme.colors.text.tertiary }]}
+            style={[
+              theme.typography.sectionLabel,
+              { color: theme.colors.text.tertiary },
+            ]}
           >
             나의 독서 발자국
           </Text>
@@ -302,10 +410,159 @@ export default function MyTab(): React.JSX.Element {
           />
         </View>
 
-        {/* SPEC-PROFILE-001: 배지 섹션 (REQ-PROF-007 클라이언트 산정) */}
+        {/* 활동 메뉴 (.pen F15-My MenuList — $bg-surface, cornerRadius 16, 4 rows)
+            각 row: lucide 아이콘(20×20, $text-secondary) + label(15/normal) + ChevronRight(20×20, $text-tertiary) */}
         <View style={styles.sectionLabelWrap}>
           <Text
-            style={[styles.sectionLabel, { color: theme.colors.text.tertiary }]}
+            style={[
+              theme.typography.sectionLabel,
+              { color: theme.colors.text.tertiary },
+            ]}
+          >
+            활동
+          </Text>
+        </View>
+        <View
+          style={[
+            styles.menuCard,
+            {
+              backgroundColor: theme.colors.bg.surface,
+              borderRadius: theme.radius.lg,
+              borderWidth: theme.borderWidth.hairline,
+              borderColor: theme.colors.border.default,
+            },
+          ]}
+        >
+          <Pressable
+            testID="my-routine-timer"
+            onPress={() => router.push('/my/timer')}
+            accessibilityRole="button"
+            accessibilityLabel="독서 타이머"
+            accessibilityHint="독서 타이머 화면으로 이동합니다."
+            style={[styles.menuRow, { borderRadius: theme.radius.md }]}
+          >
+            <Hourglass size={20} color={theme.colors.text.secondary} />
+            <Text
+              style={[
+                styles.menuLabel,
+                { color: theme.colors.text.primary },
+              ]}
+            >
+              독서 타이머
+            </Text>
+            <ChevronRight size={20} color={theme.colors.text.tertiary} />
+          </Pressable>
+          <View
+            style={[
+              styles.menuDivider,
+              { backgroundColor: theme.colors.border.default },
+            ]}
+          />
+          <Pressable
+            testID="my-stats-detail"
+            onPress={() => {
+              // @MX:TODO: [AUTO] 독서 통계 상세 화면 미구현 — 현재 화면에 요약이 이미 표시되므로 no-op. 전용 상세 라우트 추가 후 연결.
+            }}
+            accessibilityRole="button"
+            accessibilityLabel="독서 통계"
+            accessibilityHint="상세 독서 통계 화면으로 이동합니다."
+            style={[styles.menuRow, { borderRadius: theme.radius.md }]}
+          >
+            <TrendingUp size={20} color={theme.colors.text.secondary} />
+            <Text
+              style={[
+                styles.menuLabel,
+                { color: theme.colors.text.primary },
+              ]}
+            >
+              독서 통계
+            </Text>
+            <ChevronRight size={20} color={theme.colors.text.tertiary} />
+          </Pressable>
+          <View
+            style={[
+              styles.menuDivider,
+              { backgroundColor: theme.colors.border.default },
+            ]}
+          />
+          <Pressable
+            testID="my-notifications"
+            onPress={() => router.push('/my/notifications')}
+            accessibilityRole="button"
+            accessibilityLabel="알림 센터"
+            accessibilityHint="알림 센터로 이동합니다."
+            style={[styles.menuRow, { borderRadius: theme.radius.md }]}
+          >
+            <Bell size={20} color={theme.colors.text.secondary} />
+            <Text
+              style={[
+                styles.menuLabel,
+                { color: theme.colors.text.primary },
+              ]}
+            >
+              알림 센터
+            </Text>
+            <View style={styles.menuTrailing}>
+              {unreadCount > 0 ? (
+                <View
+                  testID="my-notifications-badge"
+                  style={[
+                    styles.badge,
+                    { backgroundColor: theme.colors.brand[500] },
+                  ]}
+                >
+                  <Text
+                    style={[
+                      theme.typography.caption,
+                      {
+                        color: theme.colors.text.inverse,
+                        fontWeight: '700',
+                      },
+                    ]}
+                  >
+                    {unreadCount}
+                  </Text>
+                </View>
+              ) : null}
+              <ChevronRight size={20} color={theme.colors.text.tertiary} />
+            </View>
+          </Pressable>
+          <View
+            style={[
+              styles.menuDivider,
+              { backgroundColor: theme.colors.border.default },
+            ]}
+          />
+          <Pressable
+            testID="my-completion-diary"
+            onPress={() => {
+              // @MX:TODO: [AUTO] 완독 다이어리 리스트 라우트 미구현 — completion/[bookId] 전용 list 진입점 추가 후 연결. 현재는 no-op.
+            }}
+            accessibilityRole="button"
+            accessibilityLabel="완독 다이어리"
+            accessibilityHint="완독한 책의 다이어리 목록으로 이동합니다."
+            style={[styles.menuRow, { borderRadius: theme.radius.md }]}
+          >
+            <Heart size={20} color={theme.colors.text.secondary} />
+            <Text
+              style={[
+                styles.menuLabel,
+                { color: theme.colors.text.primary },
+              ]}
+            >
+              완독 다이어리
+            </Text>
+            <ChevronRight size={20} color={theme.colors.text.tertiary} />
+          </Pressable>
+        </View>
+
+        {/* SPEC-PROFILE-001: 배지 섹션 (REQ-PROF-007 클라이언트 산정) — .pen 외 앱 확장 */}
+        <View style={styles.sectionLabelWrap}>
+          <Text
+            style={[
+              theme.typography.sectionLabel,
+              { color: theme.colors.text.tertiary },
+            ]}
           >
             배지
           </Text>
@@ -316,7 +573,7 @@ export default function MyTab(): React.JSX.Element {
             {
               backgroundColor: theme.colors.bg.surface,
               borderRadius: theme.radius.lg,
-              borderWidth: 1,
+              borderWidth: theme.borderWidth.hairline,
               borderColor: theme.colors.border.default,
             },
           ]}
@@ -333,24 +590,33 @@ export default function MyTab(): React.JSX.Element {
           </View>
         </View>
 
-        {/* SPEC-PROFILE-001: 포인트 내역 섹션 (REQ-PROF-006 MVP 조회 전용) */}
+        {/* SPEC-PROFILE-001: 포인트 내역 섹션 (REQ-PROF-006 MVP 조회 전용) — .pen 외 앱 확장 */}
         <View style={styles.sectionLabelWrap}>
           <Text
-            style={[styles.sectionLabel, { color: theme.colors.text.tertiary }]}
+            style={[
+              theme.typography.sectionLabel,
+              { color: theme.colors.text.tertiary },
+            ]}
           >
             포인트
           </Text>
           <Text
-            style={[styles.pointBalance, { color: theme.colors.brand[500] }]}
+            style={[
+              theme.typography.displayXs,
+              { color: theme.colors.brand[500] },
+            ]}
           >
             {pointBalance}
           </Text>
         </View>
 
-        {/* SPEC-PROFILE-001: 설정 링크 섹션 (REQ-PROF-008 — P25/P26/P27 "준비 중") */}
+        {/* SPEC-PROFILE-001: 설정 링크 섹션 (REQ-PROF-008 — "준비 중") — .pen 외 앱 확장 */}
         <View style={styles.sectionLabelWrap}>
           <Text
-            style={[styles.sectionLabel, { color: theme.colors.text.tertiary }]}
+            style={[
+              theme.typography.sectionLabel,
+              { color: theme.colors.text.tertiary },
+            ]}
           >
             설정
           </Text>
@@ -361,145 +627,53 @@ export default function MyTab(): React.JSX.Element {
             {
               backgroundColor: theme.colors.bg.surface,
               borderRadius: theme.radius.lg,
-              borderWidth: 1,
+              borderWidth: theme.borderWidth.hairline,
               borderColor: theme.colors.border.default,
             },
           ]}
         >
           <View style={[styles.menuRow, { borderRadius: theme.radius.md }]}>
             <Text
-              style={[styles.menuLabel, { color: theme.colors.text.primary }]}
+              style={[
+                styles.menuLabel,
+                { color: theme.colors.text.primary },
+              ]}
             >
               이용약관
             </Text>
             <Text
-              style={[styles.chevron, { color: theme.colors.text.tertiary }]}
+              style={[
+                theme.typography.bodySm,
+                { color: theme.colors.text.tertiary },
+              ]}
             >
               준비 중
             </Text>
           </View>
           <View
-            style={[styles.menuDivider, { backgroundColor: theme.colors.border.default }]}
+            style={[
+              styles.menuDivider,
+              { backgroundColor: theme.colors.border.default },
+            ]}
           />
           <View style={[styles.menuRow, { borderRadius: theme.radius.md }]}>
             <Text
-              style={[styles.menuLabel, { color: theme.colors.text.primary }]}
+              style={[
+                styles.menuLabel,
+                { color: theme.colors.text.primary },
+              ]}
             >
               개인정보 처리방침
             </Text>
             <Text
-              style={[styles.chevron, { color: theme.colors.text.tertiary }]}
+              style={[
+                theme.typography.bodySm,
+                { color: theme.colors.text.tertiary },
+              ]}
             >
               준비 중
             </Text>
           </View>
-        </View>
-
-        {/* 독서 루틴 메뉴 (SPEC-ROUTINE-001 — 타이머/알림 진입점) */}
-        <View
-          style={[
-            styles.menuCard,
-            {
-              backgroundColor: theme.colors.bg.surface,
-              borderRadius: theme.radius.lg,
-              borderWidth: 1,
-              borderColor: theme.colors.border.default,
-            },
-          ]}
-        >
-          <Pressable
-            testID="my-routine-timer"
-            onPress={() => router.push('/my/timer')}
-            accessibilityRole="button"
-            accessibilityLabel="독서 타이머"
-            accessibilityHint="독서 타이머 화면으로 이동합니다."
-            style={[
-              styles.menuRow,
-              {
-                borderRadius: theme.radius.md,
-              },
-            ]}
-          >
-            <Text
-              style={[styles.menuLabel, { color: theme.colors.text.primary }]}
-            >
-              독서 타이머
-            </Text>
-            <Text
-              style={[styles.chevron, { color: theme.colors.text.tertiary }]}
-            >
-              ›
-            </Text>
-          </Pressable>
-          <View
-            style={[styles.menuDivider, { backgroundColor: theme.colors.border.default }]}
-          />
-          <Pressable
-            testID="my-routine-alarm"
-            onPress={() => router.push('/my/alarm')}
-            accessibilityRole="button"
-            accessibilityLabel="알림 설정"
-            accessibilityHint="독서 알림 설정 화면으로 이동합니다."
-            style={[
-              styles.menuRow,
-              {
-                borderRadius: theme.radius.md,
-              },
-            ]}
-          >
-            <Text
-              style={[styles.menuLabel, { color: theme.colors.text.primary }]}
-            >
-              알림 설정
-            </Text>
-            <Text
-              style={[styles.chevron, { color: theme.colors.text.tertiary }]}
-            >
-              ›
-            </Text>
-          </Pressable>
-          <View
-            style={[styles.menuDivider, { backgroundColor: theme.colors.border.default }]}
-          />
-          <Pressable
-            testID="my-notifications"
-            onPress={() => router.push('/my/notifications')}
-            accessibilityRole="button"
-            accessibilityLabel="알림"
-            accessibilityHint="알림 센터로 이동합니다."
-            style={[styles.menuRow, { borderRadius: theme.radius.md }]}
-          >
-            <Text
-              style={[styles.menuLabel, { color: theme.colors.text.primary }]}
-            >
-              알림
-            </Text>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-              {unreadCount > 0 ? (
-                <View
-                  testID="my-notifications-badge"
-                  style={{
-                    minWidth: 20,
-                    height: 20,
-                    borderRadius: 10,
-                    paddingHorizontal: 6,
-                    backgroundColor: theme.colors.brand[500],
-                    justifyContent: 'center',
-                    alignItems: 'center',
-                  }}
-                >
-                  <Text style={{ color: theme.colors.text.inverse, fontSize: 12, fontWeight: '700' }}>
-                    {unreadCount}
-                  </Text>
-                </View>
-              ) : null}
-              <Text
-                style={[styles.chevron, { color: theme.colors.text.tertiary }]}
-              >
-                ›
-              </Text>
-            </View>
-          </Pressable>
         </View>
 
         {/* 로그아웃 버튼 */}
@@ -515,7 +689,7 @@ export default function MyTab(): React.JSX.Element {
             {
               backgroundColor: theme.colors.bg.surface,
               borderRadius: theme.radius.md,
-              borderWidth: 1,
+              borderWidth: theme.borderWidth.hairline,
               borderColor: theme.colors.border.default,
               opacity: isSigningOut ? 0.5 : 1,
             },
@@ -529,7 +703,7 @@ export default function MyTab(): React.JSX.Element {
           ) : (
             <Text
               style={[
-                styles.logoutText,
+                theme.typography.ctaLabel,
                 { color: theme.colors.semantic.error },
               ]}
             >
@@ -544,27 +718,30 @@ export default function MyTab(): React.JSX.Element {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  // SPEC-UI-002 FROZEN: title uniformity (fontSize 22 / weight 700)
+  // SPEC-UI-002 FROZEN: 헤더 레이아웃 — 타이틀 균일성(displaySm=22/700) + space_between.
   header: {
-    paddingHorizontal: 20,
-    paddingTop: 8,
-    paddingBottom: 4,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
   },
-  title: {
-    fontSize: 22,
-    fontWeight: '700',
+  // .pen F15-My Profile — Avatar 64×64 + NameCol(gap 4), alignItems center.
+  profileRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
   },
-  content: {
+  avatar: {
+    width: 64,
+    height: 64,
+  },
+  nameCol: {
     flex: 1,
-    paddingTop: 12,
-    gap: 16,
+    flexDirection: 'column',
+    gap: 4,
   },
-  card: {
+  // .pen 외 앱 확장 — provider/email + 프로필 수정 진입점 컨테이너.
+  accountCard: {
     gap: 12,
-  },
-  nickname: {
-    fontSize: 20,
-    fontWeight: '700',
   },
   metaRow: {
     flexDirection: 'row',
@@ -572,60 +749,57 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 12,
   },
-  metaLabel: {
-    fontSize: 13,
-    fontWeight: '500',
-  },
-  metaValue: {
-    fontSize: 14,
-    flexShrink: 1,
-    textAlign: 'right',
+  editButton: {
+    paddingVertical: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    marginTop: 4,
   },
   logoutButton: {
     paddingVertical: 14,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  logoutText: {
-    fontSize: 15,
-    fontWeight: '600',
-  },
   menuCard: {
     overflow: 'hidden',
   },
+  // .pen F15-My Row — padding [14,16], gap 12, alignItems center.
   menuRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
+    gap: 12,
     paddingVertical: 14,
     paddingHorizontal: 16,
   },
   menuLabel: {
+    flex: 1,
     fontSize: 15,
-    fontWeight: '500',
+    fontWeight: '400',
   },
-  chevron: {
-    fontSize: 20,
-    fontWeight: '600',
+  menuTrailing: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  badge: {
+    minWidth: 20,
+    height: 20,
+    borderRadius: 10,
+    paddingHorizontal: 6,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   menuDivider: {
     height: 1,
     marginHorizontal: 16,
   },
-  // SPEC-PROFILE-001 섹션 스타일
+  // 섹션 라벨 wrap (sectionLabel 토큰 = 13/600).
   sectionLabelWrap: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 4,
-  },
-  sectionLabel: {
-    fontSize: 13,
-    fontWeight: '600',
-  },
-  pointBalance: {
-    fontSize: 18,
-    fontWeight: '700',
   },
   statsRow: {
     flexDirection: 'row',
@@ -639,17 +813,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 8,
-  },
-  editButton: {
-    paddingVertical: 10,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-    marginTop: 4,
-  },
-  editText: {
-    fontSize: 14,
-    fontWeight: '600',
   },
   bodyCenter: {
     flex: 1,
