@@ -60,6 +60,10 @@ export const Button: React.FC<ButtonProps> = ({
       backgroundColor: getBackgroundColor(variant, theme),
       borderColor: getBorderColor(variant, theme),
       borderWidth: variant === 'secondary' || variant === 'destructive' ? 1 : 0,
+      // @MX:NOTE: [AUTO] SPEC-UI-002 — .pen PrimaryButton padding [0,24] 준거.
+      //           비고스트 variant(primary/secondary/destructive/disabled)에만 24 적용.
+      //           ghost 는 styles.ghost 에서 12 유지(별도 variant).
+      paddingHorizontal: variant === 'ghost' ? theme.spacing[3] : theme.spacing[6],
       opacity: isDisabled ? 0.5 : 1,
     },
     style,
@@ -144,7 +148,7 @@ const getTextColor = (variant: ButtonVariant, theme: ReturnType<typeof useTheme>
 const styles = StyleSheet.create({
   button: {
     height: 48, // spacing[12] - 비고스트 버튼 높이 (pages_11 §9.1)
-    paddingHorizontal: 16, // spacing[4] - 좌우 패딩
+    // paddingHorizontal 은 인라인(비고스트 theme.spacing[6]=24 / ghost theme.spacing[3]=12)으로 오버라이드됨 (SPEC-UI-002)
     borderRadius: 10, // radius.md - 모서리 반경
     alignItems: 'center',
     justifyContent: 'center',

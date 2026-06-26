@@ -31,7 +31,9 @@ import {
   ScrollView,
 } from 'react-native';
 import { useRouter } from 'expo-router';
-import { Feather } from '@expo/vector-icons';
+// @MX:NOTE: [AUTO] SPEC-UI-002 — 아이콘 라이브러리를 Feather(@expo/vector-icons)에서
+//           lucide-react-native 로 이관 (.pen library: "lucide" 준거).
+import { Bell } from 'lucide-react-native';
 import { useTheme } from '../../src/theme/theme';
 import { useSession } from '../../src/auth/useSession';
 import { useLibrary } from '../../src/features/library/useLibrary';
@@ -151,8 +153,8 @@ export default function HomeTab(): React.JSX.Element {
           오늘의 독서
         </Text>
         <View testID="home-bell-icon">
-          {/* @MX:NOTE: [AUTO] 아이콘 크기 22는 F03-Home 디자인 고정값 — iconSizes 스케일(sm16/md20/lg24)에 22 없음. */}
-          <Feather name="bell" size={22} color={theme.colors.text.primary} />
+          {/* @MX:NOTE: [AUTO] 아이콘 크기 22는 F03-Home 디자인 고정값 — iconSizes 스케일(sm16/md20/lg24)에 22 없음. lucide-react-native 사용. */}
+          <Bell size={22} color={theme.colors.text.primary} />
         </View>
       </View>
 

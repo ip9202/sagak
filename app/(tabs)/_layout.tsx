@@ -21,7 +21,9 @@
 import React, { useEffect } from 'react';
 import { ActivityIndicator, View } from 'react-native';
 import { Tabs, useRouter } from 'expo-router';
-import { Feather } from '@expo/vector-icons';
+// @MX:NOTE: [AUTO] SPEC-UI-002 — 아이콘 라이브러리를 Feather(@expo/vector-icons)에서
+//           lucide-react-native 로 이관. .pen 이 library: "lucide" 를 규정하므로 코드 정합성 확보.
+import { Home, BookOpen, Users, User } from 'lucide-react-native';
 import { useTheme } from '../../src/theme/theme';
 import { useSession } from '../../src/auth/useSession';
 import { StatusBar } from '../../src/components/StatusBar';
@@ -105,7 +107,7 @@ export default function TabsLayout() {
         name="index"
         options={{
           title: '홈',
-          tabBarIcon: ({ color }) => <Feather name="home" size={24} color={color} />,
+          tabBarIcon: ({ color }) => <Home size={24} color={color} />,
           tabBarAccessibilityLabel: '홈 탭',
         }}
       />
@@ -113,7 +115,7 @@ export default function TabsLayout() {
         name="library"
         options={{
           title: '서재',
-          tabBarIcon: ({ color }) => <Feather name="book-open" size={24} color={color} />,
+          tabBarIcon: ({ color }) => <BookOpen size={24} color={color} />,
           tabBarAccessibilityLabel: '서재 탭',
         }}
       />
@@ -121,7 +123,7 @@ export default function TabsLayout() {
         name="clubs"
         options={{
           title: '모임',
-          tabBarIcon: ({ color }) => <Feather name="users" size={24} color={color} />,
+          tabBarIcon: ({ color }) => <Users size={24} color={color} />,
           tabBarAccessibilityLabel: '모임 탭',
         }}
       />
@@ -129,7 +131,7 @@ export default function TabsLayout() {
         name="my"
         options={{
           title: '마이',
-          tabBarIcon: ({ color }) => <Feather name="user" size={24} color={color} />,
+          tabBarIcon: ({ color }) => <User size={24} color={color} />,
           tabBarAccessibilityLabel: '마이 탭',
         }}
       />
