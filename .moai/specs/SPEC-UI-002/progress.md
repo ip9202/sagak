@@ -120,7 +120,15 @@
 ### PR #77 (8408da6) — 토큰 정합성
 - tokens 확장: `radius.xs: 4`, `typography.buttonLabel(16/600/22)`.
 - 하드코딩 → 토큰: Button(buttonLabel), ReadersScreen/HostRequestsScreen(typography 매핑 + lineHeight 정합), EmotionRecordCard(radius.xs), my.tsx(text.inverse), login.tsx(OAuth 브랜드색 예외 명시).
-- trackB(Clubs/ClubCreate/ClubDetail/JoinRequestSheet)는 별도 PR.
+
+### PR #80 (dde48a7) — trackB 토큰화
+- **대상 화면**: ClubsScreen, ClubCreateScreen, ClubDetailScreen, JoinRequestSheet(trackA 잔여) — 약 47개 지점 tokenization.
+- **신규 토큰**: `plusGlyph(26/400/28)`, `displayXs(18/700/24)`, `ctaStrong(15/700/21)`, `actionLabel(14/700/20)`.
+- **패턴**: trackA(ReadersScreen/HostRequestsScreen) 1:1 레퍼런스 — spread + fontWeight const 오버라이드 + 신규 토큰(반복/FROZEN 강제값).
+- **검증**: tsc 0, eslint 0, jest 1225/1225(회귀 없음). manager-quality 리뷰: Critical 0, TRUST 5 4.8/5, 경고 5개(모두 의도된 token-only-FROZEN 트레이드오프).
+  - `minHeight.input` 96→100(JoinRequest textarea, 4px 시각적 변경).
+
+### PR #78 (082a7a2) — 비탭 화면 SafeArea
 
 ### PR #78 (082a7a2) — 비탭 화면 SafeArea
 - PR #70 (tabs) 그룹에 이어 비탭 화면으로 SafeArea 확장: (auth)/_layout(3화면), emotion/completion ScrollView 외곽, scan 카메라(투명 spacer + ExpoStatusBar light, paddingTop 이중 제거).
@@ -128,4 +136,4 @@
 
 **검증**: 전체 1225/1225, tsc/lint clean, CI 3/3 green (각 PR). 실기기(Pixel 6) 한글 폰트 폴백 + 서재/상세/scan 확인 완료.
 
-**잔여**: trackB 토큰화(별도 PR), 다른 화면 .pen 대조 재포팅(필요 시).
+**잔여**: 다른 화면 .pen 대조 재포팅(필요 시).
