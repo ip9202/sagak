@@ -31,6 +31,7 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useTheme } from '../../../../theme/theme';
+import { typography, borderWidth } from '../../../../theme/tokens';
 import { useCreateClub, type ClubFormInput } from '../hooks';
 import { getUserFriendlyMessage } from '../../../../lib/api/errors';
 import { AppError } from '../../../../errors';
@@ -374,26 +375,34 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  backText: { fontSize: 22, fontWeight: '700' },
+  // @MX:NOTE: [AUTO] SPEC-UI-002 PR-3 trackB — displaySm(22/700/30) 토큰 적용.
+  backText: { ...typography.displaySm },
   headerSpacer: { width: 36 },
-  // SPEC-UI-002 FROZEN: title uniformity (fontSize 22 / weight 700)
-  title: { fontSize: 22, fontWeight: '700' },
+  // @MX:NOTE: [AUTO] SPEC-UI-002 PR-3 trackB — displaySm(22/700/30) 토큰 적용. title uniformity FROZEN.
+  title: { ...typography.displaySm },
   form: { flex: 1 },
   formContent: { paddingTop: 12, paddingBottom: 24 },
-  label: { fontSize: 13, fontWeight: '600', marginBottom: 6 },
-  subLabel: { fontSize: 12, marginBottom: 6 },
+  // @MX:NOTE: [AUTO] SPEC-UI-002 PR-3 trackB — sectionLabel(13/600/18) 토큰 적용. marginBottom 6는 레이아웃값 유지.
+  label: { ...typography.sectionLabel, marginBottom: 6 },
+  // @MX:NOTE: [AUTO] SPEC-UI-002 PR-3 trackB — caption(12/400/17) 토큰 적용. 원본 weight 누락(400)과 일치.
+  subLabel: { ...typography.caption, marginBottom: 6 },
+  // @MX:NOTE: [AUTO] SPEC-UI-002 PR-3 trackB — bodyPrompt(15/400/22) + borderWidth.hairline 토큰 적용.
   input: {
-    borderWidth: 1,
+    ...typography.bodyPrompt,
+    borderWidth: borderWidth.hairline,
     paddingHorizontal: 14,
     paddingVertical: 12,
-    fontSize: 15,
   },
   textarea: { minHeight: 80, textAlignVertical: 'top' },
   row: { flexDirection: 'row', gap: 12 },
   fieldHalf: { flex: 1 },
-  hint: { fontSize: 12 },
-  errorText: { fontSize: 13, fontWeight: '600' },
-  footer: { paddingTop: 12, borderTopWidth: 1 },
+  // @MX:NOTE: [AUTO] SPEC-UI-002 PR-3 trackB — caption(12/400/17) 토큰 적용.
+  hint: { ...typography.caption },
+  // @MX:NOTE: [AUTO] SPEC-UI-002 PR-3 trackB — sectionLabel(13/600/18) 토큰 적용.
+  errorText: { ...typography.sectionLabel },
+  // @MX:NOTE: [AUTO] SPEC-UI-002 PR-3 trackB — borderWidth.hairline 토큰 적용.
+  footer: { paddingTop: 12, borderTopWidth: borderWidth.hairline },
   submitButton: { paddingVertical: 14, alignItems: 'center' },
-  submitText: { fontSize: 15, fontWeight: '700' },
+  // @MX:NOTE: [AUTO] SPEC-UI-002 PR-3 trackB — ctaStrong(15/700/21) 토큰 적용. primary submit 강조 라벨.
+  submitText: { ...typography.ctaStrong },
 });

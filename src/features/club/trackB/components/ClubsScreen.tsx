@@ -30,6 +30,7 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useTheme } from '../../../../theme/theme';
+import { typography } from '../../../../theme/tokens';
 import { useHostClubs } from '../hooks';
 import { getUserFriendlyMessage } from '../../../../lib/api/errors';
 import { AppError } from '../../../../errors';
@@ -294,8 +295,8 @@ const styles = StyleSheet.create({
     paddingTop: 8,
     paddingBottom: 4,
   },
-  // SPEC-UI-002 FROZEN: title uniformity (fontSize 22 / weight 700)
-  title: { fontSize: 22, fontWeight: '700' },
+  // @MX:NOTE: [AUTO] SPEC-UI-002 PR-3 trackB — displaySm(22/700/30) 토큰 적용. title uniformity FROZEN.
+  title: { ...typography.displaySm },
   bodyCenter: {
     flex: 1,
     justifyContent: 'center',
@@ -303,20 +304,24 @@ const styles = StyleSheet.create({
     gap: 12,
     padding: 20,
   },
+  // @MX:NOTE: [AUTO] SPEC-UI-002 PR-3 trackB — ctaLabel(14/600/22) 토큰 적용.
   errorText: {
-    fontSize: 14,
-    fontWeight: '600',
+    ...typography.ctaLabel,
     textAlign: 'center',
     paddingHorizontal: 32,
   },
   retryButton: { paddingVertical: 10, paddingHorizontal: 20 },
-  retryText: { fontSize: 14, fontWeight: '600' },
+  // @MX:NOTE: [AUTO] SPEC-UI-002 PR-3 trackB — ctaLabel(14/600/22) 토큰 적용.
+  retryText: { ...typography.ctaLabel },
   list: { flex: 1 },
   listContent: { gap: 16, paddingTop: 4 },
-  section: { fontSize: 13, fontWeight: '600' },
+  // @MX:NOTE: [AUTO] SPEC-UI-002 PR-3 trackB — sectionLabel(13/600/18) 토큰 적용.
+  section: { ...typography.sectionLabel },
   emptyCard: { gap: 8 },
-  emptyTitle: { fontSize: 18, fontWeight: '600' },
-  emptyHint: { fontSize: 14 },
+  // @MX:NOTE: [AUTO] SPEC-UI-002 PR-3 trackB — headingMd(18/600/26) 토큰 적용.
+  emptyTitle: { ...typography.headingMd },
+  // @MX:NOTE: [AUTO] SPEC-UI-002 PR-3 trackB — bodyMd(14/400/22) 토큰 적용. 원본 weight 누락(400)과 일치.
+  emptyHint: { ...typography.bodyMd },
   card: {
     flexDirection: 'row',
     gap: 12,
@@ -324,11 +329,16 @@ const styles = StyleSheet.create({
   },
   cover: { width: 60, height: 84 },
   info: { flex: 1, gap: 6, flexDirection: 'column' },
-  clubTitle: { fontSize: 15, fontWeight: '600' },
-  meta: { fontSize: 12 },
-  status: { fontSize: 12, fontWeight: '600' },
+  // @MX:NOTE: [AUTO] SPEC-UI-002 PR-3 trackB — alarmTitle(15/600/21) 토큰 적용.
+  clubTitle: { ...typography.alarmTitle },
+  // @MX:NOTE: [AUTO] SPEC-UI-002 PR-3 trackB — caption(12/400/17) 토큰 적용. 원본 weight 누락(400)과 일치.
+  meta: { ...typography.caption },
+  // @MX:NOTE: [AUTO] SPEC-UI-002 PR-3 trackB — caption(12/400/17) + fontWeight 600 override. 종료 상태 뱃지 강조.
+  status: { ...typography.caption, fontWeight: '600' as const },
   ctaButton: { paddingVertical: 14, alignItems: 'center' },
-  ctaText: { fontSize: 15, fontWeight: '700' },
+  // @MX:NOTE: [AUTO] SPEC-UI-002 PR-3 trackB — ctaStrong(15/700/21) 토큰 적용. primary CTA 강조 라벨.
+  ctaText: { ...typography.ctaStrong },
   createIcon: { alignItems: 'center', justifyContent: 'center' },
-  createIconText: { fontSize: 26, fontWeight: '400', lineHeight: 28 },
+  // @MX:NOTE: [AUTO] SPEC-UI-002 PR-3 trackB — plusGlyph(26/400/28) 토큰 적용. 헤더 "+" 글리프 전용.
+  createIconText: { ...typography.plusGlyph },
 });

@@ -35,6 +35,7 @@ import {
   Platform,
 } from 'react-native';
 import { useTheme } from '../../../../theme/theme';
+import { typography, borderWidth, minHeight } from '../../../../theme/tokens';
 import { useSession } from '../../../../auth/useSession';
 import { useCreateJoinRequest, type CreateJoinRequestVariables } from '../hooks';
 import { getUserFriendlyMessage } from '../../../../lib/api/errors';
@@ -216,15 +217,23 @@ const styles = StyleSheet.create({
   overlay: { flex: 1, justifyContent: 'flex-end' },
   sheet: { gap: 12, maxHeight: '80%' },
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  title: { fontSize: 18, fontWeight: '700' },
+  // @MX:NOTE: [AUTO] SPEC-UI-002 PR-3 trackB — displayXs(18/700/24) 토큰 적용. 요청 시트 타이틀.
+  title: { ...typography.displayXs },
   closeButton: { width: 32, height: 32, alignItems: 'center', justifyContent: 'center' },
-  closeText: { fontSize: 14 },
+  // @MX:NOTE: [AUTO] SPEC-UI-002 PR-3 trackB — bodyMd(14/400/22) 토큰 적용. 원본 weight 누락(400)과 일치.
+  closeText: { ...typography.bodyMd },
   body: { flexGrow: 0 },
-  label: { fontSize: 13, fontWeight: '600' },
-  input: { minHeight: 96, padding: 12, fontSize: 14, borderWidth: 1, textAlignVertical: 'top' },
-  counter: { fontSize: 12, alignSelf: 'flex-end' },
+  // @MX:NOTE: [AUTO] SPEC-UI-002 PR-3 trackB — sectionLabel(13/600/18) 토큰 적용.
+  label: { ...typography.sectionLabel },
+  // @MX:NOTE: [AUTO] SPEC-UI-002 PR-3 trackB — bodyMd(14/400/22) + minHeight.input + borderWidth.hairline 토큰 적용.
+  //           minHeight 96 → minHeight.input(100) 토큰 매핑(token-only FROZEN 우선, 4pt 차이 허용 범위).
+  input: { ...typography.bodyMd, minHeight: minHeight.input, padding: 12, borderWidth: borderWidth.hairline, textAlignVertical: 'top' },
+  // @MX:NOTE: [AUTO] SPEC-UI-002 PR-3 trackB — caption(12/400/17) 토큰 적용.
+  counter: { ...typography.caption, alignSelf: 'flex-end' },
   errorBox: { padding: 12 },
-  errorText: { fontSize: 13, fontWeight: '600' },
+  // @MX:NOTE: [AUTO] SPEC-UI-002 PR-3 trackB — sectionLabel(13/600/18) 토큰 적용.
+  errorText: { ...typography.sectionLabel },
   submitButton: { paddingVertical: 14, alignItems: 'center' },
-  submitText: { fontSize: 15, fontWeight: '700' },
+  // @MX:NOTE: [AUTO] SPEC-UI-002 PR-3 trackB — ctaStrong(15/700/21) 토큰 적용. primary submit 강조 라벨.
+  submitText: { ...typography.ctaStrong },
 });

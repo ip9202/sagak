@@ -69,15 +69,24 @@ export const spacing = {
 // @MX:NOTE: [AUTO] SPEC-UI-002 P0 — 모든 토큰에 fontFamily(weight-specific Inter) 추가.
 //           ...theme.typography.xxx spread 로 컴포넌트에 자동 전파된다.
 export const typography = {
+  // @MX:NOTE: [AUTO] SPEC-UI-002 trackB — ClubsScreen 헤더 "+" 글리프(26/400/28). 디스플레이 타이틀(28/700)과
+  //           크기/가중치 모두 달라 별도 토큰. token-only FROZEN 규칙 준수를 위해 수치 하드코딩 대신 토큰화.
+  plusGlyph: { fontSize: 26, fontWeight: '400' as const, lineHeight: 28, fontFamily: INTER_REGULAR },
   displayLg: { fontSize: 28, fontWeight: '700' as const, lineHeight: 36, fontFamily: INTER_BOLD },
   displayMd: { fontSize: 24, fontWeight: '700' as const, lineHeight: 32, fontFamily: INTER_BOLD },
   // @MX:NOTE: [AUTO] 화면 타이틀 균일성(SPEC-UI-002 FROZEN: 22/700). 홈 탭 헤더 등.
   displaySm: { fontSize: 22, fontWeight: '700' as const, lineHeight: 30, fontFamily: INTER_BOLD },
   headingLg: { fontSize: 20, fontWeight: '700' as const, lineHeight: 28, fontFamily: INTER_BOLD },
+  // @MX:NOTE: [AUTO] SPEC-UI-002 trackB — 모임 상세/요청 시트 섹션 타이틀(18/700). headingMd(18/600)보다 강조.
+  //           ClubDetailScreen.clubTitle, JoinRequestSheet.title 에서 사용(2회 이상 반복).
+  displayXs: { fontSize: 18, fontWeight: '700' as const, lineHeight: 24, fontFamily: INTER_BOLD },
   headingMd: { fontSize: 18, fontWeight: '600' as const, lineHeight: 26, fontFamily: INTER_SEMIBOLD },
   headingSm: { fontSize: 16, fontWeight: '600' as const, lineHeight: 23, fontFamily: INTER_SEMIBOLD },
   // @MX:NOTE: [AUTO] AlarmCard 타이틀(F03-Home). lineHeight 21 ≈ 15 * 1.4.
   alarmTitle: { fontSize: 15, fontWeight: '600' as const, lineHeight: 21, fontFamily: INTER_SEMIBOLD },
+  // @MX:NOTE: [AUTO] SPEC-UI-002 trackB — primary submit/CTA 강조 라벨(15/700). ctaLabel(14/600)보다 크고 굵게.
+  //           ClubsScreen ctaText, ClubCreate/ClubDetail/JoinRequest submitText (4회 반복).
+  ctaStrong: { fontSize: 15, fontWeight: '700' as const, lineHeight: 21, fontFamily: INTER_BOLD },
   // @MX:NOTE: [AUTO] SPEC-EMOTION-001 P1-B — 감정 입력 프롬프트/입력 본문(15/400). alarmTitle(15/600)과 가중치가 다르고 bodyMd(14/400)와 크기가 달라 추가.
   bodyPrompt: { fontSize: 15, fontWeight: '400' as const, lineHeight: 22, fontFamily: INTER_REGULAR },
   bodyLg: { fontSize: 16, fontWeight: '400' as const, lineHeight: 26, fontFamily: INTER_REGULAR },
@@ -86,6 +95,9 @@ export const typography = {
   bodyMd: { fontSize: 14, fontWeight: '400' as const, lineHeight: 22, fontFamily: INTER_REGULAR },
   // @MX:NOTE: [AUTO] CTA 라벨(14/600). bodyMd(14/400) 보다 강조된 버튼 텍스트.
   ctaLabel: { fontSize: 14, fontWeight: '600' as const, lineHeight: 22, fontFamily: INTER_SEMIBOLD },
+  // @MX:NOTE: [AUTO] SPEC-UI-002 trackB — secondary/danger 액션 버튼 라벨(14/700). ctaLabel(14/600)보다 한 단계 굵게.
+  //           ClubDetailScreen secondaryButtonText/dangerButtonText (2회 반복).
+  actionLabel: { fontSize: 14, fontWeight: '700' as const, lineHeight: 20, fontFamily: INTER_BOLD },
   // @MX:NOTE: [AUTO] 섹션 라벨(13/600). bodySm(13/400) 와 동일 크기, 가중치 600.
   sectionLabel: { fontSize: 13, fontWeight: '600' as const, lineHeight: 18, fontFamily: INTER_SEMIBOLD },
   bodySm: { fontSize: 13, fontWeight: '400' as const, lineHeight: 20, fontFamily: INTER_REGULAR },

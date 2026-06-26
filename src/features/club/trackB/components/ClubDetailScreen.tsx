@@ -28,6 +28,7 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useTheme } from '../../../../theme/theme';
+import { typography, borderWidth } from '../../../../theme/tokens';
 import {
   useClubDetail,
   useClubMembers,
@@ -582,10 +583,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  backText: { fontSize: 22, fontWeight: '700' },
+  // @MX:NOTE: [AUTO] SPEC-UI-002 PR-3 trackB — displaySm(22/700/30) 토큰 적용.
+  backText: { ...typography.displaySm },
   headerSpacer: { width: 36 },
-  // SPEC-UI-002 FROZEN: title uniformity (fontSize 22 / weight 700)
-  title: { fontSize: 22, fontWeight: '700' },
+  // @MX:NOTE: [AUTO] SPEC-UI-002 PR-3 trackB — displaySm(22/700/30) 토큰 적용. title uniformity FROZEN.
+  title: { ...typography.displaySm },
   bodyCenter: {
     flex: 1,
     justifyContent: 'center',
@@ -596,32 +598,46 @@ const styles = StyleSheet.create({
   body: { flex: 1 },
   bodyContent: { paddingBottom: 32 },
   card: { gap: 8 },
-  clubTitle: { fontSize: 18, fontWeight: '700' },
-  description: { fontSize: 14 },
+  // @MX:NOTE: [AUTO] SPEC-UI-002 PR-3 trackB — displayXs(18/700/24) 토큰 적용. 모임 상세 타이틀.
+  clubTitle: { ...typography.displayXs },
+  // @MX:NOTE: [AUTO] SPEC-UI-002 PR-3 trackB — bodyMd(14/400/22) 토큰 적용. 원본 weight 누락(400)과 일치.
+  description: { ...typography.bodyMd },
   metaRow: { flexDirection: 'row', gap: 12, marginTop: 4 },
-  meta: { fontSize: 13, fontWeight: '600' },
-  sectionTitle: { fontSize: 16, fontWeight: '700', marginBottom: 8 },
-  sectionLabel: { fontSize: 13, fontWeight: '600' },
+  // @MX:NOTE: [AUTO] SPEC-UI-002 PR-3 trackB — sectionLabel(13/600/18) 토큰 적용.
+  meta: { ...typography.sectionLabel },
+  // @MX:NOTE: [AUTO] SPEC-UI-002 PR-3 trackB — headingSm(16/600/23) + fontWeight 700 override. 섹션 타이틀 강조.
+  sectionTitle: { ...typography.headingSm, fontWeight: '700' as const, marginBottom: 8 },
+  // @MX:NOTE: [AUTO] SPEC-UI-002 PR-3 trackB — sectionLabel(13/600/18) 토큰 적용.
+  sectionLabel: { ...typography.sectionLabel },
   row: { flexDirection: 'row', gap: 12 },
   fieldHalf: { flex: 1 },
-  subLabel: { fontSize: 12, marginBottom: 6 },
+  // @MX:NOTE: [AUTO] SPEC-UI-002 PR-3 trackB — caption(12/400/17) 토큰 적용.
+  subLabel: { ...typography.caption, marginBottom: 6 },
+  // @MX:NOTE: [AUTO] SPEC-UI-002 PR-3 trackB — bodyPrompt(15/400/22) + borderWidth.hairline 토큰 적용.
   input: {
-    borderWidth: 1,
+    ...typography.bodyPrompt,
+    borderWidth: borderWidth.hairline,
     paddingHorizontal: 14,
     paddingVertical: 12,
-    fontSize: 15,
   },
-  errorText: { fontSize: 13, fontWeight: '600' },
-  emptyText: { fontSize: 14, marginTop: 8 },
+  // @MX:NOTE: [AUTO] SPEC-UI-002 PR-3 trackB — sectionLabel(13/600/18) 토큰 적용.
+  errorText: { ...typography.sectionLabel },
+  // @MX:NOTE: [AUTO] SPEC-UI-002 PR-3 trackB — bodyMd(14/400/22) 토큰 적용.
+  emptyText: { ...typography.bodyMd, marginTop: 8 },
   memberRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
   },
-  memberName: { fontSize: 14, fontWeight: '600', flexShrink: 1 },
-  roleBadge: { fontSize: 12, fontWeight: '600' },
+  // @MX:NOTE: [AUTO] SPEC-UI-002 PR-3 trackB — ctaLabel(14/600/22) 토큰 적용.
+  memberName: { ...typography.ctaLabel, flexShrink: 1 },
+  // @MX:NOTE: [AUTO] SPEC-UI-002 PR-3 trackB — caption(12/400/17) + fontWeight 600 override. 역할 뱃지 강조.
+  roleBadge: { ...typography.caption, fontWeight: '600' as const },
   secondaryButton: { paddingVertical: 12, alignItems: 'center' },
-  secondaryButtonText: { fontSize: 14, fontWeight: '700' },
-  dangerButton: { paddingVertical: 12, alignItems: 'center', borderWidth: 1 },
-  dangerButtonText: { fontSize: 14, fontWeight: '700' },
+  // @MX:NOTE: [AUTO] SPEC-UI-002 PR-3 trackB — actionLabel(14/700/20) 토큰 적용. secondary 액션 라벨.
+  secondaryButtonText: { ...typography.actionLabel },
+  // @MX:NOTE: [AUTO] SPEC-UI-002 PR-3 trackB — borderWidth.hairline 토큰 적용.
+  dangerButton: { paddingVertical: 12, alignItems: 'center', borderWidth: borderWidth.hairline },
+  // @MX:NOTE: [AUTO] SPEC-UI-002 PR-3 trackB — actionLabel(14/700/20) 토큰 적용. danger 액션 라벨.
+  dangerButtonText: { ...typography.actionLabel },
 });
