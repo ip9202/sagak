@@ -153,6 +153,18 @@ Phase 5 (배포)
 - **구현 산출물**: `src/features/completion/*.ts` (7 source + 4 test), 완독 다이어리 화면, 순수 SVG 차트
 - **제외**: 리치 콘텐츠(이미지 카드 등) 생성 Edge Function(확장 단계)
 
+#### SPEC-COMPLETION-002: 완독 다이어리 아카이브(리스트) + 상세 재설계
+- **도메인**: COMPLETION
+- **상태**: 📋 SPEC 작성 완료 (draft, 16/16 REQ, 2026-06-27)
+- **핵심 범위**: 완독 다이어리 **리스트(아카이브) 화면 신규 도입**(`.pen` F08 정합), 기존 상세 화면 **F09 재설계 정합**(001 데이터 로직 재사용, 시각적 카드 구조 재배치), 마이 진입점 연결(001 REQ-COMP-002 이행). 001의 `ReportData`/`fetchReport`/`useCompletionReport`를 재사용(재정의 없음).
+- **COMPLETION-001 vs 002 경계**: 001 = per-book 상세 데이터 계약(ReportData, fetchReport, 6상태 분기) + 1차 시각화(PR #14 완료). 002 = (a) 리스트 화면 신규, (b) 상세 F09 시각 정합, (c) 진입점 이행. 데이터 로직 중복 없음.
+- **설계 레퍼런스**: `.moai/design/sagak.pen` F08-CompletionDiaryList / F08-CompletionDiaryList-Empty / F09-CompletionDiaryDetail / F09-CompletionDiaryDetail-Empty (design commit 1300d6b)
+- **DB 엔터티**: `user_books`(status='completed'), `books`(title/cover_url), `completion_reports`(report_data 조인) — 기존 테이블/RLS 재사용, 마이그레이션 없음
+- **API/Edge Function**: `fetchCompletionDiaryList`(신규, PostgREST 조인 쿼리 래퍼) + 001 `fetchReport` 재사용
+- **의존성**: SPEC-COMPLETION-001(ReportData/fetchReport/useCompletionReport 재사용, REQ-COMP-002 계약 이행), SPEC-LIBRARY-001(completed 상태/서재 진입점 협력), SPEC-UI-002(FROZEN 화면 패턴), SPEC-NAV-001(리스트/상세 라우트 공존), SPEC-DB-001(completion_reports 스키마/RLS)
+- **구현 산출물**: `app/(tabs)/completion/index.tsx` + `src/features/completion/list/*`(신규) + 001 상세 컴포넌트 F09 정합 수정 + `my.tsx` 진입점 연결
+- **제외**: report_data 생성 로직(SPEC-DB-001), DB 마이그레이션, 리치 콘텐츠, 공유/PDF, 소셜/경쟁 기능(constitution Non-competition)
+
 ---
 
 ### Phase 3 — 소셜 연결 (Track A/B)
