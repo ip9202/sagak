@@ -136,4 +136,34 @@
 
 **검증**: 전체 1225/1225, tsc/lint clean, CI 3/3 green (각 PR). 실기기(Pixel 6) 한글 폰트 폴백 + 서재/상세/scan 확인 완료.
 
-**잔여**: 다른 화면 .pen 대조 재포팅(필요 시).
+---
+
+## 홈/모임/마이 `.pen` 재포팅 (PR #82-#84, 2026-06-27)
+
+**문맥**: Explore ×3 병렬 audit로 홈/모임/마이 `.pen`↔앱 gap 분석. 홈 audit의 위젯 누락/spacing 불일치는 **오보로 정정** (실제 `.pen` F03-Home에 위젯 없음 + 앱 spacing 값 일치). 홈은 구조적으로 이미 충실(bell 아이콘만 PR-1로 해결됨). 홈/모임/마이 3화면 재포팅으로 Pencil `.pen` 사양 완전 정합.
+
+### PR #82 (3ac1156) — 전역: Feather→lucide 아이콘 전환 + Button padding 24
+- **P0 lucide 마이그레이션**: `.pen`이 `library: "lucide"` 지정하므로 Feather→lucide-react-native 전면 이관. `_layout.tsx`(tabBar 4종), `index.tsx`(Bell), `library.tsx`(Search/Plus/BookOpen), `BookDetailScreen.tsx`(FEEDBACK_ICON → kind→LucideIcon 매핑: CircleCheck/TriangleAlert/Info). `lucide-react-native ^1.21.0` 추가. `@expo/vector-icons` 보존(import 0건).
+- **Button padding**: paddingHorizontal 16→`theme.spacing[6]`(24) per `.pen` PrimaryButton. ghost는 12 유지.
+- **Jest lucide mock**: `jest.setup.js`에 글로벌 lucide mock(ESM/.mjs + react-native-svg Jest 파싱 이슈 해결).
+- **Gate**: tsc 0 · eslint . 0 · jest 1225/1225.
+
+### PR #83 (401c2b6) — 마이(F15-My) `.pen` 재포팅
+- **Header**: title `마이`→`마이페이지`(displaySm 22/700) + Settings icon(lucide).
+- **Profile `.pen` 구조**: Avatar 64×64(avatar_url 있으면 Image, 없으면 $brand-200 원) + Nick displayXs(18/700) + Bio(정적 placeholder "매일 조금씩, 종이책과 함께", bodySm).
+- **MenuList**: "활동" sectionLabel + 4행(Hourglass/TrendingUp/Bell/Heart lucide) + ChevronRight icon(기존 "›" 텍스트 대체).
+- **Stats label**: sectionLabel 토큰화.
+- **한계(@MX:TODO)**: `profile.bio` 스키마 부재(Bio 정적 placeholder), 독서 통계/완독 다이어리 리스트 라우트 부재(no-op+TODO).
+- **Gate**: tsc 0 · eslint . 0 · jest 1225/1225. 테스트: tabs-shells 헤더 타이틀 단언 업데이트.
+
+### PR #84 (21096c9) — 모임(F11-Clubs) `.pen` 재포팅
+- **Header**: 텍스트 "+" 글리프 제거 → lucide Search(22)+Plus(24). 검색→/search.
+- **ClubCard Meta**: `formatClubMeta`(duration_days 14일+→N주/미만→N일/null→생략 + daily_pages) = "2주 코스 · 하루 20p".
+- **멤버 수**: `useHostClubs` PostgREST embedded aggregate `club_members(count)` 단일 라운드트립(N+1 제거). `HostClubWithCount` 타입. "멤버 N명"(비과시 원칙 — 운영 컨텍스트 허용).
+- **Empty**: lucide Users(48) — `.pen F11-Clubs-Empty`가 EmptyState 기본 book-open을 users로 오버라이드(`.pen` 직독 정정).
+- **한계(@MX:TODO)**: 진도(p.X/Track/Fill)는 clubs `current_page` 컬럼 부재로 TODO(빈 track 미렌더, 사용자 결정).
+- **Gate**: tsc 0 · eslint . 0 · jest 1229/1229(hooks/ClubsScreen 테스트 4개 확장).
+
+**검증**: 전체 1229/1229, tsc/lint clean, CI green (각 PR). lucide 마이그레이션 회귀 없음.
+
+**잔여**: `profile.bio` 스키마 추가, 독서 통계/완독 다이어리 라우트 구현, 모임 진도(current_page) 집계, `tokens.ts plusGlyph` unused 정리.
