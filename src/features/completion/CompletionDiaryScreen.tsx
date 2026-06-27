@@ -29,13 +29,19 @@ import { HighlightList } from './HighlightList';
 
 export interface CompletionDiaryScreenProps {
   userBookId: string;
+  /** 책 표지 URL (선택) — CelebrationHeader Cover 전달. undefined 면 Cover 생략. */
+  coverUrl?: string | null;
+  /** 완독일 ISO 문자열 (선택) — CelebrationHeader CompletedDate 전달. undefined 면 생략. */
+  completedAt?: string | null;
 }
 
 /**
- * 완독 다이어리 화면을 렌더링한다 (REQ-COMP-001~010).
+ * 완독 다이어리 화면을 렌더링한다 (REQ-COMP-001~010, REQ-COMP2-008).
  */
 export function CompletionDiaryScreen({
   userBookId,
+  coverUrl,
+  completedAt,
 }: CompletionDiaryScreenProps): React.ReactElement {
   const theme = useTheme();
   const { status, data, refetch } = useCompletionReport(userBookId);
@@ -100,9 +106,9 @@ export function CompletionDiaryScreen({
 
   return (
     <View style={[styles.container, { backgroundColor: theme.colors.bg.base }]}>
-      <CelebrationHeader />
+      <CelebrationHeader coverUrl={coverUrl} completedAt={completedAt} />
       <Text style={[styles.totalHeader, { color: theme.colors.text.secondary }]}>
-        이 책에서 남긴 감정 {total}개
+        {`이 책에 남긴 감정 기록 ${total}개`}
       </Text>
       {isEmpty ? (
         <Text style={[styles.emptyText, { color: theme.colors.text.secondary }]}>
@@ -119,9 +125,11 @@ export function CompletionDiaryScreen({
 }
 
 const styles = StyleSheet.create({
+  // @MX:NOTE: [AUTO] SPEC-COMPLETION-002 REQ-COMP2-008 — F09 Content (vertical, gap 24).
   container: {
     flex: 1,
     padding: spacing[4],
+    gap: spacing[6],
   },
   loadingText: {
     ...typography.bodyMd,

@@ -536,7 +536,8 @@ export default function MyTab(): React.JSX.Element {
           <Pressable
             testID="my-completion-diary"
             onPress={() => {
-              // @MX:TODO: [AUTO] 완독 다이어리 리스트 라우트 미구현 — completion/[bookId] 전용 list 진입점 추가 후 연결. 현재는 no-op.
+              // SPEC-COMPLETION-002 REQ-COMP2-012 — 완독 다이어리 리스트 라우트로 이동.
+              router.push('/completion');
             }}
             accessibilityRole="button"
             accessibilityLabel="완독 다이어리"
