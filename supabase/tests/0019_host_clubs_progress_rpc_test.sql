@@ -18,7 +18,7 @@ BEGIN;
 
 SET client_min_messages TO warning;
 
-SELECT plan(11);
+SELECT plan(8);
 
 -- ============================================================================
 -- SETUP (postgres role — RLS 우회, 테스트 데이터 시딩)
@@ -28,11 +28,11 @@ DELETE FROM club_members   WHERE club_id IN ('00000000-0000-0000-0000-0000000000
 DELETE FROM clubs          WHERE id IN ('00000000-0000-0000-0000-0000000000a1','00000000-0000-0000-0000-0000000000a2','00000000-0000-0000-0000-0000000000a3');
 DELETE FROM user_books     WHERE user_id IN ('00000000-0000-0000-0000-0000000000b1','00000000-0000-0000-0000-0000000000b2','00000000-0000-0000-0000-0000000000b3','00000000-0000-0000-0000-0000000000b4');
 DELETE FROM books          WHERE id IN ('00000000-0000-0000-0000-0000000000c1','00000000-0000-0000-0000-0000000000c2');
-DELETE FROM users          WHERE id IN ('00000000-0000-0000-0000-0000000000h1','00000000-0000-0000-0000-0000000000b1','00000000-0000-0000-0000-0000000000b2','00000000-0000-0000-0000-0000000000b3','00000000-0000-0000-0000-0000000000b4');
+DELETE FROM users          WHERE id IN ('00000000-0000-0000-0000-0000000000e1','00000000-0000-0000-0000-0000000000b1','00000000-0000-0000-0000-0000000000b2','00000000-0000-0000-0000-0000000000b3','00000000-0000-0000-0000-0000000000b4');
 
 -- host H1 + members B1..B4
 INSERT INTO users (id, email, nickname, provider) VALUES
-    ('00000000-0000-0000-0000-0000000000h1', 'host1@clubc.test', 'Host1', 'kakao'),
+    ('00000000-0000-0000-0000-0000000000e1', 'host1@clubc.test', 'Host1', 'kakao'),
     ('00000000-0000-0000-0000-0000000000b1', 'mb1@clubc.test',  'Mb1',   'kakao'),
     ('00000000-0000-0000-0000-0000000000b2', 'mb2@clubc.test',  'Mb2',   'kakao'),
     ('00000000-0000-0000-0000-0000000000b3', 'mb3@clubc.test',  'Mb3',   'kakao'),
@@ -47,16 +47,13 @@ INSERT INTO books (id, isbn, title, author, total_pages) VALUES
 -- club A2 (host=H1, book=C2, group/active) — total_pages NULL 케이스
 -- club A3 (host=H1, book=C1, instant/active) — type 필터 (제외 대상)
 INSERT INTO clubs (id, name, book_id, host_id, type, status) VALUES
-    ('00000000-0000-0000-0000-0000000000a1', 'ClubA1', '00000000-0000-0000-0000-0000000000c1', '00000000-0000-0000-0000-0000000000h1', 'group', 'active'),
-    ('00000000-0000-0000-0000-0000000000a2', 'ClubA2', '00000000-0000-0000-0000-0000000000c2', '00000000-0000-0000-0000-0000000000h1', 'group', 'active'),
-    ('00000000-0000-0000-0000-0000000000a3', 'ClubA3', '00000000-0000-0000-0000-0000000000c1', '00000000-0000-0000-0000-0000000000h1', 'instant', 'active');
+    ('00000000-0000-0000-0000-0000000000a1', 'ClubA1', '00000000-0000-0000-0000-0000000000c1', '00000000-0000-0000-0000-0000000000e1', 'group', 'active'),
+    ('00000000-0000-0000-0000-0000000000a2', 'ClubA2', '00000000-0000-0000-0000-0000000000c2', '00000000-0000-0000-0000-0000000000e1', 'group', 'active'),
+    ('00000000-0000-0000-0000-0000000000a3', 'ClubA3', '00000000-0000-0000-0000-0000000000c1', '00000000-0000-0000-0000-0000000000e1', 'instant', 'active');
 
--- H1 이 A1/A2/A3 모두 가입 (handle_new_club_host 트리거가 host 자동 가입하지만
--- postgres role 직접 INSERT 는 트리거를 타지 않을 수 있어 명시 삽입)
-INSERT INTO club_members (club_id, user_id, role) VALUES
-    ('00000000-0000-0000-0000-0000000000a1', '00000000-0000-0000-0000-0000000000h1', 'host'),
-    ('00000000-0000-0000-0000-0000000000a2', '00000000-0000-0000-0000-0000000000h1', 'host'),
-    ('00000000-0000-0000-0000-0000000000a3', '00000000-0000-0000-0000-0000000000h1', 'host');
+-- H1 은 clubs INSERT 시 handle_new_club_host 트리거(AFTER INSERT, SECURITY DEFINER)가
+-- A1/A2/A3 에 자동 가입시킴 (role='host'). 따라서 host club_members INSERT 는 생략 —
+-- 중복 (club_members_club_user_unique) 방지.
 
 -- B1/B2/B3 를 A1 멤버로 (진도 다양화), B4 는 A2 멤버
 INSERT INTO club_members (club_id, user_id, role) VALUES
@@ -76,13 +73,13 @@ INSERT INTO user_books (user_id, book_id, current_page, is_public) VALUES
     ('00000000-0000-0000-0000-0000000000b3', '00000000-0000-0000-0000-0000000000c1', 30, true);
 
 SET ROLE authenticated;
-SELECT set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-0000000000h1","role":"authenticated"}', false);
+SELECT set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-0000000000e1","role":"authenticated"}', false);
 
 -- REQ-CLUBC-001: A1 행이 (club_id, median_page=20, member_count_with_progress=3, total_pages=300) 반환
 SELECT results_eq(
     $$
         SELECT median_page, member_count_with_progress, total_pages
-          FROM get_host_clubs_progress('00000000-0000-0000-0000-0000000000h1')
+          FROM get_host_clubs_progress('00000000-0000-0000-0000-0000000000e1')
          WHERE club_id = '00000000-0000-0000-0000-0000000000a1'
     $$,
     $$ VALUES (20::int, 3::int, 300::int) $$,
@@ -95,12 +92,12 @@ UPDATE user_books SET current_page = 0
  WHERE user_id = '00000000-0000-0000-0000-0000000000b3'
    AND book_id = '00000000-0000-0000-0000-0000000000c1';
 SET ROLE authenticated;
-SELECT set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-0000000000h1","role":"authenticated"}', false);
+SELECT set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-0000000000e1","role":"authenticated"}', false);
 
 SELECT results_eq(
     $$
         SELECT median_page, member_count_with_progress
-          FROM get_host_clubs_progress('00000000-0000-0000-0000-0000000000h1')
+          FROM get_host_clubs_progress('00000000-0000-0000-0000-0000000000e1')
          WHERE club_id = '00000000-0000-0000-0000-0000000000a1'
     $$,
     $$ VALUES (15::int, 2::int) $$,
@@ -117,12 +114,12 @@ UPDATE user_books SET current_page = 30, is_public = false
  WHERE user_id = '00000000-0000-0000-0000-0000000000b3'
    AND book_id = '00000000-0000-0000-0000-0000000000c1';
 SET ROLE authenticated;
-SELECT set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-0000000000h1","role":"authenticated"}', false);
+SELECT set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-0000000000e1","role":"authenticated"}', false);
 
 SELECT results_eq(
     $$
         SELECT median_page, member_count_with_progress
-          FROM get_host_clubs_progress('00000000-0000-0000-0000-0000000000h1')
+          FROM get_host_clubs_progress('00000000-0000-0000-0000-0000000000e1')
          WHERE club_id = '00000000-0000-0000-0000-0000000000a1'
     $$,
     $$ VALUES (15::int, 2::int) $$,
@@ -132,21 +129,21 @@ SELECT results_eq(
 -- ============================================================================
 -- REQ-CLUBC-005: books.total_pages LEFT JOIN (NULL 허용)
 -- ============================================================================
--- A2 book=C2(total_pages=NULL) + B4=50p → total_pages=NULL 반환
+-- A2 book=C2(total_pages=NULL) + B4=50p → total_pages=0 반환 (COALESCE 폴백, books.total_pages 미입력)
 RESET ROLE;
 INSERT INTO user_books (user_id, book_id, current_page, is_public) VALUES
     ('00000000-0000-0000-0000-0000000000b4', '00000000-0000-0000-0000-0000000000c2', 50, true);
 SET ROLE authenticated;
-SELECT set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-0000000000h1","role":"authenticated"}', false);
+SELECT set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-0000000000e1","role":"authenticated"}', false);
 
 SELECT results_eq(
     $$
         SELECT median_page, member_count_with_progress, total_pages
-          FROM get_host_clubs_progress('00000000-0000-0000-0000-0000000000h1')
+          FROM get_host_clubs_progress('00000000-0000-0000-0000-0000000000e1')
          WHERE club_id = '00000000-0000-0000-0000-0000000000a2'
     $$,
-    $$ VALUES (50::int, 1::int, NULL::int) $$,
-    'REQ-CLUBC-005: A2 total_pages=NULL (books.total_pages LEFT JOIN NULL 허용)'
+    $$ VALUES (50::int, 1::int, 0::int) $$,
+    'REQ-CLUBC-005: A2 total_pages=NULL → 0 폴백 (COALESCE, books.total_pages 미입력)'
 );
 
 -- ============================================================================
@@ -154,7 +151,7 @@ SELECT results_eq(
 -- ============================================================================
 -- H1 host group/active 모임은 A1, A2 만 (A3 는 instant → 제외)
 SELECT is(
-    (SELECT count(*)::bigint FROM get_host_clubs_progress('00000000-0000-0000-0000-0000000000h1')),
+    (SELECT count(*)::bigint FROM get_host_clubs_progress('00000000-0000-0000-0000-0000000000e1')),
     2::bigint,
     'REQ-CLUBC-001/002: host H1 의 group/active 모임 2행 (A1, A2) — A3(instant) 제외'
 );
@@ -176,12 +173,12 @@ UPDATE user_books SET current_page = 0
  WHERE user_id = '00000000-0000-0000-0000-0000000000b4'
    AND book_id = '00000000-0000-0000-0000-0000000000c2';
 SET ROLE authenticated;
-SELECT set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-0000000000h1","role":"authenticated"}', false);
+SELECT set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-0000000000e1","role":"authenticated"}', false);
 
 SELECT results_eq(
     $$
         SELECT median_page, member_count_with_progress
-          FROM get_host_clubs_progress('00000000-0000-0000-0000-0000000000h1')
+          FROM get_host_clubs_progress('00000000-0000-0000-0000-0000000000e1')
          WHERE club_id = '00000000-0000-0000-0000-0000000000a2'
     $$,
     $$ VALUES (0::int, 0::int) $$,

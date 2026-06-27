@@ -718,7 +718,7 @@ export type Database = {
           club_id: string
           median_page: number
           member_count_with_progress: number
-          total_pages: number | null
+          total_pages: number
         }[]
       }
       start_reading_session: { Args: { p_book_id: string }; Returns: string }

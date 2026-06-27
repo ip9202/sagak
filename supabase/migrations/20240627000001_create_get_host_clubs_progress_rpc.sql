@@ -45,7 +45,7 @@ AS $$
             0
         ) AS median_page,
         COUNT(ubp.current_page)::integer AS member_count_with_progress,
-        b.total_pages
+        COALESCE(b.total_pages, 0)::integer AS total_pages
     FROM public.clubs c
     LEFT JOIN public.club_members cm ON cm.club_id = c.id
     LEFT JOIN public.user_books_public ubp
@@ -64,4 +64,4 @@ GRANT EXECUTE ON FUNCTION public.get_host_clubs_progress(uuid) TO authenticated;
 COMMENT ON FUNCTION public.get_host_clubs_progress(uuid) IS
     'SPEC-CLUBC-RPC: host 가 소유한 활성 group 모임의 멤버 읽기 진도 median 집계. '
     'user_books_public 뷰 소스 (is_public=true 만). SECURITY INVOKER. '
-    'current_page>0 멤버만 median 포함. total_pages NULL 허용.';
+    'current_page>0 멤버만 median 포함. total_pages=NULL → 0 폴백 (COALESCE, gen-types number 정합).';
