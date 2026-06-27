@@ -21,6 +21,7 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useTheme } from '../../../src/theme/theme';
+import { borderWidth } from '../../../src/theme/tokens';
 import { useSession } from '../../../src/auth/useSession';
 import {
   useProfile,
@@ -94,7 +95,7 @@ export default function EditScreen(): React.JSX.Element {
               backgroundColor: theme.colors.bg.surface,
               borderRadius: theme.radius.lg,
               padding: theme.spacing[5],
-              borderWidth: 1,
+              borderWidth: theme.borderWidth.hairline,
               borderColor: theme.colors.border.default,
             },
           ]}
@@ -202,7 +203,7 @@ const styles = StyleSheet.create({
   card: { gap: 8 },
   fieldLabel: { fontSize: 13, fontWeight: '600' },
   input: {
-    borderWidth: 1,
+    borderWidth: borderWidth.hairline,
     paddingHorizontal: 14,
     paddingVertical: 12,
     fontSize: 15,

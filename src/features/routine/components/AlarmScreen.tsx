@@ -16,6 +16,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { useTheme } from '../../../theme/theme';
+import { borderWidth } from '../../../theme/tokens';
 import {
   useAlarmSettings,
   useInvalidateAlarmSettings,
@@ -135,6 +136,6 @@ const styles = StyleSheet.create({
     gap: 12, // spacing[3] - 행 간 간격
   },
   label: { fontSize: 16 }, // typography.headingSm(16/600/23)과 fontWeight 불일치로 유지
-  input: { borderWidth: 1, paddingHorizontal: 12, paddingVertical: 8, width: 120 }, // borderWidth: borderWidth.hairline, paddingHorizontal: spacing[3], paddingVertical: spacing[2], width: spacing 체계(4의 배수)로 표현 불가한 값 유지
+  input: { borderWidth: borderWidth.hairline, paddingHorizontal: 12, paddingVertical: 8, width: 120 }, // paddingHorizontal: spacing[3], paddingVertical: spacing[2], width: spacing 체계(4의 배수)로 표현 불가한 값 유지
   center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
 });

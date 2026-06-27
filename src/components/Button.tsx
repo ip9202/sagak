@@ -59,7 +59,7 @@ export const Button: React.FC<ButtonProps> = ({
     {
       backgroundColor: getBackgroundColor(variant, theme),
       borderColor: getBorderColor(variant, theme),
-      borderWidth: variant === 'secondary' || variant === 'destructive' ? 1 : 0,
+      borderWidth: variant === 'secondary' || variant === 'destructive' ? theme.borderWidth.hairline : 0,
       // @MX:NOTE: [AUTO] SPEC-UI-002 — .pen PrimaryButton padding [0,24] 준거.
       //           비고스트 variant(primary/secondary/destructive/disabled)에만 24 적용.
       //           ghost 는 styles.ghost 에서 12 유지(별도 variant).

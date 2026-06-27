@@ -31,7 +31,7 @@ import {
 //           success→CircleCheck, warning→TriangleAlert, info→Info 컴포넌트 직접 매핑.
 import { CircleCheck, TriangleAlert, Info, type LucideIcon } from 'lucide-react-native';
 import { useTheme } from '../../theme/theme';
-import { typography, radius } from '../../theme/tokens';
+import { typography, radius, borderWidth } from '../../theme/tokens';
 import { useRouter } from 'expo-router';
 import { useSession } from '../../auth/useSession';
 import { getBookDetail } from './bookDetailApi';
@@ -797,7 +797,7 @@ const styles = StyleSheet.create({
   // @MX:NOTE: [AUTO] SPEC-UI-002 book-auth-tokenization — bodyMd(14/400/22) 토큰 적용 + borderWidth 토큰화.
   progressInput: {
     flex: 1,
-    borderWidth: 1,
+    borderWidth: borderWidth.hairline,
     paddingHorizontal: 12,
     paddingVertical: 8,
     ...typography.bodyMd,
@@ -862,7 +862,7 @@ const styles = StyleSheet.create({
   deleteButton: {
     paddingVertical: 12,
     alignItems: 'center',
-    borderWidth: 1,
+    borderWidth: borderWidth.hairline,
   },
   // @MX:NOTE: [AUTO] SPEC-UI-002 book-auth-tokenization — ctaLabel(14/600/22) 토큰 적용.
   deleteButtonText: { ...typography.ctaLabel },

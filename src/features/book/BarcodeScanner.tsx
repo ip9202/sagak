@@ -12,6 +12,7 @@ import { CameraView, useCameraPermissions } from 'expo-camera';
 import { StatusBar as ExpoStatusBar } from 'expo-status-bar';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../../theme/theme';
+import { borderWidth } from '../../theme/tokens';
 import { isValidIsbn } from './isbn';
 import { shouldSuppressDuplicate } from './debounce';
 
@@ -296,7 +297,7 @@ const styles = StyleSheet.create({
     marginTop: 200, // spacing 체계(4의 배수)로 표현 불가한 값 유지
   },
   manualEntryButton: {
-    borderWidth: 1, // borderWidth.hairline
+    borderWidth: borderWidth.hairline,
     borderRadius: 10, // radius.md - 버튼 모서리
     paddingHorizontal: 16, // spacing[4] - 버튼 좌우 패딩
     paddingVertical: 10, // spacing 체계(4의 배수)로 표현 불가한 값 유지

@@ -118,8 +118,9 @@ export const radius = {
 } as const;
 
 // @MX:NOTE: [AUTO] 테두리 두께 토큰 (SPEC-UI-002 FROZEN — borderWidth 수치 하드코딩 금지).
-//           hairline(1px) 은 입력 필드/카드 테두리의 표준 두께. BookDetailScreen/EmotionRecordCard
-//           등 기존 코드의 borderWidth:1 하드코딩을 P3 전역 정정에서 이 토큰으로 통일 예정.
+//           hairline(1px) 은 입력 필드/카드 테두리의 표준 두께. P3 전역 정정(SPEC-UI-002 PR-4)에서
+//           BookDetailScreen/login/onboarding/my/AlarmScreen/NotificationsScreen/RoutineStatsWidget/
+//           BarcodeScanner 등 기존 borderWidth:1 하드코딩을 이 토큰으로 통일 완료.
 export const borderWidth = {
   hairline: 1,
 } as const;

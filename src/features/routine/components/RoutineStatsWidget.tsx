@@ -54,7 +54,7 @@ export function RoutineStatsWidget(): React.JSX.Element {
           backgroundColor: theme.colors.bg.surface,
           borderRadius: theme.radius.lg,
           padding: theme.spacing[5],
-          borderWidth: 1,
+          borderWidth: theme.borderWidth.hairline,
           borderColor: theme.colors.border.default,
         },
       ]}

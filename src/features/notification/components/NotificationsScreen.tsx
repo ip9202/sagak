@@ -23,6 +23,7 @@ import {
 } from 'react-native';
 import { router, type Href } from 'expo-router';
 import { useTheme } from '../../../theme/theme';
+import { borderWidth } from '../../../theme/tokens';
 import {
   useNotifications,
   useUnreadCount,
@@ -275,7 +276,7 @@ const styles = StyleSheet.create({
   markAllText: { fontSize: 14, fontWeight: '600' }, // typography.ctaLabel(14/600/22)
   list: { padding: 20, paddingTop: 4, gap: 12 }, // padding: spacing[5], paddingTop: spacing[1], gap: spacing[3]
   empty: { paddingVertical: 60, alignItems: 'center' }, // spacing 체계(4의 배수)로 표현 불가한 값 유지
-  card: { borderWidth: 1, padding: 16, gap: 6 }, // borderWidth: borderWidth.hairline, padding: spacing[4], gap: spacing 체계에 없는 값 유지
+  card: { borderWidth: borderWidth.hairline, padding: 16, gap: 6 }, // padding: spacing[4], gap: spacing 체계에 없는 값 유지
   cardHeader: {
     flexDirection: 'row',
     alignItems: 'center',
