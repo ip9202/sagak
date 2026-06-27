@@ -23,6 +23,7 @@ import {
   View,
 } from 'react-native';
 import { useTheme } from '../../theme/theme';
+import { typography } from '../../theme/tokens';
 import { SearchResultCard } from '../../components/SearchResultCard';
 import { searchBooks } from './searchApi';
 import type { SearchResult, SearchTarget } from '../../types/book';
@@ -246,10 +247,8 @@ const styles = StyleSheet.create({
     paddingTop: 8,
     paddingBottom: 4,
   },
-  title: {
-    fontSize: 22,
-    fontWeight: '700',
-  },
+  // @MX:NOTE: [AUTO] SPEC-UI-002 book-auth-tokenization — displaySm(22/700/30) 토큰 적용. 헤더 타이틀 균일성 FROZEN.
+  title: { ...typography.displaySm },
   scrollView: {
     flex: 1,
   },
@@ -265,50 +264,35 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     gap: 8,
   },
-  searchInput: {
-    flex: 1,
-    fontSize: 14,
-    paddingVertical: 0,
-  },
+  // @MX:NOTE: [AUTO] SPEC-UI-002 book-auth-tokenization — bodyMd(14/400/22) 토큰 적용.
+  searchInput: { ...typography.bodyMd, flex: 1, paddingVertical: 0 },
   scanButton: {
     padding: 8,
   },
-  scanIcon: {
-    fontSize: 18,
-  },
+  // @MX:NOTE: [AUTO] SPEC-UI-002 book-auth-tokenization — headingMd(18/600)에서 fontWeight 400 override. 📖 emoji 글리프(원본 weight 누락=400).
+  scanIcon: { ...typography.headingMd, fontWeight: '400' as const },
   submitButton: {
     paddingVertical: 12,
     alignItems: 'center',
   },
-  submitText: {
-    fontSize: 14,
-    fontWeight: '600',
-  },
+  // @MX:NOTE: [AUTO] SPEC-UI-002 book-auth-tokenization — ctaLabel(14/600/22) 토큰 적용.
+  submitText: { ...typography.ctaLabel },
   statusContainer: {
     alignItems: 'center',
     paddingVertical: 32,
     gap: 8,
   },
-  statusText: {
-    fontSize: 14,
-  },
-  errorText: {
-    fontSize: 14,
-    textAlign: 'center',
-  },
-  emptyTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  emptyHint: {
-    fontSize: 13,
-    textAlign: 'center',
-  },
+  // @MX:NOTE: [AUTO] SPEC-UI-002 book-auth-tokenization — bodyMd(14/400/22) 토큰 적용.
+  statusText: { ...typography.bodyMd },
+  // @MX:NOTE: [AUTO] SPEC-UI-002 book-auth-tokenization — bodyMd(14/400/22) 토큰 적용.
+  errorText: { ...typography.bodyMd, textAlign: 'center' },
+  // @MX:NOTE: [AUTO] SPEC-UI-002 book-auth-tokenization — headingSm(16/600/23) 토큰 적용.
+  emptyTitle: { ...typography.headingSm },
+  // @MX:NOTE: [AUTO] SPEC-UI-002 book-auth-tokenization — bodySm(13/400/20) 토큰 적용. 원본 weight 누락(400)과 일치.
+  emptyHint: { ...typography.bodySm, textAlign: 'center' },
   resultsSection: {
     gap: 12,
   },
-  resultsLabel: {
-    fontSize: 13,
-    fontWeight: '600',
-  },
+  // @MX:NOTE: [AUTO] SPEC-UI-002 book-auth-tokenization — sectionLabel(13/600/18) 토큰 적용.
+  resultsLabel: { ...typography.sectionLabel },
 });

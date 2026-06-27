@@ -108,6 +108,9 @@ export const typography = {
 export const radius = {
   xs: 4,
   sm: 6,
+  // @MX:NOTE: [AUTO] SPEC-UI-002 book-auth-tokenization — 표지·차트 컨테이너 코너(8). .pen ChartZone(cL8wF2)
+  //           cornerRadius:8 준거. sm(6)·md(10) 사이값으로 표지(BookDetailScreen.cover)·시각 영역에 사용. token-only FROZEN 준수.
+  cover: 8,
   md: 10,
   lg: 16,
   xl: 24,
