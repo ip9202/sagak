@@ -195,12 +195,13 @@ Phase 5 (배포)
 #### SPEC-CLUB-003: 모임 진도 집계 표시
 - **도메인**: CLUB (SOCIAL-B)
 - **우선순위**: medium
-- **상태**: 🔄 SPEC 작성 완료, 구현 미착수 (2026-06-27)
+- **상태**: ✅ 구현 완료 (17/17 REQ, PR #96 cc4c01d, 2026-06-27)
 - **핵심 범위**: SPEC-CLUB-002 가 담당하지 않던 "실제 읽기 진도 집계" 영역. host 가 소유한 활성 모임(type='group', status='active')의 멤버 읽기 진도(median) 를 Postgres RPC(`get_host_clubs_progress`) 로 집계하여 ClubsScreen ClubCard 에 표시. `user_books_public` 뷰(option a, Track A 와 동일 데이터 소스) 기반, `current_page>0` 멤버만 median 포함, `books.total_pages` 존재 시 진도 바 표시. `ClubsScreen.tsx:309 @MX:TODO` 해소. 비과시 원칙 준수(median 전용, 랭킹/리더보드 금지).
-- **DB 엔터티**: 신규 RPC 함수 `get_host_clubs_progress(uuid)` (SECURITY INVOKER, user_books_public 뷰 기반). 테이블 컬럼 변경 없음. 마이그레이션 `20240627000001_create_get_host_clubs_progress_rpc.sql`
+- **DB 엔터티**: 신규 RPC 함수 `get_host_clubs_progress(uuid)` (SECURITY INVOKER, plpgsql, auth.uid() defense-in-depth, user_books_public 뷰 기반). 테이블 컬럼 변경 없음. 마이그레이션 `20240627000001_create_get_host_clubs_progress_rpc.sql`
 - **API/Edge Function**: PostgREST RPC `POST /rpc/get_host_clubs_progress`
 - **의존성**: SPEC-DB-001(user_books_public 뷰, clubs/books/club_members RLS), SPEC-CLUB-002(useHostClubs/HostClubWithCount/ClubsScreen 확장, 완료), SPEC-UI-002(token-only FROZEN), SPEC-API-001(RPC 클라이언트, 에러 처리)
 - **구현 산출물**: `supabase/migrations/20240627000001_create_get_host_clubs_progress_rpc.sql`, `src/features/club/trackB/hooks.ts`(useHostClubs 확장), `src/features/club/trackB/components/ClubsScreen.tsx`(ClubCard 진도 표시 + @MX:TODO 해소), gen-types 재생성
+- **검증**: pgTAP 0019 8/8 PASS, Jest club 159/159, tsc clean, eslint clean
 - **제외**: clubs.current_page 컬럼(거부), 모임 피드 진도(SPEC-FEED-001), 비host 상세 진도(미결정 6.1), 평균/랭킹/리더보드(비과시), is_public=false 멤버(option a), 진도 입력 UI(SPEC-LIBRARY-001), SPEC-CLUB-002 진도 설정 로직 수정(완료 영역), Realtime 진도 갱신
 - **RLS 결정**: option (a) — user_books_public 뷰 + SECURITY INVOKER. Track A readersApi 와 동일 데이터 소스. option b(SECURITY DEFINER + user_books 직접) 기각.
 
@@ -318,7 +319,7 @@ product.md "비목표" + SPEC-DB-001 "제외 범위" 기반:
 | 2 | SPEC-COMPLETION-001 | ✅ | ✅ | ✅ | 구현 완료 (10/10 REQ, PR #14 머지 463996e, 2026-06-17, 커버리지 91.92%) |
 | 3 | SPEC-CLUB-001 | ✅ | ✅ | ✅ | 구현 완료 (12/12 REQ, PR #21 1fcf062, 2026-06-19, 789 테스트, 커버리지 93.44%) |
 | 3 | SPEC-CLUB-002 | ✅ | ✅ | ✅ | 구현 완료 (17/17 REQ, PR #23 c6920fe, 2026-06-19, 861 테스트) |
-| 3 | SPEC-CLUB-003 | ✅ | ✅ | ✅ | SPEC 작성 완료, 구현 미착수 (2026-06-27) — 진도 집계 RPC + ClubCard 표시 |
+| 3 | SPEC-CLUB-003 | ✅ | ✅ | ✅ | 구현 완료 (17/17 REQ, PR #96 cc4c01d, 2026-06-27, 진도 집계 RPC + ClubCard 표시) |
 | 3 | SPEC-FEED-001 | ✅ | ✅ | ✅ | 구현 완료 (8/8 REQ, PR #25 63ddf12, 2026-06-20, 913 테스트) |
 | 4 | SPEC-ROUTINE-001 | ✅ | ✅ | ✅ | 구현 완료 (10/10 REQ, PR #31 9ddd1a4, 2026-06-20, 2881 LOC 추가) |
 | 4 | SPEC-NOTIF-001 | ✅ | ✅ | ✅ | 구현 완료 (13/13 REQ — PR #34 5db38e7 + PR #38 8f532d6 + PR #41 cc87323. N3 Android FCM 해결, REQ-003 WHERE 절 수정. N7 Service Account Key 필요) |
@@ -353,19 +354,20 @@ product.md "비목표" + SPEC-DB-001 "제외 범위" 기반:
 | 2 | SPEC-EMOTION-001 | 2026-06-17 | #12 | a1ce6cf | 10/10 (100%) | 627/627 | 92.47% |
 | 2 | SPEC-COMPLETION-001 | 2026-06-17 | #14 | 463996e | 10/10 (100%) | 683/683 | 91.92% |
 
-### Phase 3 소셜 연결 — 100% 완결 (3/3 완료)
+### Phase 3 소셜 연결 — 100% 완결 (4/4 완료)
 
 | Phase | 구현 완료 SPEC | 구현 일자 | PR | 커밋 | REQ 완료율 | 테스트 | 커버리지 |
 |-------|---------------|----------|----|----|-----------|--------|---------|
 | 3 | SPEC-CLUB-001 | 2026-06-19 | #21 | 1fcf062 | 12/12 (100%) | 789/789 | 93.44% |
 | 3 | SPEC-CLUB-002 | 2026-06-19 | #23 | c6920fe | 17/17 (100%) | 861/861 | - |
+| 3 | SPEC-CLUB-003 | 2026-06-27 | #96 | cc4c01d | 17/17 (100%) | 159/159 | - |
 | 3 | SPEC-FEED-001 | 2026-06-20 | #25 | 63ddf12 | 8/8 (100%) | 913/913 | - |
 
 **Phase 1 완결 상태**: 인프라·인증·네비게이션 파운데이션 100% 완성. 도메인 SPEC(SPEC-BOOK-001, SPEC-LIBRARY-001 등) 구현 준비 완료.
 
 **Phase 2 완결 상태 (2026-06-19 기준)**: 개인 독서 경험 4개 SPEC(BOOK, LIBRARY, EMOTION, COMPLETION) 모두 구현 완료. 도메인 기능 + 화면 + 테스트 완비.
 
-**Phase 3 완결 상태 (2026-06-20 기준)**: 3/3 완료 — SPEC-CLUB-001(Track A 합류형 요청), SPEC-CLUB-002(Track B 개설형 모임), SPEC-FEED-001(진도별 스포일러 방지 피드 + Realtime) 모두 구현 완료. 소셜 연결 트랙 100% 완성.
+**Phase 3 완결 상태 (2026-06-27 기준)**: 4/4 완료 — SPEC-CLUB-001(Track A 합류형 요청), SPEC-CLUB-002(Track B 개설형 모임), SPEC-CLUB-003(모임 진도 median 집계 표시), SPEC-FEED-001(진도별 스포일러 방지 피드 + Realtime) 모두 구현 완료. 소셜 연결 트랙 100% 완성.
 
 **Phase 4 진행 상태 (2026-06-20 기준)**: 3/3 완료 — SPEC-ROUTINE-001(독서 루틴 및 타이머), SPEC-NOTIF-001(푸시 알림 및 알림 센터), SPEC-PROFILE-001(마이페이지/통계/보상) 모두 구현 완료.
 

@@ -127,6 +127,19 @@ club_members RLS 정책 안에서 다시 club_members를 쿼리하는 재귀를 
 
 ---
 
+## RPC Functions 접근 제어 (SPEC-CLUB-003)
+
+**get_host_clubs_progress(p_host_id uuid)**: SECURITY INVOKER, plpgsql LANGUAGE.
+
+- **데이터 소스**: `user_books_public` 뷰 (is_public=true만 노출) → 공개 설정 독자의 진도만 집계
+- **Defense-in-depth**: `p_host_id IS DISTINCT FROM auth.uid()` 시 `insufficient_privilege`(42501) 예외.
+  club_members RLS(fn_user_in_club)가 타인 모임을 필터링하나(빈 결과), 단일 방어선 의존을 보강.
+- **권한 모델**: SECURITY INVOKER → user_books_public 뷰의 authenticated SELECT 권한 사용.
+  권한 상승 불필요(DEFINER 함수의 BYPASSRLS 우회 없음).
+- **pgTAP 검증**: 0019 8/8 PASS (타 host_id 호출 시 throws_ok 42501).
+
+---
+
 ## 검증
 
 - 272/272 pgTAP 테스트 통과 (0014_rls_test.sql: 두 사용자 격리, fn_user_in_club 재귀 차단, 보안 뷰)

@@ -56,3 +56,37 @@
 - RLS 결정: option (a) — user_books_public 뷰 (plan.md Section 1.1 참조)
 - 집계: MEDIAN, current_page>0 만 포함 (plan.md Section 1.2)
 - 핵심 TODO: ClubsScreen.tsx:309 @MX:TODO 해소 (REQ-CLUBC-014)
+
+---
+
+## Implementation Notes (구현 완료 후)
+
+### Defense-in-Depth 채택 (REQ-CLUBC-002 업데이트)
+- plan.md 기술 결정 시 "빈 결과 반환"이었으나, expert-security 리뷰(Medium 심각도) 후
+  "exception(42501) 발생"으로 defense-in-depth 전환
+- 이유: club_members RLS(fn_user_in_club) 단일 방어선 의존 보강
+- 구현: LANGUAGE sql → plpgsql 전환, `p_host_id IS DISTINCT FROM auth.uid()` 단정문
+- 검증: pgTAP 0019 8/8 PASS (타 host_id 호출 시 throws_ok 42501)
+
+### COALESCE total_pages=0 폴백 (gen-types 정합)
+- 로컬 Docker 검증 주도 발견: books.total_pages 미입력(NULL) 시 gen-types가 number(NOT NULL)로
+  추론하여 타입 불일치
+- 해결: RPC에서 `COALESCE(b.total_pages, 0)` 추가, 클라이언트는 total_pages>0 체크로
+  0/null 모두 바 생략
+- 부수 효과: plpgsql 전환 후 gen-types가 number|null로 정확 추론 (원래 타입 복원)
+
+### Degradation 패턴 검증 (REQ-CLUBC-008)
+- hooks.test.tsx: RPC 에러 시 진도 필드 0/0/null 폴백, clubs 정상 반환 검증
+- 실제 에러 케이스: RPC 없는 상태에서 호출(Supabase 연결 끊김)
+- 결과: useHostClubs는 clubs+count 데이터를 반환하며 진도 필드만 기본값
+
+### @MX:TODO 해소 확인 (REQ-CLUBC-014)
+- ClubsScreen.tsx:309 TODO 블록 제거, ClubProgress 서브컴포넌트로 분리
+- 기존 멤버 수 라인 회귀 없음 (17/17 ClubsScreen 테스트 통과)
+
+### 검증 결과 요약
+- **pgTAP 0019**: 8/8 PASS (타 host_id 거부, median 정확성, 0p 제외, is_public=false 제외,
+  total_pages NULL, type/status 필터, GRANT)
+- **Jest club**: 159/159 PASS (hooks 14/14, ClubsScreen 17/17)
+- **LSP**: tsc 0에러, eslint clean
+- **CI**: green (PR #96 merge)

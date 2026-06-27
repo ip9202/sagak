@@ -139,6 +139,35 @@
 ### Notification Domain (`src/features/notification/`)
 SPEC-NOTIF-001 — 알림 센터(조회/읽음/라우팅) + 6종 type별 딥링크. Optional(Expo Push 실기기)은 후속.
 
+| 모듈 | 경로 | 계층 | 목적 | 주요 익스포트/특징 | SPEC 참조 |
+|------|------|------|------|------------------|-----------|
+| Notification Barrel | `src/features/notification/index.ts` | Business | Notification 도메인 barrel | useNotifications, useUnreadCount, useMarkAsRead, useMarkAllAsRead, routeForNotification | NOTIF-001 |
+| Queries | `src/features/notification/queries.ts` | Business | PostgREST 조회/카운트/읽음 변이 (RLS 의존) | getNotifications, getUnreadCount, markNotificationRead, markAllNotificationsRead | NOTIF-001 REQ-NOTIF-005~008 |
+| Route Mapper | `src/features/notification/routeMapper.ts` | Business (순수함수) | 6종 type별 딥링크 + 미구현 폴백 | routeForNotification(type, refId) → path\|null | NOTIF-001 REQ-NOTIF-009 |
+| Hooks | `src/features/notification/use{Notifications,UnreadCount,MarkAsRead,MarkAllAsRead}.ts` | Business | React Query 훅 (invalidate 접두사 `notification`) | useNotifications, useUnreadCount(N 배지), useMarkAsRead/useMarkAllAsRead(mutation) | NOTIF-001 REQ-NOTIF-005~008 |
+| Notifications Screen | `src/features/notification/components/NotificationsScreen.tsx` | Presentation | 알림 센터 화면 | 목록 + 미읽음 배지 + 모두 읽음 + 탭(읽음/라우팅) + 로딩/에러/빈 (SPEC-UI-002) | NOTIF-001 REQ-NOTIF-005~009 |
+| Notifications Route | `app/(tabs)/my/notifications.tsx` | Presentation | 알림 센터 라우트 셸 | NotificationsScreen 래핑 | NOTIF-001 |
+| send-notification Edge Function | `supabase/functions/send-notification/` | Infrastructure (Deno) | 서버 알림 발송 (service_role) — `index.ts`(엔드포인트) + `logic.ts`(ENUM 검증/파서) + `templates.ts`(6종 다정한 톤) + `expo-push.ts`(Expo Push API) | notifications INSERT(RLS 우회) + push_token 조회 + 푸시 발송 | NOTIF-001 REQ-NOTIF-010~013 |
+
+---
+
+### Club Domain (`src/features/club/`)
+독서 모임 기능 — Track B(host 모임 목록 + 진도 집계) + Track A(공감/응원). SPEC-CLUB-002(host 진도 설정) + SPEC-CLUB-003(진도 median 집계).
+
+| 모듈 | 경로 | 계층 | 목적 | 주요 익스포트/특징 | SPEC 참조 |
+|------|------|------|------|------------------|-----------|
+| Club Barrel | `src/features/club/index.ts` | Business | Club 도메인 barrel | useHostClubs, types | CLUB-002, CLUB-003 |
+| Track B Hooks | `src/features/club/trackB/hooks.ts` | Business | host 모임 목록 + 진도 집계 병합 (React Query) | useHostClubs — Promise.all([clubs SELECT(embedded count), get_host_clubs_progress RPC]) + club_id Map 병합, RPC degradation(0/0/null 폴백), @MX:NOTE Promise.all 패턴 | CLUB-002 REQ-CLUBB-007~009, CLUB-003 REQ-CLUBC-007~009 |
+| Track B Clubs Screen | `src/features/club/trackB/components/ClubsScreen.tsx` | Presentation | host 모임 목록 화면 — ClubCard 목록 + ClubProgress 진도 표시 | ClubsScreen + ClubCard + ClubProgress 서브컴포넌트, median>0+total>0 → Track/Fill + 'p.X · 진도 N명', total=null → 텍스트만, median=0 → '아직 진도가 없어요', token-only 스타일링(SPEC-UI-002), @MX:TODO 해소(REQ-CLUBC-014) | CLUB-002 REQ-CLUBB-010~015, CLUB-003 REQ-CLUBC-010~015 |
+| Track B Types | `src/features/club/trackB/types.ts` | Business | Track B 도메인 타입 (DB Row derived) | HostClubWithCount — median_page/member_count_with_progress/progress_total_pages 추가(CLUB-003), 기존 member_count/id/name/status/book_id/cover_image_url/daily_pages/trigger_page | CLUB-002, CLUB-003 |
+| Track A Readers API | `src/features/club/trackA/readersApi.ts` | Business | 모임원 진도 목록 (user_books_public 뷰 소스) | getClubReaders — 공개 서재 항목(user_books_public)만 조회, is_public=false 자동 제외 | CLUB-001 |
+| Track A Emotion API | `src/features/club/trackA/emotionApi.ts` | Business | 모임 감정 기록 조회 | getClubEmotions | CLUB-001 |
+| Track A Club Screen | `src/features/club/trackA/components/ClubScreen.tsx` | Presentation | 모임 상세 화면(Track A) — 공감/응원 | TODO — SPEC-CLUB-001 미구현 | CLUB-001 |
+
+---
+
+### Query Infrastructure (`src/lib/query/`)
+
 | 모듈 | 경로 | 계층 | 목적 | 주요 익스포트 | SPEC 참조 |
 |------|------|------|------|---------------|-----------|
 | Notification Barrel | `src/features/notification/index.ts` | Business | Notification 도메인 barrel | useNotifications, useUnreadCount, useMarkAsRead, useMarkAllAsRead, routeForNotification | NOTIF-001 |
