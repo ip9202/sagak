@@ -37,15 +37,27 @@ import type {
 } from './types';
 
 /**
- * 호스트 모임 목록 + 멤버 수.
+ * 호스트 모임 목록 + 멤버 수 + 진도 집계.
  *
- * useHostClubs 가 `clubs` 행에 더해 `club_members` 집계(count) 를 단일 라운드트립으로
- * 함께 가져온 결과 행. `member_count` 는 queryFn 에서 PostgREST embedded aggregate
- * (`club_members(count)`) 결과를 평탄화한 값이다.
+ * useHostClubs 가 `clubs` 행에 더해:
+ * - `member_count`: PostgREST embedded aggregate `club_members(count)` 평탄화 결과
+ * - `median_page` / `member_count_with_progress` / `progress_total_pages`:
+ *   `get_host_clubs_progress` RPC (SPEC-CLUBC-RPC) 결과를 club_id 기준으로 병합.
+ *
+ * RPC 실패/빈 결과 시 진도 필드는 0/0/null 로 degradation 된다 (REQ-CLUBC-008).
  *
  * @MX:SPEC SPEC-UI-002
+ * @MX:SPEC SPEC-CLUB-003
  */
-export type HostClubWithCount = ClubRow & { member_count: number };
+export type HostClubWithCount = ClubRow & {
+  member_count: number;
+  /** 모임 책 기준 current_page>0 멤버의 median 페이지 (없으면 0) */
+  median_page: number;
+  /** current_page>0 인 공개 멤버 수 */
+  member_count_with_progress: number;
+  /** clubs.book_id 의 books.total_pages (NULL 허용 — 바 표시 분기 근거) */
+  progress_total_pages: number | null;
+};
 
 // @MX:NOTE: [AUTO] trackB 캐시 queryKey 접두부 — host/detail/members 계열을 일괄 매칭용
 const CLUBB_KEY_ROOT = ['club', 'trackb'] as const;
@@ -89,8 +101,8 @@ export function useHostClubs(userId: string) {
     enabled: userId.length > 0,
     queryFn: async (): Promise<HostClubWithCount[]> => {
       const client = getSupabaseClient();
-      // PostgREST embedded aggregate — 단일 라운드트립으로 clubs 본문 + club_members 집계.
-      let result: {
+      // PostgREST embedded aggregate (clubs + club_members count) — 기존 라운드트립.
+      let clubsResult: {
         data:
           | (ClubRow & {
               club_members: { count: number }[] | null;
@@ -98,24 +110,71 @@ export function useHostClubs(userId: string) {
           | null;
         error: unknown;
       };
+      // SPEC-CLUBC-RPC 진도 집계 — clubs SELECT 와 병렬 실행.
+      // RPC 실패 시 degradation (REQ-CLUBC-008) — 진도 필드 0/0/null 로 폴백.
+      // @MX:NOTE: [AUTO] Promise.all 이 아닌 개별 await 로 RPC 에러를 흡수한다.
+      //           Promise.all 은 첫 reject 시 전체 실패하므로 degradation 불가.
+      let progressResult: {
+        data:
+          | {
+              club_id: string;
+              median_page: number;
+              member_count_with_progress: number;
+              total_pages: number | null;
+            }[]
+          | null;
+        error: unknown;
+      };
       try {
-        result = await client
-          .from('clubs')
-          .select('*, club_members(count)')
-          .eq('host_id', userId)
-          .order('created_at', { ascending: false });
+        [clubsResult, progressResult] = await Promise.all([
+          client
+            .from('clubs')
+            .select('*, club_members(count)')
+            .eq('host_id', userId)
+            .order('created_at', { ascending: false }),
+          client.rpc('get_host_clubs_progress', { p_host_id: userId }),
+        ]);
       } catch (error) {
         throw normalizeError(error);
       }
-      if (result.error) throw normalizeError(result.error);
-      // club_members 집계 배열 → 단일 member_count 로 평탄화 (누락/에러 시 0).
-      const rows = result.data ?? [];
+      // clubs SELECT 에러 → 전체 쿼리 실패 (기존 동작 유지, 진도 병합이 변경하지 않음)
+      if (clubsResult.error) throw normalizeError(clubsResult.error);
+      // RPC 에러 → degradation: clubs 데이터는 반환, 진도 필드는 기본값 (REQ-CLUBC-008)
+      const progressMap = new Map<
+        string,
+        {
+          median_page: number;
+          member_count_with_progress: number;
+          total_pages: number | null;
+        }
+      >();
+      if (progressResult.error) {
+        // 진도는 보조 정보이므로 장애가 모임 목록 자체를 막아서는 안 된다.
+        console.warn(
+          '[useHostClubs] get_host_clubs_progress RPC failed, degrading progress fields',
+          progressResult.error,
+        );
+      } else if (progressResult.data) {
+        for (const row of progressResult.data) {
+          progressMap.set(row.club_id, {
+            median_page: row.median_page ?? 0,
+            member_count_with_progress: row.member_count_with_progress ?? 0,
+            total_pages: row.total_pages ?? null,
+          });
+        }
+      }
+      // 병합: clubs 행 + member_count (embedded count) + 진도 필드 (RPC, 누락 시 기본값)
+      const rows = clubsResult.data ?? [];
       return rows.map((row) => {
         const count = row.club_members?.[0]?.count;
         const { club_members: _drop, ...rest } = row;
+        const prog = progressMap.get(row.id);
         return {
           ...rest,
           member_count: typeof count === 'number' ? count : 0,
+          median_page: prog?.median_page ?? 0,
+          member_count_with_progress: prog?.member_count_with_progress ?? 0,
+          progress_total_pages: prog?.total_pages ?? null,
         };
       });
     },

@@ -712,6 +712,15 @@ export type Database = {
         Returns: undefined
       }
       fn_user_in_club: { Args: { p_club_id: string }; Returns: boolean }
+      get_host_clubs_progress: {
+        Args: { p_host_id: string }
+        Returns: {
+          club_id: string
+          median_page: number
+          member_count_with_progress: number
+          total_pages: number | null
+        }[]
+      }
       start_reading_session: { Args: { p_book_id: string }; Returns: string }
     }
     Enums: {

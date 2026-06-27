@@ -130,19 +130,34 @@ describe('SPEC-CLUB-002 useHostClubs', () => {
   it('host_id 필터로 clubs 목록 + 멤버 수 집계를 단일 라운드트립으로 조회한다', async () => {
     // SPEC-UI-002 PR-3: PostgREST embedded aggregate club_members(count) 결과를
     // member_count 로 평탄화한다. select 문자열에 count 집계 포함.
+    // SPEC-CLUB-003: useHostClubs 가 RPC 도 병렬 호출하므로 빈 RPC 결과를 mock 한다
+    // (degradation 으로 진도 필드 0/0/null — member_count 검증에는 영향 없음).
     const chain = buildChain([
       { id: 'c1', club_members: [{ count: 3 }] },
       { id: 'c2', club_members: [{ count: 0 }] },
     ]);
     supabaseMock.from.mockReturnValue(chain);
+    supabaseMock.rpc.mockResolvedValue({ data: [], error: null });
 
     const { Wrapper } = makeWrapper();
     const { result } = renderHook(() => useHostClubs('u1'), { wrapper: Wrapper });
 
     await waitFor(() =>
       expect(result.current.data).toEqual([
-        { id: 'c1', member_count: 3 },
-        { id: 'c2', member_count: 0 },
+        {
+          id: 'c1',
+          member_count: 3,
+          median_page: 0,
+          member_count_with_progress: 0,
+          progress_total_pages: null,
+        },
+        {
+          id: 'c2',
+          member_count: 0,
+          median_page: 0,
+          member_count_with_progress: 0,
+          progress_total_pages: null,
+        },
       ]),
     );
     expect(supabaseMock.from).toHaveBeenCalledWith('clubs');
@@ -153,12 +168,21 @@ describe('SPEC-CLUB-002 useHostClubs', () => {
   it('club_members 집계 누락 시 member_count 는 0 으로 폴백한다', async () => {
     const chain = buildChain([{ id: 'c1', club_members: null }]);
     supabaseMock.from.mockReturnValue(chain);
+    supabaseMock.rpc.mockResolvedValue({ data: [], error: null });
 
     const { Wrapper } = makeWrapper();
     const { result } = renderHook(() => useHostClubs('u1'), { wrapper: Wrapper });
 
     await waitFor(() =>
-      expect(result.current.data).toEqual([{ id: 'c1', member_count: 0 }]),
+      expect(result.current.data).toEqual([
+        {
+          id: 'c1',
+          member_count: 0,
+          median_page: 0,
+          member_count_with_progress: 0,
+          progress_total_pages: null,
+        },
+      ]),
     );
   });
 

@@ -8,23 +8,23 @@
 
 | REQ | 설명 | 상태 | 비고 |
 |-----|------|------|------|
-| REQ-CLUBC-001 | RPC 시그니처 | pending | |
-| REQ-CLUBC-002 | 매개변수 검증 | pending | |
-| REQ-CLUBC-003 | median 계산 (current_page>0) | pending | |
-| REQ-CLUBC-004 | SECURITY INVOKER + user_books_public | pending | |
-| REQ-CLUBC-005 | books.total_pages 조인 | pending | |
-| REQ-CLUBC-006 | GRANT + 마이그레이션 | pending | |
-| REQ-CLUBC-007 | HostClubWithCount 확장 + 병합 | pending | |
-| REQ-CLUBC-008 | RPC 실패 degradation | pending | |
-| REQ-CLUBC-009 | 캐시 무효화 일관성 | pending | |
-| REQ-CLUBC-010 | 진도 텍스트 표시 | pending | |
-| REQ-CLUBC-011 | 진도 바 표시 (total_pages 존재 시) | pending | |
-| REQ-CLUBC-012 | total_pages NULL 시 바 생략 | pending | |
-| REQ-CLUBC-013 | median 0 시 대체 텍스트 | pending | |
-| REQ-CLUBC-014 | @MX:TODO 해소 | pending | ClubsScreen.tsx:309 |
-| REQ-CLUBC-015 | SPEC-UI-002 토큰 준수 | pending | |
-| REQ-CLUBC-016 | median 전용, 개인 비교 금지 | pending | constitution 비과시 |
-| REQ-CLUBC-017 | 리더보드/순위 금지 | pending | constitution 비과시 |
+| REQ-CLUBC-001 | RPC 시그니처 | done | migration 20240627000001, pgTAP 0019 |
+| REQ-CLUBC-002 | 매개변수 검증 | done | host_id WHERE 필터 (RPC 본문) |
+| REQ-CLUBC-003 | median 계산 (current_page>0) | done | percentile_cont + COALESCE |
+| REQ-CLUBC-004 | SECURITY INVOKER + user_books_public | done | 뷰 소스, INVOKER |
+| REQ-CLUBC-005 | books.total_pages 조인 | done | LEFT JOIN, NULL 허용 |
+| REQ-CLUBC-006 | GRANT + 마이그레이션 | done | GRANT TO authenticated (anon 거부) |
+| REQ-CLUBC-007 | HostClubWithCount 확장 + 병합 | done | hooks.ts Promise.all + Map 병합 |
+| REQ-CLUBC-008 | RPC 실패 degradation | done | RPC 에러 흡수, 0/0/null 폴백 |
+| REQ-CLUBC-009 | 캐시 무효화 일관성 | done | 기존 [...CLUBB_KEY_ROOT,'host'] 유지 |
+| REQ-CLUBC-010 | 진도 텍스트 표시 | done | ClubProgress "p.X · 진도 N명" |
+| REQ-CLUBC-011 | 진도 바 표시 (total_pages 존재 시) | done | Track/Fill, fillPct clamp 100% |
+| REQ-CLUBC-012 | total_pages NULL 시 바 생략 | done | 조건부 렌더링 |
+| REQ-CLUBC-013 | median 0 시 대체 텍스트 | done | "아직 진도가 없어요" |
+| REQ-CLUBC-014 | @MX:TODO 해소 | done | ClubsScreen.tsx TODO 블록 제거, ClubProgress 분리 |
+| REQ-CLUBC-015 | SPEC-UI-002 토큰 준수 | done | spacing/radius/typography/colors 토큰만 |
+| REQ-CLUBC-016 | median 전용, 개인 비교 금지 | done | median + 입력 멤버 수만 표시 |
+| REQ-CLUBC-017 | 리더보드/순위 금지 | done | 리더보드 UI 미구현 (비과시 준수) |
 
 ---
 
@@ -32,10 +32,10 @@
 
 | 마일스톤 | 범위 | 상태 |
 |----------|------|------|
-| M1 | DB/RPC (마이그레이션, 함수, pgTAP) | pending |
-| M2 | Hook (useHostClubs 확장) | pending |
-| M3 | UI (ClubCard 진도 표시) | pending |
-| M4 | MX 해소 + 회귀 | pending |
+| M1 | DB/RPC (마이그레이션, 함수, pgTAP) | done (SQL 작성 — pgTAP 실행은 DB 접근 환경 필요) |
+| M2 | Hook (useHostClubs 확장) | done |
+| M3 | UI (ClubCard 진도 표시) | done |
+| M4 | MX 해소 + 회귀 | done (@MX:TODO 제거, 1304 테스트 통과) |
 
 ---
 
