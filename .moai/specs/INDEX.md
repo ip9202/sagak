@@ -192,6 +192,18 @@ Phase 5 (배포)
 - **구현 산출물**: `src/features/club/trackB/*.ts`, 모임 생성 화면, 모임 관리 화면(host)
 - **제외**: 실시간 채팅(type=instant, 비목표), 모임 피드(SPEC-FEED-001)
 
+#### SPEC-CLUB-003: 모임 진도 집계 표시
+- **도메인**: CLUB (SOCIAL-B)
+- **우선순위**: medium
+- **상태**: 🔄 SPEC 작성 완료, 구현 미착수 (2026-06-27)
+- **핵심 범위**: SPEC-CLUB-002 가 담당하지 않던 "실제 읽기 진도 집계" 영역. host 가 소유한 활성 모임(type='group', status='active')의 멤버 읽기 진도(median) 를 Postgres RPC(`get_host_clubs_progress`) 로 집계하여 ClubsScreen ClubCard 에 표시. `user_books_public` 뷰(option a, Track A 와 동일 데이터 소스) 기반, `current_page>0` 멤버만 median 포함, `books.total_pages` 존재 시 진도 바 표시. `ClubsScreen.tsx:309 @MX:TODO` 해소. 비과시 원칙 준수(median 전용, 랭킹/리더보드 금지).
+- **DB 엔터티**: 신규 RPC 함수 `get_host_clubs_progress(uuid)` (SECURITY INVOKER, user_books_public 뷰 기반). 테이블 컬럼 변경 없음. 마이그레이션 `20240627000001_create_get_host_clubs_progress_rpc.sql`
+- **API/Edge Function**: PostgREST RPC `POST /rpc/get_host_clubs_progress`
+- **의존성**: SPEC-DB-001(user_books_public 뷰, clubs/books/club_members RLS), SPEC-CLUB-002(useHostClubs/HostClubWithCount/ClubsScreen 확장, 완료), SPEC-UI-002(token-only FROZEN), SPEC-API-001(RPC 클라이언트, 에러 처리)
+- **구현 산출물**: `supabase/migrations/20240627000001_create_get_host_clubs_progress_rpc.sql`, `src/features/club/trackB/hooks.ts`(useHostClubs 확장), `src/features/club/trackB/components/ClubsScreen.tsx`(ClubCard 진도 표시 + @MX:TODO 해소), gen-types 재생성
+- **제외**: clubs.current_page 컬럼(거부), 모임 피드 진도(SPEC-FEED-001), 비host 상세 진도(미결정 6.1), 평균/랭킹/리더보드(비과시), is_public=false 멤버(option a), 진도 입력 UI(SPEC-LIBRARY-001), SPEC-CLUB-002 진도 설정 로직 수정(완료 영역), Realtime 진도 갱신
+- **RLS 결정**: option (a) — user_books_public 뷰 + SECURITY INVOKER. Track A readersApi 와 동일 데이터 소스. option b(SECURITY DEFINER + user_books 직접) 기각.
+
 #### SPEC-FEED-001: 스포일러 방지 진도별 피드
 - **도메인**: FEED
 - **우선순위**: medium
@@ -271,7 +283,7 @@ Phase 5 (배포)
 | BOOK | SPEC-BOOK-001 | 1 |
 | LIBRARY | SPEC-LIBRARY-001 | 1 |
 | EMOTION | SPEC-EMOTION-001, SPEC-COMPLETION-001 | 2 |
-| CLUB | SPEC-CLUB-001, SPEC-CLUB-002, SPEC-FEED-001 | 3 |
+| CLUB | SPEC-CLUB-001, SPEC-CLUB-002, SPEC-CLUB-003, SPEC-FEED-001 | 4 |
 | ROUTINE | SPEC-ROUTINE-001 | 1 |
 | NOTIF | SPEC-NOTIF-001 | 1 |
 | PROFILE | SPEC-PROFILE-001 | 1 |
@@ -306,6 +318,7 @@ product.md "비목표" + SPEC-DB-001 "제외 범위" 기반:
 | 2 | SPEC-COMPLETION-001 | ✅ | ✅ | ✅ | 구현 완료 (10/10 REQ, PR #14 머지 463996e, 2026-06-17, 커버리지 91.92%) |
 | 3 | SPEC-CLUB-001 | ✅ | ✅ | ✅ | 구현 완료 (12/12 REQ, PR #21 1fcf062, 2026-06-19, 789 테스트, 커버리지 93.44%) |
 | 3 | SPEC-CLUB-002 | ✅ | ✅ | ✅ | 구현 완료 (17/17 REQ, PR #23 c6920fe, 2026-06-19, 861 테스트) |
+| 3 | SPEC-CLUB-003 | ✅ | ✅ | ✅ | SPEC 작성 완료, 구현 미착수 (2026-06-27) — 진도 집계 RPC + ClubCard 표시 |
 | 3 | SPEC-FEED-001 | ✅ | ✅ | ✅ | 구현 완료 (8/8 REQ, PR #25 63ddf12, 2026-06-20, 913 테스트) |
 | 4 | SPEC-ROUTINE-001 | ✅ | ✅ | ✅ | 구현 완료 (10/10 REQ, PR #31 9ddd1a4, 2026-06-20, 2881 LOC 추가) |
 | 4 | SPEC-NOTIF-001 | ✅ | ✅ | ✅ | 구현 완료 (13/13 REQ — PR #34 5db38e7 + PR #38 8f532d6 + PR #41 cc87323. N3 Android FCM 해결, REQ-003 WHERE 절 수정. N7 Service Account Key 필요) |
@@ -313,7 +326,7 @@ product.md "비목표" + SPEC-DB-001 "제외 범위" 기반:
 | 5 | SPEC-DEPLOY-001 | ✅ | ✅ | ✅ | 진행 중 (M1+M5 머지, PR #15 2514263, 2026-06-17; M2/M3/M4/M6 미완료 — M6 블로킹: CLUB/NOTIF 의존) |
 | 0 | SPEC-UI-002 | ✅ | ✅ | ✅ | 구현 PR 누적 완료 (PR #63, #70, 2026-06-25 + PR #76-#84, 2026-06-26: Pencil↔앱 디자인 차이 수정 — 폰트/서재/토큰/SafeArea + PR #92/#94, 2026-06-27: borderWidth.hairline P3 정정 + 독서 통계 메뉴 제거) — 화면 패턴, 14개 도메인 SPEC 선행 의존성 |
 
-**총 REQ 수: 219개 / 15개 SPEC 전체 작성 완료 (2026-06-14)**
+**총 REQ 수: 236개 (219 + SPEC-CLUB-003 17개) / 16개 SPEC 전체 작성 완료 (2026-06-27 갱신)**
 
 > **참고 (2026-06-19)**: SPEC-DEPLOY-001은 부분 진행(M1+M5 머지, PR #15 2514263) 상태이므로 **구현 완료 카운트에서 제외**한다. M2(CI)/M3(Sentry SDK)/M4(Submit)/M6(Edge Function)가 남아있으며, M6은 SPEC-CLUB-001 머지 완료로 블로킹 해제(progress.md M1-M5 섹션 참조). 완료 카운트는 DEPLOY가 6개 마일스톤 전부 통과한 시점에만 증가한다.
 

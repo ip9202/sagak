@@ -80,6 +80,7 @@ import { updateProgress } from '../progressApi';
 
 const supabaseMock = {
   from: jest.fn(),
+  rpc: jest.fn(),
 };
 (getSupabaseClient as jest.Mock).mockReturnValue(supabaseMock);
 
@@ -129,19 +130,34 @@ describe('SPEC-CLUB-002 useHostClubs', () => {
   it('host_id 필터로 clubs 목록 + 멤버 수 집계를 단일 라운드트립으로 조회한다', async () => {
     // SPEC-UI-002 PR-3: PostgREST embedded aggregate club_members(count) 결과를
     // member_count 로 평탄화한다. select 문자열에 count 집계 포함.
+    // SPEC-CLUB-003: useHostClubs 가 RPC 도 병렬 호출하므로 빈 RPC 결과를 mock 한다
+    // (degradation 으로 진도 필드 0/0/null — member_count 검증에는 영향 없음).
     const chain = buildChain([
       { id: 'c1', club_members: [{ count: 3 }] },
       { id: 'c2', club_members: [{ count: 0 }] },
     ]);
     supabaseMock.from.mockReturnValue(chain);
+    supabaseMock.rpc.mockResolvedValue({ data: [], error: null });
 
     const { Wrapper } = makeWrapper();
     const { result } = renderHook(() => useHostClubs('u1'), { wrapper: Wrapper });
 
     await waitFor(() =>
       expect(result.current.data).toEqual([
-        { id: 'c1', member_count: 3 },
-        { id: 'c2', member_count: 0 },
+        {
+          id: 'c1',
+          member_count: 3,
+          median_page: 0,
+          member_count_with_progress: 0,
+          progress_total_pages: null,
+        },
+        {
+          id: 'c2',
+          member_count: 0,
+          median_page: 0,
+          member_count_with_progress: 0,
+          progress_total_pages: null,
+        },
       ]),
     );
     expect(supabaseMock.from).toHaveBeenCalledWith('clubs');
@@ -152,12 +168,21 @@ describe('SPEC-CLUB-002 useHostClubs', () => {
   it('club_members 집계 누락 시 member_count 는 0 으로 폴백한다', async () => {
     const chain = buildChain([{ id: 'c1', club_members: null }]);
     supabaseMock.from.mockReturnValue(chain);
+    supabaseMock.rpc.mockResolvedValue({ data: [], error: null });
 
     const { Wrapper } = makeWrapper();
     const { result } = renderHook(() => useHostClubs('u1'), { wrapper: Wrapper });
 
     await waitFor(() =>
-      expect(result.current.data).toEqual([{ id: 'c1', member_count: 0 }]),
+      expect(result.current.data).toEqual([
+        {
+          id: 'c1',
+          member_count: 0,
+          median_page: 0,
+          member_count_with_progress: 0,
+          progress_total_pages: null,
+        },
+      ]),
     );
   });
 
@@ -299,5 +324,128 @@ describe('SPEC-CLUB-002 상태 전환 / 탈퇴 훅', () => {
       await leaveR.result.current.mutateAsync({ clubId: 'c1', userId: 'u1' });
     });
     expect(leaveMock).toHaveBeenCalledWith({ clubId: 'c1', userId: 'u1' });
+  });
+});
+
+// ============================================================================
+// SPEC-CLUB-003 useHostClubs 진도 병합 (REQ-CLUBC-007/008)
+// ============================================================================
+// get_host_clubs_progress RPC 결과를 clubs SELECT 와 Promise.all 로 병렬 실행 후
+// club_id 기준으로 클라이언트 병합. RPC 실패 시 degradation (진도 필드 0/0/null).
+describe('SPEC-CLUB-003 useHostClubs 진도 병합', () => {
+  it('RPC 성공 시 median_page/member_count_with_progress/progress_total_pages 를 club_id 기준으로 병합한다', async () => {
+    // clubs SELECT: c1, c2
+    const chain = buildChain([
+      { id: 'c1', club_members: [{ count: 4 }] },
+      { id: 'c2', club_members: [{ count: 2 }] },
+    ]);
+    supabaseMock.from.mockReturnValue(chain);
+    // RPC: c1 진도만 존재
+    supabaseMock.rpc.mockResolvedValue({
+      data: [
+        {
+          club_id: 'c1',
+          median_page: 100,
+          member_count_with_progress: 3,
+          total_pages: 300,
+        },
+      ],
+      error: null,
+    });
+
+    const { Wrapper } = makeWrapper();
+    const { result } = renderHook(() => useHostClubs('u1'), {
+      wrapper: Wrapper,
+    });
+
+    await waitFor(() =>
+      expect(result.current.data).toEqual([
+        {
+          id: 'c1',
+          member_count: 4,
+          median_page: 100,
+          member_count_with_progress: 3,
+          progress_total_pages: 300,
+        },
+        {
+          id: 'c2',
+          member_count: 2,
+          median_page: 0,
+          member_count_with_progress: 0,
+          progress_total_pages: null,
+        },
+      ]),
+    );
+    expect(supabaseMock.rpc).toHaveBeenCalledWith(
+      'get_host_clubs_progress',
+      { p_host_id: 'u1' },
+    );
+  });
+
+  it('RPC 에러 시 전체 쿼리를 실패시키지 않고 진도 필드를 0/0/null 로 degradation 한다 (REQ-CLUBC-008)', async () => {
+    const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
+    const chain = buildChain([{ id: 'c1', club_members: [{ count: 5 }] }]);
+    supabaseMock.from.mockReturnValue(chain);
+    supabaseMock.rpc.mockResolvedValue({
+      data: null,
+      error: { message: 'RPC 500', code: 'PGRST' },
+    });
+
+    const { Wrapper } = makeWrapper();
+    const { result } = renderHook(() => useHostClubs('u1'), {
+      wrapper: Wrapper,
+    });
+
+    await waitFor(() =>
+      expect(result.current.data).toEqual([
+        {
+          id: 'c1',
+          member_count: 5,
+          median_page: 0,
+          member_count_with_progress: 0,
+          progress_total_pages: null,
+        },
+      ]),
+    );
+    expect(result.current.isLoading).toBe(false);
+    // 콘솔 경고 로깅 확인 (REQ-CLUBC-008)
+    expect(warnSpy).toHaveBeenCalled();
+    warnSpy.mockRestore();
+  });
+
+  it('RPC 빈 결과 시 진도 필드 0/0/null (진도 입력 멤버 없음)', async () => {
+    const chain = buildChain([{ id: 'c1', club_members: [{ count: 3 }] }]);
+    supabaseMock.from.mockReturnValue(chain);
+    supabaseMock.rpc.mockResolvedValue({ data: [], error: null });
+
+    const { Wrapper } = makeWrapper();
+    const { result } = renderHook(() => useHostClubs('u1'), {
+      wrapper: Wrapper,
+    });
+
+    await waitFor(() =>
+      expect(result.current.data).toEqual([
+        {
+          id: 'c1',
+          member_count: 3,
+          median_page: 0,
+          member_count_with_progress: 0,
+          progress_total_pages: null,
+        },
+      ]),
+    );
+  });
+
+  it('clubs SELECT 에러 시 여전히 쿼리를 실패시킨다 (진도 병합이 기본 동작을 변경하지 않음)', async () => {
+    const chain = buildChain([], { message: 'clubs select failed' });
+    supabaseMock.from.mockReturnValue(chain);
+    supabaseMock.rpc.mockResolvedValue({ data: [], error: null });
+
+    const { Wrapper } = makeWrapper();
+    const { result } = renderHook(() => useHostClubs('u1'), {
+      wrapper: Wrapper,
+    });
+
+    await waitFor(() => expect(result.current.isError).toBe(true));
   });
 });

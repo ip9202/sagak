@@ -34,7 +34,7 @@ import { useRouter } from 'expo-router';
 // @MX:NOTE: [AUTO] SPEC-UI-002 PR-3 — 헤더 아이콘을 lucide-react-native 로 이관 (Feather text "+" → lucide Search/Plus). 빈 상태 Users 아이콘 추가.
 import { Search, Plus, Users } from 'lucide-react-native';
 import { useTheme } from '../../../../theme/theme';
-import { typography } from '../../../../theme/tokens';
+import { typography, spacing } from '../../../../theme/tokens';
 import { useHostClubs } from '../hooks';
 import type { HostClubWithCount } from '../hooks';
 import { getUserFriendlyMessage } from '../../../../lib/api/errors';
@@ -243,8 +243,9 @@ function formatClubMeta(club: HostClubWithCount): string {
 
 /**
  * 모임 카드 (.pen zlR3h/g0Y6M — Cover 60×84 brand-200 cornerRadius 6 + Info vertical).
- * 비과시 원칙: 좋아요/팔로워/랭킹 표시 없음. 이름/코스 메타/멤버 수/상태만.
+ * 비과시 원칙: 좋아요/팔로워/랭킹 표시 없음. 이름/코스 메타/멤버 수/진도/상태만.
  * 멤버 수는 useHostClubs 의 embedded count 집계 결과(member_count) 사용.
+ * 진도는 get_host_clubs_progress RPC 의 median 집계 결과 (SPEC-CLUB-003).
  */
 const ClubCard: React.FC<{
   club: HostClubWithCount;
@@ -254,6 +255,9 @@ const ClubCard: React.FC<{
   const isClosed = club.status === 'closed';
   const meta = formatClubMeta(club);
   const memberCount = club.member_count ?? 0;
+  const medianPage = club.median_page ?? 0;
+  const progressTotalPages = club.progress_total_pages ?? null;
+  const memberCountWithProgress = club.member_count_with_progress ?? 0;
 
   return (
     <Pressable
@@ -305,14 +309,14 @@ const ClubCard: React.FC<{
         >
           멤버 {memberCount}명
         </Text>
-        {/*
-         * @MX:TODO: [AUTO] 진도 표시(progress track/fill/pct) 미구현.
-         * @MX:REASON clubs 에 현재 읽기 페이지(current_page) 컬럼이 없어 진행률을 계산할 수 없다.
-         *          SPEC-CLUB-002 는 목표치(daily_pages/trigger_page)만 추적하므로, .pen Track/Fill/Pct 노드와
-         *          "p.X · 멤버 N명" Pct 라인 중 페이지 진도 부분은 데이터 부재로 보류한다.
-         * @MX:SPEC SPEC-CLUB-002
-         * @MX:SPEC SPEC-UI-002
-         */}
+        {/* 진도 표시 (.pen RmILS Progress — Track/Fill + Pct "p.X · 진도 N명").
+         * SPEC-CLUB-003 REQ-CLUBC-010~013. median 집계만 (비과시: 개인 비교 금지). */}
+        <ClubProgress
+          clubId={club.id}
+          medianPage={medianPage}
+          memberCountWithProgress={memberCountWithProgress}
+          progressTotalPages={progressTotalPages}
+        />
         {isClosed && (
           <Text
             style={[
@@ -325,6 +329,83 @@ const ClubCard: React.FC<{
         )}
       </View>
     </Pressable>
+  );
+};
+
+/**
+ * 모임 진도 표시 (.pen RmILS/ZT8jr Progress — vertical frame, gap 4, padding-top 4).
+ *
+ * 분기 (SPEC-CLUB-003 REQ-CLUBC-010~013):
+ * - median_page > 0 + total_pages > 0 → Track(bg-muted) + Fill(brand-500, width=median/total clamp 100%) + Pct 텍스트
+ * - median_page > 0 + total_pages null/0 → Pct 텍스트만 (바 생략)
+ * - median_page == 0 (진도 입력 멤버 없음 / RPC degradation) → "아직 진도가 없어요" 대체, 바 없음
+ *
+ * 비과시 원칙 (REQ-CLUBC-016): median 페이지 + 진도 입력 멤버 수만 표시.
+ * 개인 진도/랭킹/순위 표시 없음.
+ *
+ * @MX:SPEC SPEC-CLUB-003
+ * @MX:SPEC SPEC-UI-002
+ */
+const ClubProgress: React.FC<{
+  clubId: string;
+  medianPage: number;
+  memberCountWithProgress: number;
+  progressTotalPages: number | null;
+}> = ({ clubId, medianPage, memberCountWithProgress, progressTotalPages }) => {
+  const theme = useTheme();
+  const hasProgress = medianPage > 0;
+  const hasBar =
+    hasProgress &&
+    typeof progressTotalPages === 'number' &&
+    progressTotalPages > 0;
+  // @MX:NOTE: [AUTO] .pen h9CTb Track height=4/cornerRadius=2 — 4px 높이 바에서
+  //           radius.full(9999) 은 시각적으로 cornerRadius 2 와 동일(알약형). token-only 준수.
+  // Fill 폭은 hasBar 분기 내에서만 계산 (progressTotalPages 가 양수 number 로 좁혀진 범위).
+  const fillPctFor = (total: number) =>
+    Math.min((medianPage / total) * 100, 100);
+
+  return (
+    <View
+      style={styles.progress}
+      accessible={true}
+      accessibilityRole="text"
+      accessibilityLabel={
+        hasProgress
+          ? `진도 평균 ${medianPage}페이지, ${memberCountWithProgress}명 입력`
+          : '아직 진도가 없어요'
+      }
+    >
+      {hasBar && progressTotalPages !== null && (
+        <View
+          testID={`club-progress-track-${clubId}`}
+          style={[
+            styles.progressTrack,
+            {
+              backgroundColor: theme.colors.bg.muted,
+              borderRadius: theme.radius.full,
+            },
+          ]}
+        >
+          <View
+            testID={`club-progress-fill-${clubId}`}
+            style={{
+              width: `${fillPctFor(progressTotalPages)}%`,
+              height: theme.spacing[1],
+              backgroundColor: theme.colors.brand[500],
+              borderRadius: theme.radius.full,
+            }}
+          />
+        </View>
+      )}
+      <Text
+        style={[styles.progressPct, { color: theme.colors.text.tertiary }]}
+        numberOfLines={1}
+      >
+        {hasProgress
+          ? `p.${medianPage} · 진도 ${memberCountWithProgress}명`
+          : '아직 진도가 없어요'}
+      </Text>
+    </View>
   );
 };
 
@@ -380,6 +461,12 @@ const styles = StyleSheet.create({
   meta: { ...typography.caption },
   // @MX:NOTE: [AUTO] SPEC-UI-002 PR-3 trackB — .pen Pct(11/500) 멤버 수 라인. label 토큰(11/500/14) 적용.
   memberCount: { ...typography.label },
+  // @MX:NOTE: [AUTO] SPEC-CLUB-003 — .pen RmILS Progress (vertical, gap 4, padding-top 4).
+  progress: { gap: spacing[1], paddingTop: spacing[1] },
+  // @MX:NOTE: [AUTO] SPEC-CLUB-003 — .pen h9CTb Track (height 4, fill bg-muted).
+  progressTrack: { width: '100%', height: spacing[1] },
+  // @MX:NOTE: [AUTO] SPEC-CLUB-003 — .pen Joxxl/K0dmFA Pct (11/500) 텍스트. label 토큰 적용.
+  progressPct: { ...typography.label },
   // @MX:NOTE: [AUTO] SPEC-UI-002 PR-3 trackB — caption(12/400/17) + fontWeight 600 override. 종료 상태 뱃지 강조.
   status: { ...typography.caption, fontWeight: '600' as const },
   ctaButton: { paddingVertical: 14, alignItems: 'center' },
