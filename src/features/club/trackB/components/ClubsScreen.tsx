@@ -360,14 +360,13 @@ const ClubProgress: React.FC<{
     progressTotalPages > 0;
   // @MX:NOTE: [AUTO] .pen h9CTb Track height=4/cornerRadius=2 — 4px 높이 바에서
   //           radius.full(9999) 은 시각적으로 cornerRadius 2 와 동일(알약형). token-only 준수.
-  const fillPct =
-    hasBar && progressTotalPages
-      ? Math.min((medianPage / progressTotalPages) * 100, 100)
-      : 0;
+  // Fill 폭은 hasBar 분기 내에서만 계산 (progressTotalPages 가 양수 number 로 좁혀진 범위).
+  const fillPctFor = (total: number) =>
+    Math.min((medianPage / total) * 100, 100);
 
   return (
     <View style={styles.progress}>
-      {hasBar && (
+      {hasBar && progressTotalPages !== null && (
         <View
           testID={`club-progress-track-${clubId}`}
           style={[
@@ -381,7 +380,7 @@ const ClubProgress: React.FC<{
           <View
             testID={`club-progress-fill-${clubId}`}
             style={{
-              width: `${fillPct}%`,
+              width: `${fillPctFor(progressTotalPages)}%`,
               height: theme.spacing[1],
               backgroundColor: theme.colors.brand[500],
               borderRadius: theme.radius.full,
