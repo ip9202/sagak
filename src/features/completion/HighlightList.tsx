@@ -120,7 +120,7 @@ const styles = StyleSheet.create({
   // @MX:NOTE: [AUTO] SPEC-COMPLETION-002 F09 — 페이지 번호 (label 11/600, text-brand).
   pageNumber: {
     ...typography.label,
-    fontWeight: '600',
+    fontWeight: '600' as const,
   },
   // @MX:NOTE: [AUTO] SPEC-COMPLETION-002 F09 — 본문 (bodyMd 14/400, text-primary).
   content: {
