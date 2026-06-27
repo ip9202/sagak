@@ -211,3 +211,133 @@ describe('SPEC-CLUB-002 ClubsScreen 모임 카드 (비과시 원칙)', () => {
     expect(getByText('진도 미설정')).toBeTruthy();
   });
 });
+
+// ============================================================================
+// SPEC-CLUB-003 ClubCard 진도 표시 (REQ-CLUBC-010~015)
+// ============================================================================
+// median>0+total_pages>0 → 진도 바 + "p.X · 진도 N명" 텍스트
+// median=0 → "아직 진도가 없어요" 대체 (바 없음)
+// total_pages=null → 바 생략, 텍스트만
+describe('SPEC-CLUB-003 ClubsScreen ClubCard 진도 표시', () => {
+  it('median>0 + total_pages>0 → 진도 바 + "p.X · 진도 N명" 텍스트 (REQ-CLUBC-010/011)', () => {
+    useHostClubsMock.mockReturnValue({
+      data: [
+        {
+          id: 'c1',
+          name: '데미안',
+          status: 'active',
+          duration_days: null,
+          daily_pages: null,
+          host_id: 'u1',
+          member_count: 5,
+          median_page: 100,
+          member_count_with_progress: 3,
+          progress_total_pages: 300,
+        },
+      ],
+      isLoading: false,
+      isError: false,
+    } as any);
+    const { getByText, getByTestId } = renderScreen();
+    // Pct 텍스트 (.pen Joxxl "p.90 · 멤버 4명" 형식 — 본 SPEC 은 "진도 N명")
+    expect(getByText('p.100 · 진도 3명')).toBeTruthy();
+    // 진도 바 Track 노드 존재
+    expect(getByTestId('club-progress-track-c1')).toBeTruthy();
+  });
+
+  it('median=0 → "아직 진도가 없어요" 대체 텍스트, 진도 바 미표시 (REQ-CLUBC-013)', () => {
+    useHostClubsMock.mockReturnValue({
+      data: [
+        {
+          id: 'c2',
+          name: '새 모임',
+          status: 'active',
+          duration_days: null,
+          daily_pages: null,
+          host_id: 'u1',
+          member_count: 3,
+          median_page: 0,
+          member_count_with_progress: 0,
+          progress_total_pages: 300,
+        },
+      ],
+      isLoading: false,
+      isError: false,
+    } as any);
+    const { getByText, queryByTestId } = renderScreen();
+    expect(getByText('아직 진도가 없어요')).toBeTruthy();
+    expect(queryByTestId('club-progress-track-c2')).toBeNull();
+  });
+
+  it('total_pages=null → 진도 바 생략, "p.X · 진도 N명" 텍스트만 (REQ-CLUBC-012)', () => {
+    useHostClubsMock.mockReturnValue({
+      data: [
+        {
+          id: 'c3',
+          name: '페이지 미정 모임',
+          status: 'active',
+          duration_days: null,
+          daily_pages: null,
+          host_id: 'u1',
+          member_count: 4,
+          median_page: 50,
+          member_count_with_progress: 2,
+          progress_total_pages: null,
+        },
+      ],
+      isLoading: false,
+      isError: false,
+    } as any);
+    const { getByText, queryByTestId } = renderScreen();
+    expect(getByText('p.50 · 진도 2명')).toBeTruthy();
+    expect(queryByTestId('club-progress-track-c3')).toBeNull();
+  });
+
+  it('progress 필드 누락(degradation) 시 "아직 진도가 없어요" 폴백', () => {
+    useHostClubsMock.mockReturnValue({
+      data: [
+        {
+          id: 'c4',
+          name: 'RPC 장애 모임',
+          status: 'active',
+          duration_days: null,
+          daily_pages: null,
+          host_id: 'u1',
+          member_count: 4,
+          median_page: 0,
+          member_count_with_progress: 0,
+          progress_total_pages: null,
+        },
+      ],
+      isLoading: false,
+      isError: false,
+    } as any);
+    const { getByText } = renderScreen();
+    // RPC degradation (0/0/null) → median=0 분기와 동일하게 "아직 진도가 없어요"
+    expect(getByText('아직 진도가 없어요')).toBeTruthy();
+  });
+
+  it('기존 "멤버 N명" 라인은 진도 표시 추가 후에도 유지된다 (회귀)', () => {
+    useHostClubsMock.mockReturnValue({
+      data: [
+        {
+          id: 'c5',
+          name: '회귀 모임',
+          status: 'active',
+          duration_days: null,
+          daily_pages: null,
+          host_id: 'u1',
+          member_count: 7,
+          median_page: 80,
+          member_count_with_progress: 4,
+          progress_total_pages: 200,
+        },
+      ],
+      isLoading: false,
+      isError: false,
+    } as any);
+    const { getByText } = renderScreen();
+    expect(getByText('멤버 7명')).toBeTruthy();
+    expect(getByText('p.80 · 진도 4명')).toBeTruthy();
+  });
+});
