@@ -221,8 +221,8 @@ describe('SPEC-COMPLETION-001 F-2: CompletionDiaryScreen 통합', () => {
     expect(getByTestId('emotion-curve-chart')).toBeTruthy();
     // 하이라이트 내용
     expect(getByText('첫인상')).toBeTruthy();
-    // 시나리오 11: 총 기록 수 헤더
-    expect(getByText(/이 책에서 남긴 감정 47개/)).toBeTruthy();
+    // 시나리오 11: 총 기록 수 헤더 (SPEC-COMPLETION-002 F09 카피 정합)
+    expect(getByText(/이 책에 남긴 감정 기록 47개/)).toBeTruthy();
   });
 
   it('시나리오 7: 빈 상태(total_records=0) → 빈 상태 메시지 + 차트/리스트 미렌더', () => {
@@ -239,7 +239,7 @@ describe('SPEC-COMPLETION-001 F-2: CompletionDiaryScreen 통합', () => {
     expect(queryByTestId('emotion-curve-chart')).toBeNull();
   });
 
-  it('시나리오 11 (0건): 헤더에 "이 책에서 남긴 감정 0개" 표시', () => {
+  it('시나리오 11 (0건): 헤더에 "이 책에 남긴 감정 기록 0개" 표시', () => {
     setHook({
       status: 'empty',
       data: makeReport({ emotion_curve: [], highlights: [], total_records: 0 }),
@@ -247,7 +247,7 @@ describe('SPEC-COMPLETION-001 F-2: CompletionDiaryScreen 통합', () => {
       isLoading: false,
     });
     const { getByText } = renderWith(<CompletionDiaryScreen userBookId="ub-1" />);
-    expect(getByText(/이 책에서 남긴 감정 0개/)).toBeTruthy();
+    expect(getByText(/이 책에 남긴 감정 기록 0개/)).toBeTruthy();
   });
 
   it('시나리오 12 우: 에러 상태에서 축하 메시지 미표시', () => {

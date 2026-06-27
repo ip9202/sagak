@@ -1,25 +1,29 @@
 /**
  * 완독 다이어리 라우트 — completion/[bookId]
  * SPEC-COMPLETION-001 P1-C conformance — CompletionDiaryScreen 을 라우트에 연결.
+ * SPEC-COMPLETION-002 F09 정합 (REQ-COMP2-011) — 명시적 Back 버튼(chevron-left → router.back()).
  *
  * 데이터 흐름:
  * - useSession: 세션 로딩/미인증 가드
  * - useLocalSearchParams: bookId (books.id)
- * - useLibraryItem: bookId/userId 로 user_books.id (userBookId) 조회
- * - CompletionDiaryScreen: userBookId 를 받아 useCompletionReport 호출
+ * - useLibraryItem: bookId/userId 로 user_books.id (userBookId) + books(cover_url) + completed_at 조회
+ * - CompletionDiaryScreen: userBookId + coverUrl + completedAt 을 받아 useCompletionReport 호출
  *
  * bookId → userBookId 매핑이 핵심: CompletionDiaryScreen props 는 userBookId 이고,
  * 라우트 param 은 bookId 이다. useLibraryItem.data.id 로 변환한다.
  * 빈 userBookId(로딩 중/미등록) 시 useCompletionReport 는 조회하지 않는다(빈값 가드).
+ * cover_url/completed_at 은 동일 useLibraryItem 결과에서 재사용 (새 쿼리 없음).
  *
- * @MX:SPEC SPEC-COMPLETION-001
+ * @MX:SPEC SPEC-COMPLETION-001, SPEC-COMPLETION-002
  */
 import React, { useEffect } from 'react';
-import { ActivityIndicator, ScrollView, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, View, Text } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import { ChevronLeft } from 'lucide-react-native';
 import { useSession } from '../../../src/auth/useSession';
 import { useLibraryItem } from '../../../src/features/library/useLibraryItem';
 import { useTheme } from '../../../src/theme/theme';
+import { typography, iconSizes, spacing } from '../../../src/theme/tokens';
 import { CompletionDiaryScreen } from '../../../src/features/completion/CompletionDiaryScreen';
 import { StatusBar } from '../../../src/components/StatusBar';
 
@@ -37,6 +41,10 @@ export default function CompletionBookRoute(): React.ReactElement | null {
   // @MX:NOTE: [AUTO] bookId → userBookId 매핑. useLibraryItem.data.id = user_books.id.
   //           로딩 중이거나 서재 미등록이면 빈 문자열 → useCompletionReport 는 조회 안 함(빈값 가드).
   const userBookId = libraryQuery.data?.id ?? '';
+  // @MX:NOTE: [AUTO] SPEC-COMPLETION-002 F09 — cover_url/completed_at 을 동일 쿼리 결과에서 재사용.
+  //           새 쿼리 추가 없음. books.cover_url (중첩 조인) + user_books.completed_at.
+  const coverUrl = libraryQuery.data?.books?.cover_url ?? null;
+  const completedAt = libraryQuery.data?.completed_at ?? null;
 
   // 미인증 — 로그인으로 replace. emotion/[bookId].tsx 의 useEffect 패턴 준수 —
   // 렌더 본문에서 직접 router.replace 호출(렌더 중 사이드 이펙트)을 피한다.
@@ -66,15 +74,44 @@ export default function CompletionBookRoute(): React.ReactElement | null {
   }
 
   // @MX:NOTE: [AUTO] SPEC-UI-002 REQ-SCREEN-001 — 비탭 화면 상단 상태바/노치 영역 처리.
-  //           (tabs)/_layout.tsx 와 동일한 3계층 레이아웃: StatusBar → ScrollView(content).
+  //           (tabs)/_layout.tsx 와 동일한 3계층 레이아웃: StatusBar → Header → ScrollView(content).
+  // @MX:NOTE: [AUTO] SPEC-COMPLETION-002 REQ-COMP2-011 — 명시적 Back(chevron-left → router.back()).
   return (
     <View style={{ flex: 1, backgroundColor: theme.colors.bg.base }}>
       <StatusBar />
+      <View
+        testID="completion-route-header"
+        style={[
+          styles.header,
+          { borderBottomColor: theme.colors.border.default },
+        ]}
+      >
+        <Pressable
+          testID="completion-route-back"
+          accessibilityLabel="뒤로 가기"
+          accessibilityRole="button"
+          hitSlop={spacing[2]}
+          onPress={() => router.back()}
+        >
+          <ChevronLeft
+            size={iconSizes.lg}
+            color={theme.colors.text.primary}
+          />
+        </Pressable>
+        <Text style={[styles.headerTitle, { color: theme.colors.text.primary }]}>
+          완독 다이어리
+        </Text>
+        <View style={styles.headerRight} />
+      </View>
       <ScrollView
         testID="completion-route-screen"
         style={[styles.container, { backgroundColor: theme.colors.bg.base }]}
       >
-        <CompletionDiaryScreen userBookId={userBookId} />
+        <CompletionDiaryScreen
+          userBookId={userBookId}
+          coverUrl={coverUrl}
+          completedAt={completedAt}
+        />
       </ScrollView>
     </View>
   );
@@ -88,5 +125,21 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  // @MX:NOTE: [AUTO] SPEC-COMPLETION-002 REQ-COMP2-011 / SPEC-UI-002 — 헤더 (Back + Title + Right spacer).
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: spacing[2],
+    paddingHorizontal: spacing[5],
+    borderBottomWidth: 0,
+  },
+  headerTitle: {
+    ...typography.displaySm,
+  },
+  headerRight: {
+    width: iconSizes.lg,
+    height: iconSizes.lg,
   },
 });
