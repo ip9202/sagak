@@ -155,7 +155,7 @@ Phase 5 (배포)
 
 #### SPEC-COMPLETION-002: 완독 다이어리 아카이브(리스트) + 상세 재설계
 - **도메인**: COMPLETION
-- **상태**: 📋 SPEC 작성 완료 (draft, 16/16 REQ, 2026-06-27)
+- **상태**: ✅ 구현 완료 (PR #87, 2026-06-27)
 - **핵심 범위**: 완독 다이어리 **리스트(아카이브) 화면 신규 도입**(`.pen` F08 정합), 기존 상세 화면 **F09 재설계 정합**(001 데이터 로직 재사용, 시각적 카드 구조 재배치), 마이 진입점 연결(001 REQ-COMP-002 이행). 001의 `ReportData`/`fetchReport`/`useCompletionReport`를 재사용(재정의 없음).
 - **COMPLETION-001 vs 002 경계**: 001 = per-book 상세 데이터 계약(ReportData, fetchReport, 6상태 분기) + 1차 시각화(PR #14 완료). 002 = (a) 리스트 화면 신규, (b) 상세 F09 시각 정합, (c) 진입점 이행. 데이터 로직 중복 없음.
 - **설계 레퍼런스**: `.moai/design/sagak.pen` F08-CompletionDiaryList / F08-CompletionDiaryList-Empty / F09-CompletionDiaryDetail / F09-CompletionDiaryDetail-Empty (design commit 1300d6b)
