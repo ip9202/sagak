@@ -120,10 +120,11 @@ describe('SPEC-PROFILE-001 hooks', () => {
       wrapper: Wrapper,
     });
 
-    await result.current.mutateAsync({ nickname: '새닉', avatar_url: null });
+    await result.current.mutateAsync({ nickname: '새닉', avatar_url: null, bio: null });
     expect(updateProfile).toHaveBeenCalledWith('u-1', {
       nickname: '새닉',
       avatar_url: null,
+      bio: null,
     });
     // ['profile'] 키 무효화 호출 검증
     expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['profile'] });

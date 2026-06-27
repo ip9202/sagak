@@ -36,7 +36,7 @@ export async function getProfile(userId: string): Promise<Profile | null> {
     result = await client
       .from('users')
       .select(
-        'id, nickname, avatar_url, email, provider, push_token, reading_alarm_time, reading_alarm_enabled, role, created_at, updated_at',
+        'id, nickname, avatar_url, bio, email, provider, push_token, reading_alarm_time, reading_alarm_enabled, role, created_at, updated_at',
       )
       .eq('id', userId)
       .maybeSingle();

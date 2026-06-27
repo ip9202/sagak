@@ -84,7 +84,7 @@ function withTheme(ui: React.ReactElement) {
 const authenticatedSession = {
   session: { access_token: 'tok', user: { id: 'u-1' } },
   user: { id: 'u-1', email: 'reader@example.com' },
-  profile: { id: 'u-1', nickname: '독자', provider: 'naver' as const },
+  profile: { id: 'u-1', nickname: '독자', provider: 'naver' as const, bio: '매일 조금씩 읽어요' },
   loading: false,
   isAuthenticated: true,
   isOnboarded: true,
@@ -131,6 +131,22 @@ describe('SPEC-AUTH-001 PR #19: 마이 탭 렌더링', () => {
     // 제공자 라벨 (naver → 네이버)
     expect(getByText('네이버')).toBeTruthy();
     expect(getByText('reader@example.com')).toBeTruthy();
+  });
+
+  it('profile.bio 가 있으면 동적 bio 를 렌더링한다 (SPEC-PROFILE-001 bio)', () => {
+    mockedUseSession.mockReturnValue(authenticatedSession as any);
+    const { getByText } = withTheme(<MyTab />);
+    expect(getByText('매일 조금씩 읽어요')).toBeTruthy();
+  });
+
+  it('profile.bio 가 null/빈값이면 BIO_PLACEHOLDER 폴백을 렌더링한다', () => {
+    mockedUseSession.mockReturnValue({
+      ...authenticatedSession,
+      profile: { id: 'u-1', nickname: '독자', provider: 'naver' as const, bio: null },
+    } as any);
+    const { getByText } = withTheme(<MyTab />);
+    // .pen F15-My 기본 문구 폴백
+    expect(getByText('매일 조금씩, 종이책과 함께')).toBeTruthy();
   });
 
   it('로그아웃 버튼 press → 확인 → signOut() 호출', async () => {

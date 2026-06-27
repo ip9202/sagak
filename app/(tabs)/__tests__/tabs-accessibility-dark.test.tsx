@@ -118,6 +118,7 @@ const onboardedProfile: UserProfile = {
   id: 'u1',
   nickname: '온',
   avatar_url: null,
+  bio: null,
   provider: 'kakao',
   created_at: '2024-01-01',
   updated_at: '2024-01-01',

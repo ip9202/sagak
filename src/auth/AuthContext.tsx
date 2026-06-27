@@ -57,7 +57,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     const { data, error } = await getSupabaseClient()
       .from('users')
-      .select('id, nickname, avatar_url, provider, created_at, updated_at')
+      .select('id, nickname, avatar_url, bio, provider, created_at, updated_at')
       .eq('id', userId)
       .single();
 

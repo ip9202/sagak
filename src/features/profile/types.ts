@@ -21,6 +21,7 @@ export interface Profile {
   id: string;
   nickname: string | null;
   avatar_url: string | null;
+  bio: string | null;
   email: string;
   provider: string;
   push_token: string | null;
@@ -33,12 +34,13 @@ export interface Profile {
 
 /**
  * 프로필 수정 입력 (REQ-PROF-002/003).
- * 수정 가능한 필드는 nickname, avatar_url 두 개만 (미결정 5.3 임시 방침).
+ * 수정 가능한 필드: nickname, avatar_url, bio.
  * email/provider/role/alarm_* 은 수정 UI 에서 비노출 또는 읽기 전용.
  */
 export interface ProfileUpdateInput {
   nickname: string;
   avatar_url: string | null;
+  bio: string | null;
 }
 
 /**
