@@ -15,7 +15,7 @@ export type {
 
 export { computeBadges, BADGE_THRESHOLDS } from './badges';
 export { getProfile, getUserStats, getPointLogs } from './queries';
-export { updateProfile, validateProfileInput, NICKNAME_MAX_LENGTH } from './mutations';
+export { updateProfile, validateProfileInput, NICKNAME_MAX_LENGTH, BIO_MAX_LENGTH } from './mutations';
 export { PROFILE_QUERY_KEY, useProfile } from './useProfile';
 export {
   USER_STATS_QUERY_KEY,

@@ -9,7 +9,7 @@
  * - P6: email/provider/role 은 입력에 없음 (수정 불가)
  * - 에러 정규화
  */
-import { updateProfile, validateProfileInput, NICKNAME_MAX_LENGTH } from '../mutations';
+import { updateProfile, validateProfileInput, NICKNAME_MAX_LENGTH, BIO_MAX_LENGTH } from '../mutations';
 import { getSupabaseClient } from '../../../lib/supabase/client';
 
 jest.mock('../../../lib/supabase/client', () => ({
@@ -29,17 +29,17 @@ jest.mock('@react-native-async-storage/async-storage', () => ({
 
 describe('SPEC-PROFILE-001 REQ-PROF-003: validateProfileInput', () => {
   it('정상 nickname + avatar_url → 유효', () => {
-    const result = validateProfileInput({ nickname: '책벌레', avatar_url: 'https://x/a.png' });
+    const result = validateProfileInput({ nickname: '책벌레', avatar_url: 'https://x/a.png', bio: null });
     expect(result.valid).toBe(true);
   });
 
   it('P7: 빈 nickname → VALIDATION 무효', () => {
-    const result = validateProfileInput({ nickname: '', avatar_url: null });
+    const result = validateProfileInput({ nickname: '', avatar_url: null, bio: null });
     expect(result.valid).toBe(false);
   });
 
   it('P7: 공백만 nickname → 무효', () => {
-    const result = validateProfileInput({ nickname: '   ', avatar_url: null });
+    const result = validateProfileInput({ nickname: '   ', avatar_url: null, bio: null });
     expect(result.valid).toBe(false);
   });
 
@@ -47,6 +47,7 @@ describe('SPEC-PROFILE-001 REQ-PROF-003: validateProfileInput', () => {
     const result = validateProfileInput({
       nickname: '가'.repeat(NICKNAME_MAX_LENGTH + 1),
       avatar_url: null,
+      bio: null,
     });
     expect(result.valid).toBe(false);
   });
@@ -55,8 +56,36 @@ describe('SPEC-PROFILE-001 REQ-PROF-003: validateProfileInput', () => {
     const result = validateProfileInput({
       nickname: '가'.repeat(NICKNAME_MAX_LENGTH),
       avatar_url: null,
+      bio: null,
     });
     expect(result.valid).toBe(true);
+  });
+
+  it('bio null → 유효 (빈 자기소개 허용)', () => {
+    const result = validateProfileInput({
+      nickname: '책벌레',
+      avatar_url: null,
+      bio: null,
+    });
+    expect(result.valid).toBe(true);
+  });
+
+  it('bio 140자 → 유효 (경계값)', () => {
+    const result = validateProfileInput({
+      nickname: '책벌레',
+      avatar_url: null,
+      bio: '가'.repeat(BIO_MAX_LENGTH),
+    });
+    expect(result.valid).toBe(true);
+  });
+
+  it('bio 141자 → 무효 (길이 초과)', () => {
+    const result = validateProfileInput({
+      nickname: '책벌레',
+      avatar_url: null,
+      bio: '가'.repeat(BIO_MAX_LENGTH + 1),
+    });
+    expect(result.valid).toBe(false);
   });
 });
 
@@ -80,11 +109,12 @@ describe('SPEC-PROFILE-001 REQ-PROF-002: updateProfile', () => {
     const b = updateBuilder();
     fromMock.mockReturnValue(b);
 
-    await updateProfile('u-1', { nickname: '책벌레', avatar_url: null });
+    await updateProfile('u-1', { nickname: '책벌레', avatar_url: null, bio: null });
 
     expect(b.update).toHaveBeenCalledWith({
       nickname: '책벌레',
       avatar_url: null,
+      bio: null,
     });
     expect(b.eq).toHaveBeenCalledWith('id', 'u-1');
   });
@@ -96,12 +126,45 @@ describe('SPEC-PROFILE-001 REQ-PROF-002: updateProfile', () => {
     await updateProfile('u-1', {
       nickname: '독서가',
       avatar_url: 'https://x/new.png',
+      bio: null,
     });
 
     expect(b.update).toHaveBeenCalledWith({
       nickname: '독서가',
       avatar_url: 'https://x/new.png',
+      bio: null,
     });
+  });
+
+  it('bio 수정 → UPDATE 에 bio 포함', async () => {
+    const b = updateBuilder();
+    fromMock.mockReturnValue(b);
+
+    await updateProfile('u-1', {
+      nickname: '독서가',
+      avatar_url: null,
+      bio: '매일 조금씩 읽습니다',
+    });
+
+    expect(b.update).toHaveBeenCalledWith({
+      nickname: '독서가',
+      avatar_url: null,
+      bio: '매일 조금씩 읽습니다',
+    });
+  });
+
+  it('bio 141자 → UPDATE 미전송 (VALIDATION throw)', async () => {
+    const b = updateBuilder();
+    fromMock.mockReturnValue(b);
+
+    await expect(
+      updateProfile('u-1', {
+        nickname: '책벌레',
+        avatar_url: null,
+        bio: '가'.repeat(BIO_MAX_LENGTH + 1),
+      }),
+    ).rejects.toMatchObject({ category: 'VALIDATION' });
+    expect(b.update).not.toHaveBeenCalled();
   });
 
   it('P7: 빈 nickname → UPDATE 미전송 (VALIDATION throw)', async () => {
@@ -109,7 +172,7 @@ describe('SPEC-PROFILE-001 REQ-PROF-002: updateProfile', () => {
     fromMock.mockReturnValue(b);
 
     await expect(
-      updateProfile('u-1', { nickname: '', avatar_url: null }),
+      updateProfile('u-1', { nickname: '', avatar_url: null, bio: null }),
     ).rejects.toMatchObject({ category: 'VALIDATION' });
     expect(b.update).not.toHaveBeenCalled();
   });
@@ -122,6 +185,7 @@ describe('SPEC-PROFILE-001 REQ-PROF-002: updateProfile', () => {
       updateProfile('u-1', {
         nickname: '가'.repeat(NICKNAME_MAX_LENGTH + 1),
         avatar_url: null,
+        bio: null,
       }),
     ).rejects.toMatchObject({ category: 'VALIDATION' });
     expect(b.update).not.toHaveBeenCalled();
@@ -138,7 +202,7 @@ describe('SPEC-PROFILE-001 REQ-PROF-002: updateProfile', () => {
     fromMock.mockReturnValue(b);
 
     await expect(
-      updateProfile('u-1', { nickname: '책벌레', avatar_url: null }),
+      updateProfile('u-1', { nickname: '책벌레', avatar_url: null, bio: null }),
     ).rejects.toMatchObject({ category: 'RLS_DENIED' });
   });
 });

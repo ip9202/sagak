@@ -57,6 +57,7 @@ describe('SPEC-PROFILE-001 REQ-PROF-001: getProfile', () => {
         reading_alarm_time: '21:00:00',
         reading_alarm_enabled: true,
         role: 'member',
+        bio: '매일 조금씩 읽는 독자입니다',
         created_at: '2026-01-01T00:00:00Z',
         updated_at: '2026-01-02T00:00:00Z',
       },
@@ -68,6 +69,11 @@ describe('SPEC-PROFILE-001 REQ-PROF-001: getProfile', () => {
     expect(profile?.nickname).toBe('독서가');
     expect(profile?.email).toBe('u1@e.com');
     expect(profile?.reading_alarm_time).toBe('21:00:00');
+    expect(profile?.bio).toBe('매일 조금씩 읽는 독자입니다');
+    // SELECT 구문에 bio 포함 검증 (SPEC-PROFILE-001 bio 추가)
+    expect(b.select).toHaveBeenCalledWith(
+      expect.stringContaining('bio'),
+    );
     expect(b.eq).toHaveBeenCalledWith('id', 'u-1');
   });
 

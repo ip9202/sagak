@@ -122,6 +122,7 @@ describe('M2-A-2 AC-G2: 인증 상태 파생값', () => {
       id: 'user-123',
       nickname: '테스트유저',
       avatar_url: 'https://example.com/avatar.jpg',
+      bio: null,
       provider: 'kakao',
       created_at: '2024-01-01',
       updated_at: '2024-01-01',

@@ -1,7 +1,7 @@
 /**
  * 프로필 수정 화면 (SPEC-PROFILE-001 REQ-PROF-002/003)
  *
- * nickname / avatar_url 만 수정 가능 (미결정 5.3 임시 방침).
+ * nickname / avatar_url / bio 수정 가능.
  * email/provider/role 은 수정 UI 에 미노출 (REQ-PROF-002 비고, P6).
  *
  * SPEC-UI-002 준수: 3계층 레이아웃, 카드 패턴, token-only 스타일링.
@@ -28,6 +28,7 @@ import {
   useUpdateProfile,
   validateProfileInput,
   NICKNAME_MAX_LENGTH,
+  BIO_MAX_LENGTH,
 } from '../../../src/features/profile';
 
 export default function EditScreen(): React.JSX.Element {
@@ -40,12 +41,14 @@ export default function EditScreen(): React.JSX.Element {
 
   const [nickname, setNickname] = useState(profileQuery.data?.nickname ?? '');
   const [avatarUrl, setAvatarUrl] = useState(profileQuery.data?.avatar_url ?? '');
+  const [bio, setBio] = useState(profileQuery.data?.bio ?? '');
   const [error, setError] = useState<string | null>(null);
 
   const handleSave = (): void => {
     const validation = validateProfileInput({
       nickname,
       avatar_url: avatarUrl || null,
+      bio: bio || null,
     });
     if (!validation.valid) {
       setError(validation.message ?? '입력값을 확인해 주세요');
@@ -53,7 +56,11 @@ export default function EditScreen(): React.JSX.Element {
     }
     setError(null);
     updateMutation
-      .mutateAsync({ nickname: nickname.trim(), avatar_url: avatarUrl || null })
+      .mutateAsync({
+        nickname: nickname.trim(),
+        avatar_url: avatarUrl || null,
+        bio: bio || null,
+      })
       .then(() => {
         router.back();
       })
@@ -152,6 +159,34 @@ export default function EditScreen(): React.JSX.Element {
             accessibilityLabel="아바타 URL 입력"
           />
 
+          <Text
+            style={[
+              styles.fieldLabel,
+              { color: theme.colors.text.tertiary, marginTop: 16 },
+            ]}
+          >
+            자기소개
+          </Text>
+          <TextInput
+            testID="edit-bio"
+            value={bio}
+            onChangeText={setBio}
+            placeholder="소개를 적어보세요"
+            placeholderTextColor={theme.colors.text.tertiary}
+            multiline
+            maxLength={BIO_MAX_LENGTH}
+            style={[
+              styles.bioInput,
+              {
+                color: theme.colors.text.primary,
+                backgroundColor: theme.colors.bg.muted,
+                borderRadius: theme.radius.md,
+                borderColor: theme.colors.border.default,
+              },
+            ]}
+            accessibilityLabel="자기소개 입력"
+          />
+
           {error ? (
             <Text
               testID="edit-error"
@@ -207,6 +242,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 12,
     fontSize: 15,
+  },
+  bioInput: {
+    borderWidth: borderWidth.hairline,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    fontSize: 15,
+    minHeight: 80,
+    textAlignVertical: 'top',
   },
   errorText: { fontSize: 13, marginTop: 8 },
   saveButton: {

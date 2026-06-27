@@ -10,14 +10,15 @@ import type { Session, User } from '@supabase/supabase-js';
 export type AuthProvider = 'kakao' | 'naver' | 'google';
 
 /**
- * public.users 테이블 행 스키마
- * nickname/avatar_url은 nullable (온보딩 미완료 상태)
+ * public.users 테이블 행 슬림 스키마 (세션 컨텍스트용)
+ * nickname/avatar_url/bio는 nullable (온보딩 미완료 또는 빈 값 허용)
  * 향후 gen-types 결과물(Database)로 교체 예정
  */
 export interface UserProfile {
   id: string;
   nickname: string | null;
   avatar_url: string | null;
+  bio: string | null;
   provider: AuthProvider;
   created_at: string;
   updated_at: string;

@@ -33,10 +33,12 @@ jest.mock('../../../src/features/profile', () => ({
   useUpdateProfile: jest.fn(),
   useProfile: jest.fn(),
   NICKNAME_MAX_LENGTH: 20,
-  validateProfileInput: (input: { nickname: string }) => {
+  BIO_MAX_LENGTH: 140,
+  validateProfileInput: (input: { nickname: string; bio?: string | null }) => {
     const trimmed = input.nickname.trim();
     if (trimmed.length === 0) return { valid: false, message: '닉네임을 입력해 주세요' };
     if (trimmed.length > 20) return { valid: false, message: '닉네임은 20자 이내로 입력해 주세요' };
+    if (input.bio && input.bio.length > 140) return { valid: false, message: '자기소개는 140자 이내로 입력해 주세요' };
     return { valid: true };
   },
 }));
@@ -75,6 +77,7 @@ beforeEach(() => {
       avatar_url: 'https://x/a.png',
       email: 'u1@e.com',
       provider: 'naver',
+      bio: '매일 조금씩 읽는 독자입니다',
     },
   });
 });
@@ -102,6 +105,27 @@ describe('SPEC-PROFILE-001 REQ-PROF-002/003: 프로필 수정 화면', () => {
       expect(mutateAsync).toHaveBeenCalledWith({
         nickname: '책벌레',
         avatar_url: 'https://x/a.png',
+        bio: '매일 조금씩 읽는 독자입니다',
+      });
+    });
+  });
+
+  it('bio 필드 존재 + 초기값 표시 (multiline 자기소개)', () => {
+    const { getByDisplayValue } = withTheme(<EditScreen />);
+    expect(getByDisplayValue('매일 조금씩 읽는 독자입니다')).toBeTruthy();
+  });
+
+  it('bio 변경 후 저장 → updateProfile 에 bio 반영', async () => {
+    const { getByTestId, getByDisplayValue } = withTheme(<EditScreen />);
+    const bioInput = getByDisplayValue('매일 조금씩 읽는 독자입니다');
+    fireEvent.changeText(bioInput, '종이책 좋아하는 독자');
+    fireEvent.press(getByTestId('edit-save'));
+
+    await waitFor(() => {
+      expect(mutateAsync).toHaveBeenCalledWith({
+        nickname: '독서가',
+        avatar_url: 'https://x/a.png',
+        bio: '종이책 좋아하는 독자',
       });
     });
   });

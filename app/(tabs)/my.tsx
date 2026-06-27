@@ -64,8 +64,8 @@ const PROVIDER_LABEL: Record<AuthProvider, string> = {
   google: '구글',
 };
 
-// @MX:NOTE: [AUTO] SPEC-UI-002 F15-My Bio 고정 문구 — profile.bio 스키마 필드가 아직 없어
-//           .pen 기본 문구를 정적 플레이스홀더로 렌더링. 향후 bio 필드 추가 시 동적 바인딩 전환.
+// @MX:NOTE: [AUTO] SPEC-UI-002 F15-My Bio 폴백 문구 — profile.bio 가 null/빈값일 때
+//           .pen 기본 문구를 폴백으로 렌더링 (빈 자기소개 사용자도 .pen 디자인 유지).
 const BIO_PLACEHOLDER = '매일 조금씩, 종이책과 함께';
 
 export default function MyTab(): React.JSX.Element {
@@ -199,6 +199,7 @@ export default function MyTab(): React.JSX.Element {
   };
 
   const nickname = profile?.nickname ?? '독자';
+  const bioText = profile?.bio?.trim() ? profile.bio : BIO_PLACEHOLDER;
   const providerLabel = profile
     ? PROVIDER_LABEL[profile.provider]
     : '알 수 없음';
@@ -253,7 +254,7 @@ export default function MyTab(): React.JSX.Element {
         keyboardShouldPersistTaps="handled"
       >
         {/* 프로필 (.pen F15-My Profile — 아바타 64×64 + NameCol gap 4, center)
-            Bio 는 profile.bio 스키마 부재로 .pen 기본 문구 정적 렌더링.
+            Bio 는 profile.bio 동적 렌더링 (빈값 → BIO_PLACEHOLDER 폴백).
             provider/email 은 .pen 외 앱 확장 — 프로필 카드 아래 보조 라인으로 유지. */}
         <View style={styles.profileRow}>
           {avatarUrl ? (
@@ -296,7 +297,7 @@ export default function MyTab(): React.JSX.Element {
               ]}
               numberOfLines={1}
             >
-              {BIO_PLACEHOLDER}
+              {bioText}
             </Text>
           </View>
         </View>

@@ -69,7 +69,7 @@ describe('SPEC-PROFILE-001 hooks', () => {
   });
 
   it('useProfile: getProfile 위임 + query key 포함 userId', async () => {
-    (getProfile as jest.Mock).mockResolvedValue({ id: 'u-1', nickname: '독자' });
+    (getProfile as jest.Mock).mockResolvedValue({ id: 'u-1', nickname: '독자', bio: null });
     const { Wrapper } = createWrapper();
     const { result } = renderHook(() => useProfile('u-1'), { wrapper: Wrapper });
 
@@ -120,10 +120,11 @@ describe('SPEC-PROFILE-001 hooks', () => {
       wrapper: Wrapper,
     });
 
-    await result.current.mutateAsync({ nickname: '새닉', avatar_url: null });
+    await result.current.mutateAsync({ nickname: '새닉', avatar_url: null, bio: null });
     expect(updateProfile).toHaveBeenCalledWith('u-1', {
       nickname: '새닉',
       avatar_url: null,
+      bio: null,
     });
     // ['profile'] 키 무효화 호출 검증
     expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['profile'] });
