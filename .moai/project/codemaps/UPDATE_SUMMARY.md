@@ -1343,3 +1343,108 @@ SPEC-ROUTINE-001 구현 완료(9ddd1a4) 반영하여 독서 루틴 및 타이머
 
 **검증 완료:** 2026-06-20 (SPEC-ROUTINE-001)
 **업데이트 담당:** manager-docs (sync phase)
+
+---
+
+## 8차 업데이트 (CLUB-003)
+
+**개요:**
+- **SPEC-CLUB-003(cc4c01d)** 머지 반영 — 모임 진도 median 집계 표시
+- 신규 RPC 함수 `get_host_clubs_progress` (SECURITY INVOKER, plpgsql, auth.uid() defense-in-depth)
+- useHostClubs 훅 확장 (Promise.all 병렬 + RPC degradation)
+- ClubProgress 컴포넌트 추가 (진도 바 + 텍스트 표시)
+- @MX:TODO 해소 (ClubsScreen.tsx:309)
+
+### 변경사항 요약
+
+#### 1. modules.md
+**변경 내용:**
+- ✅ **신규 섹션:** Club Domain (`src/features/club/`) 추가
+  - `trackB/hooks.ts` — useHostClubs (Promise.all + RPC 병합 + degradation)
+  - `trackB/components/ClubsScreen.tsx` — ClubsScreen + ClubCard + ClubProgress
+  - `trackB/types.ts` — HostClubWithCount (median_page/member_count_with_progress/progress_total_pages 추가)
+  - `trackA/readersApi.ts` — 모임원 진도 목록 (user_books_public 뷰 소스)
+  - `trackA/emotionApi.ts` — 모임 감정 기록 조회
+- ✅ RPC Functions: 2개 → 3개 (+1 get_host_clubs_progress)
+
+**영향 범위:**
+- 모듈 카탈로그: Club 도메인 7개 모듈 추가
+- @MX:ANCHOR 후보: useHostClubs (fan_in 2+, ClubsScreen + 진도 표시 의존)
+
+#### 2. data-flow.md
+**변경 내용:**
+- ✅ **신규 섹션:** "12. Host Clubs Progress Flow" 추가
+  - ClubsScreen → useHostClubs → Promise.all([clubs SELECT, RPC])
+  - RPC → PostgreSQL median 계산 (user_books_public 뷰, current_page>0)
+  - 클라이언트 병합 (club_id Map)
+  - ClubProgress UI 분기 (바+텍스트 / 텍스트만 / "아직 진도가 없어요")
+- ✅ Data Flow Summary 테이블에 Host Clubs Progress 추가
+
+**영향 범위:**
+- Sequence diagram: 7개 참여자 (Screen/Hook/Q/RPC/PG/View/UI)
+- Flow notes: 2-라운드트립 최소화, degradation 패턴, defense-in-depth, 데이터 소스 일관성, Median 계산, UI 분기, token-only 스타일링
+
+#### 3. dependencies.md (변경 없음)
+- Club 도메인은 기존 인프라(getSupabaseClient, React Query) 의존
+- RPC 함수는 PostgreSQL 내부 객체 (클라이언트 의존성 없음)
+
+#### 4. entry-points.md (변경 없음)
+- app/(tabs)/clubs.tsx는 기존 라우트 (Track B 구현 추가)
+
+---
+
+### 레이어별 모듈 수 변화 (8차)
+
+| 레이어 | 7차 | 8차 | 변화 |
+|------|-----|-----|------|
+| **Presentation (app/)** | 18개 | 18개 | 0 |
+| **Business (src/)** | 66+개 | 73+개 | +7 (Club 도메인) |
+| ├── AUTH | 6개 | 6개 | 0 |
+| ├── Theme | 3개 | 3개 | 0 |
+| ├── API | 4개 | 4개 | 0 |
+| ├── Types | 3개 | 3개 | 0 |
+| ├── Book Domain | 9개 | 9개 | 0 |
+| ├── Library Domain | 6개 | 6개 | 0 |
+| ├── Emotion Domain | 8개 | 8개 | 0 |
+| ├── Completion Domain | 7개 | 7개 | 0 |
+| ├── Routine Domain | 13개 | 13개 | 0 |
+| ├── **Club Domain** | 0개 | **7개** | **+7 (신규)** |
+| └── Components | 10개 | 11개 | +1 (ClubProgress) |
+| **Infrastructure (src/lib/)** | 5개 | 5개 | 0 |
+| **Edge Functions** | 5개 | 5개 | 0 |
+| **RPC Functions** | 8개 | 9개 | +1 (get_host_clubs_progress) |
+| **총계** | **91+개** | **98+개** | **+7** |
+
+---
+
+## @MX:ANCHOR 후보 변화 (8차)
+
+| 모듈 | Fan-in | 우선순위 | 7차 상태 | 8차 상태 |
+|------|--------|----------|---------|---------|
+| `useSession` | 5+ | HIGH | 적용됨 | 적용됨 |
+| `useTheme` | 6+ | HIGH | 적용됨 | 적용됨 |
+| `tokens` | 4+ | MEDIUM | 적용됨 | 적용됨 |
+| `getSupabaseClient` | 임계적 | CRITICAL | 적용됨 | 적용됨 |
+| `searchBooks` | 1+ | HIGH | 적용됨 | 적용됨 |
+| `getBookDetail` | 1+ | HIGH | 적용됨 | 적용됨 |
+| `emotionApi` | 2+ | HIGH | 신규 후보 | 신규 후보 |
+| `stickerApi` | 2+ | HIGH | 신규 후보 | 신규 후보 |
+| `completionApi` | 2+ | HIGH | 신규 후보 | 신규 후보 |
+| `sessionApi` | 2+ | HIGH | 신규 후보 | 신규 후보 |
+| `alarmApi` | 2+ | HIGH | 신규 후보 | 신규 후보 |
+| **`useHostClubs`** | **2+ (예상)** | **HIGH** | **-** | **신규 후보** |
+
+**총계:** 15개 → 16개 (+1 신규 후보)
+
+---
+
+## 브랜치 정보 (8차)
+
+- **7차 기준:** develop (9ddd1a4 - SPEC-ROUTINE-001 구현 완료)
+- **8차 기준:** develop (cc4c01d - SPEC-CLUB-003 구현 완료)
+- **추가된 커밋:** cc4c01d (PR #96 머지)
+
+---
+
+**검증 완료:** 2026-06-27 (SPEC-CLUB-003)
+**업데이트 담당:** manager-docs (sync phase)

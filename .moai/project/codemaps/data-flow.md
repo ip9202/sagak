@@ -986,18 +986,172 @@ export async function fetchReport(userBookId: string): Promise<ReportData> {
 
 ---
 
-## Data Flow Summary
+---
 
-| Flow | Entry | Key Modules | External APIs | Cache Strategy |
-|------|-------|-------------|----------------|----------------|
-| Auth Guard | `app/index.tsx` | useSession, AuthContext | Supabase Auth | Session (SecureStore) |
-| OAuth Deep-link | `app/(auth)/auth/callback.tsx` | AuthContext.onAuthStateChange | Supabase Auth | Session (SecureStore) |
-| Book Search | `app/(tabs)/search.tsx` | BookSearchScreen, searchApi | Kakao Book API (Edge) | React Query |
-| Barcode Scan | `app/(tabs)/scan.tsx` | BarcodeScanner, resolveBookId | Supabase (books) | - |
-| Book Detail | `app/(tabs)/[bookId].tsx` | BookDetailScreen, useLibrary | Supabase (PostgREST) | React Query |
-| Library Mutation | `BookDetailScreen` | useLibraryItem, libraryApi | Supabase (PostgREST + Trigger) | React Query (optimistic) |
-| Query Infrastructure | `app/_layout.tsx` | getQueryClient | - | globalThis 싱글톤 |
-| gen-types Pipeline | `scripts/gen-types-with-header.js` | CLI, client.ts | Supabase DB | - |
-| Emotion Record CRUD | `EmotionInputScreen` | useEmotionRecords, emotionApi | Supabase (PostgREST) | React Query (optimistic) |
-| Sticker Reaction | `EmotionRecordCard` | useStickerReaction, stickerApi | Supabase (PostgREST) | React Query (optimistic) |
+## 12. Host Clubs Progress Flow (모임 진도 median 집계 + ClubCard 표시)
+
+**목적**: host가 소유한 활성 모임들의 멤버 읽기 진도를 median으로 집계하여 ClubsScreen ClubCard에 표시
+
+**진입점**: `app/(tabs)/clubs.tsx` → `ClubsScreen.tsx` → `useHostClubs`
+
+**Flow**:
+1. ClubsScreen 마운트 → useHostClubs 호출
+2. Promise.all 병렬: [clubs SELECT(embedded count)] + [get_host_clubs_progress RPC]
+3. RPC → PostgreSQL server에서 median 계산 (user_books_public 뷰 소스, current_page>0만)
+4. 클라이언트 병합: club_id 기준 Map으로 median_page/member_count_with_progress/progress_total_pages 조인
+5. ClubCard 렌더링: ClubProgress 컴포넌트 (median>0+total>0 → 바+텍스트, total=null → 텍스트만)
+
+```mermaid
+sequenceDiagram
+    participant Screen as ClubsScreen.tsx
+    participant Hook as useHostClubs
+    participant Q as React Query
+    participant RPC as get_host_clubs_progress RPC
+    participant PG as PostgreSQL Server
+    participant View as user_books_public View
+    participant UI as ClubCard + ClubProgress
+
+    Screen->>Hook: useHostClubs()
+    Hook->>Q: Promise.all([
+    Q->>RPC: supabase.rpc('get_host_clubs_progress', { p_host_id })
+    Note over RPC: SECURITY INVOKER<br/>auth.uid() defense-in-depth
+    RPC->>PG: EXECUTE FUNCTION(p_host_id)
+    PG->>PG: VERIFY p_host_id = auth.uid()
+    alt p_host_id ≠ auth.uid()
+        PG-->>RPC: insufficient_privilege (42501)
+        RPC-->>Q: ERROR
+        Q->>Q: degradation (0/0/null 폴백)
+    else auth.uid() 통과
+        PG->>View: SELECT current_page FROM user_books_public
+        Note over View: is_public=true만 노출<br/>(프라이버시 보호)
+        View-->>PG: current_page[] (공개 서재 항목)
+        PG->>PG: percentile_cont(0.5) median<br/>FILTER (current_page > 0)
+        PG->>PG: LEFT JOIN books.total_pages<br/>COALESCE(b.total_pages, 0)
+        PG-->>RPC: TABLE(club_id, median_page,<br/>member_count_with_progress,<br/>total_pages)
+        RPC-->>Q: RPC result[]
+    end
+
+    Q->>Q: clubs SELECT(embedded count)<br/>(PostgREST)
+    Q->>Q: Map 병합 (club_id 기준)
+    Q-->>Hook: HostClubWithCount[]<br/>(median_page 추가)
+    Hook-->>Screen: clubs + progress data
+
+    loop 각 ClubCard
+        Screen->>UI: <ClubCard club={club} />
+        alt median_page > 0 && progress_total_pages > 0
+            UI->>UI: Track/Fill 바 + "p.X · 진도 N명"
+        else median_page = 0
+            UI->>UI: "아직 진도가 없어요"
+        else progress_total_pages = NULL
+            UI->>UI: 텍스트만 (바 생략)
+        end
+        UI-->>Screen: 진도 표시 렌더링
+    end
+```
+
+### Key Implementation
+
+**File:** `src/features/club/trackB/hooks.ts`
+
+```typescript
+export function useHostClubs() {
+  const query = useQuery<HostClubWithCount[]>({
+    queryKey: ['clubs', 'host'],
+    queryFn: async () => {
+      const client = getSupabaseClient()
+
+      // Promise.all 병렬: clubs + RPC
+      const [clubsResult, progressResult] = await Promise.all([
+        // 1. clubs SELECT (embedded count)
+        client
+          .from('clubs')
+          .select('*, club_members(count)')
+          .eq('host_id', client.auth.user()?.id)
+          .eq('type', 'group')
+          .eq('status', 'active'),
+
+        // 2. RPC 호출 (degradation)
+        client.rpc('get_host_clubs_progress', {
+          p_host_id: client.auth.user()?.id
+        }).catch((error) => {
+          // RPC 에러 시 degradation: 진도 필드 0/0/null
+          console.error('[useHostClubs] RPC error:', error)
+          return [] // 빈 배열 반환 → 기본값 병합
+        })
+      ])
+
+      // 3. club_id 기준 Map 병합
+      const progressMap = new Map(
+        progressResult.data?.map(p => [p.club_id, p]) ?? []
+      )
+
+      return clubsResult.data?.map(club => ({
+        ...club,
+        median_page: progressMap.get(club.id)?.median_page ?? 0,
+        member_count_with_progress: progressMap.get(club.id)?.member_count_with_progress ?? 0,
+        progress_total_pages: progressMap.get(club.id)?.total_pages ?? null
+      })) ?? []
+    }
+  })
+
+  return query
+}
+```
+
+**RPC 구현 (migration 20240627000001)**:
+```sql
+CREATE FUNCTION get_host_clubs_progress(p_host_id uuid)
+RETURNS TABLE (
+  club_id uuid,
+  median_page integer,
+  member_count_with_progress integer,
+  total_pages integer
+) LANGUAGE plpgsql SECURITY INVOKER AS $$
+BEGIN
+  -- Defense-in-depth: auth.uid() 검증
+  IF p_host_id IS DISTINCT FROM auth.uid() THEN
+    RAISE EXCEPTION 'insufficient_privilege' USING ERRCODE = '42501';
+  END IF;
+
+  RETURN QUERY
+  SELECT
+    c.id AS club_id,
+    COALESCE(
+      percentile_cont(0.5) WITHIN GROUP (
+        ORDER BY ub.current_page
+      ) FILTER (WHERE ub.current_page > 0),
+      0
+    ) AS median_page,
+    COUNT(*) FILTER (WHERE ub.current_page > 0) AS member_count_with_progress,
+    COALESCE(b.total_pages, 0) AS total_pages
+  FROM clubs c
+  LEFT JOIN user_books_public ub ON ub.book_id = c.book_id
+  LEFT JOIN books b ON b.id = c.book_id
+  WHERE c.host_id = p_host_id
+    AND c.type = 'group'
+    AND c.status = 'active'
+  GROUP BY c.id, b.total_pages;
+END;
+$$;
+
+GRANT EXECUTE ON FUNCTION get_host_clubs_progress(uuid) TO authenticated;
+```
+
+### Flow Notes
+
+- **2-라운드트립 최소화**: Promise.all로 clubs SELECT + RPC를 병렬 실행. PostgREST embedded aggregate와 RPC는 동일 쿼리에 혼합 불가능하므로 2회 라운드트립이 최소.
+- **Degradation 패턴 (REQ-CLUBC-008)**: RPC 에러 시 전체 useHostClubs 쿼리를 실패시키지 않고, 진도 필드를 기본값(0/0/null)으로 채운 채 clubs+count 데이터만 반환. 진도 표시는 보조 정보이므로 장애가 모임 목록 자체를 사용 불가능하게 만들어서는 안 됨.
+- **Defense-in-depth (REQ-CLUBC-002)**: club_members RLS(fn_user_in_club)가 타인 모임을 필터링하나(빈 결과), 단일 방어선 의존을 보강하기 위해 RPC 본문(plpgsql)에 `auth.uid()` 단정문 추가. 타 host_id 호출 시 `insufficient_privilege`(42501) 예외.
+- **데이터 소스 일관성 (REQ-CLUBC-004)**: user_books_public 뷰(is_public=true만 노출) 소스 → Track A readersApi.ts와 동일 데이터 소스로 프라이버시 경계 유지. is_public=false인 멤버의 진도는 집계에서 자동 제외.
+- **Median 계산 (REQ-CLUBC-003)**: `percentile_cont(0.5)` WITHIN GROUP (ORDER BY current_page) + `FILTER (WHERE current_page > 0)` → 진도 입력 멤버만 median, 0p 멤버 제외. current_page>0 멤버가 없으면 median_page=0.
+- **UI 분기 (REQ-CLUBC-010~013)**:
+  - `median > 0 && total_pages > 0` → Track/Fill 바 + "p.{median} · 진도 {member_count_with_progress}명"
+  - `median = 0` → "아직 진도가 없어요"
+  - `total_pages = NULL` → 텍스트만 (바 생략)
+- **Token-only 스타일링 (REQ-CLUBC-015)**: spacing[1]/radius.full/brand-500 토큰만 사용, 하드코딩 금지 (SPEC-UI-002).
+
+---
+
+## Data Flow Summary
 | Completion Report | `CompletionDiaryScreen` | useCompletionReport, completionApi | Supabase (PostgREST) | useState/useEffect (6상태) |
+| Host Clubs Progress | `app/(tabs)/clubs.tsx` | useHostClubs, get_host_clubs_progress RPC | PostgreSQL (RPC) | React Query (Promise.all + degradation) |
