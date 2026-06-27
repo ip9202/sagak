@@ -186,12 +186,14 @@ SELECT results_eq(
 );
 
 -- ============================================================================
--- REQ-CLUBC-002: 존재하지 않는 host UUID → 빈 결과
+-- REQ-CLUBC-002 defense-in-depth: p_host_id != auth.uid() → insufficient_privilege
 -- ============================================================================
-SELECT is(
-    (SELECT count(*)::bigint FROM get_host_clubs_progress('00000000-0000-0000-0000-999999999999')),
-    0::bigint,
-    'REQ-CLUBC-002: 존재하지 않는 host UUID → 빈 결과'
+-- auth.uid()=e1(jwt sub). 유효한 타인 host_id(b1) 호출 시 plpgsql 단정문이 거부.
+SELECT throws_ok(
+    $$ SELECT get_host_clubs_progress('00000000-0000-0000-0000-0000000000b1') $$,
+    '42501',
+    'get_host_clubs_progress: p_host_id must equal auth.uid()',
+    'REQ-CLUBC-002 defense-in-depth: 타인 host_id(b1) != auth.uid()(e1) → 42501'
 );
 
 -- ============================================================================

@@ -32,10 +32,21 @@ RETURNS TABLE (
     member_count_with_progress integer,
     total_pages integer
 )
-LANGUAGE sql
+LANGUAGE plpgsql
 SECURITY INVOKER
 SET search_path = public
 AS $$
+BEGIN
+    -- REQ-CLUBC-002 defense-in-depth: p_host_id 는 반드시 호출자 본인(auth.uid()).
+    -- club_members RLS(fn_user_in_club)가 이미 타인 모임 누출을 차단하나,
+    -- 단일 방어선 의존을 보강하기 위해 인자를 auth.uid() 와 단정한다.
+    -- (expert-security review 2026-06-27: 파라미터 신뢰를 RLS에만 위임하지 않는다.)
+    IF p_host_id IS DISTINCT FROM auth.uid() THEN
+        RAISE EXCEPTION 'get_host_clubs_progress: p_host_id must equal auth.uid()'
+            USING ERRCODE = 'insufficient_privilege';
+    END IF;
+
+    RETURN QUERY
     SELECT
         c.id AS club_id,
         COALESCE(
@@ -57,6 +68,7 @@ AS $$
         AND c.type = 'group'
         AND c.status = 'active'
     GROUP BY c.id, b.total_pages;
+END;
 $$;
 
 GRANT EXECUTE ON FUNCTION public.get_host_clubs_progress(uuid) TO authenticated;

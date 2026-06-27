@@ -55,7 +55,7 @@ export type HostClubWithCount = ClubRow & {
   median_page: number;
   /** current_page>0 인 공개 멤버 수 */
   member_count_with_progress: number;
-  /** clubs.book_id 의 books.total_pages (NULL 허용 — 바 표시 분기 근거) */
+  /** clubs.book_id 의 books.total_pages (RPC COALESCE 0 폴백, gen-types 는 nullable 추론) */
   progress_total_pages: number | null;
 };
 
@@ -112,8 +112,8 @@ export function useHostClubs(userId: string) {
       };
       // SPEC-CLUBC-RPC 진도 집계 — clubs SELECT 와 병렬 실행.
       // RPC 실패 시 degradation (REQ-CLUBC-008) — 진도 필드 0/0/null 로 폴백.
-      // @MX:NOTE: [AUTO] Promise.all 이 아닌 개별 await 로 RPC 에러를 흡수한다.
-      //           Promise.all 은 첫 reject 시 전체 실패하므로 degradation 불가.
+      // @MX:NOTE: [AUTO] Promise.all 로 병렬 실행. supabase client 는 reject 대신
+      //           {data,error} 를 반환하므로 RPC 에러는 progressResult.error 로 흡수(degradation).
       let progressResult: {
         data:
           | {

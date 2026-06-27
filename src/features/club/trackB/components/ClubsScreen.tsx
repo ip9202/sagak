@@ -365,7 +365,16 @@ const ClubProgress: React.FC<{
     Math.min((medianPage / total) * 100, 100);
 
   return (
-    <View style={styles.progress}>
+    <View
+      style={styles.progress}
+      accessible={true}
+      accessibilityRole="text"
+      accessibilityLabel={
+        hasProgress
+          ? `진도 평균 ${medianPage}페이지, ${memberCountWithProgress}명 입력`
+          : '아직 진도가 없어요'
+      }
+    >
       {hasBar && progressTotalPages !== null && (
         <View
           testID={`club-progress-track-${clubId}`}
