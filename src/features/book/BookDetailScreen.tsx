@@ -31,6 +31,7 @@ import {
 //           success→CircleCheck, warning→TriangleAlert, info→Info 컴포넌트 직접 매핑.
 import { CircleCheck, TriangleAlert, Info, type LucideIcon } from 'lucide-react-native';
 import { useTheme } from '../../theme/theme';
+import { typography, radius } from '../../theme/tokens';
 import { useRouter } from 'expo-router';
 import { useSession } from '../../auth/useSession';
 import { getBookDetail } from './bookDetailApi';
@@ -759,31 +760,21 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 12,
   },
+  // @MX:NOTE: [AUTO] SPEC-UI-002 book-auth-tokenization — radius.cover(8) 토큰 적용. .pen ChartZone cornerRadius:8 준거.
   cover: {
     width: 160,
     height: 220,
-    borderRadius: 8,
+    borderRadius: radius.cover,
     marginBottom: 12,
   },
-  title: {
-    fontSize: 22,
-    fontWeight: '700',
-    textAlign: 'center',
-  },
-  author: {
-    fontSize: 14,
-    textAlign: 'center',
-  },
-  meta: {
-    fontSize: 12,
-    textAlign: 'center',
-  },
-  errorTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    textAlign: 'center',
-    paddingHorizontal: 32,
-  },
+  // @MX:NOTE: [AUTO] SPEC-UI-002 book-auth-tokenization — displaySm(22/700/30) 토큰 적용. 헤더 타이틀 균일성 FROZEN.
+  title: { ...typography.displaySm, textAlign: 'center' },
+  // @MX:NOTE: [AUTO] SPEC-UI-002 book-auth-tokenization — bodyMd(14/400/22) 토큰 적용. 원본 weight 누락(400)과 일치.
+  author: { ...typography.bodyMd, textAlign: 'center' },
+  // @MX:NOTE: [AUTO] SPEC-UI-002 book-auth-tokenization — caption(12/400/17) 토큰 적용.
+  meta: { ...typography.caption, textAlign: 'center' },
+  // @MX:NOTE: [AUTO] SPEC-UI-002 book-auth-tokenization — headingSm(16/600/23) 토큰 적용.
+  errorTitle: { ...typography.headingSm, textAlign: 'center', paddingHorizontal: 32 },
   // --- SPEC-LIBRARY-001 TASK-010: 서재 섹션 스타일 ---
   librarySection: {
     width: '100%',
@@ -803,21 +794,20 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 8,
   },
+  // @MX:NOTE: [AUTO] SPEC-UI-002 book-auth-tokenization — bodyMd(14/400/22) 토큰 적용 + borderWidth 토큰화.
   progressInput: {
     flex: 1,
     borderWidth: 1,
     paddingHorizontal: 12,
     paddingVertical: 8,
-    fontSize: 14,
+    ...typography.bodyMd,
   },
   progressSubmitBtn: {
     paddingHorizontal: 16,
     paddingVertical: 8,
   },
-  progressSubmitText: {
-    fontSize: 14,
-    fontWeight: '600',
-  },
+  // @MX:NOTE: [AUTO] SPEC-UI-002 book-auth-tokenization — ctaLabel(14/600/22) 토큰 적용.
+  progressSubmitText: { ...typography.ctaLabel },
   // @MX:NOTE: [AUTO] SPEC-UI-002 — 통일 피드백 박스 스타일 (진행률/상태/완독 메시지 공유).
   feedbackBox: {
     flexDirection: 'row',
@@ -826,18 +816,13 @@ const styles = StyleSheet.create({
     padding: 12,
     borderLeftWidth: 3,
   },
-  feedbackText: {
-    flex: 1,
-    fontSize: 12,
-    fontWeight: '400',
-  },
+  // @MX:NOTE: [AUTO] SPEC-UI-002 book-auth-tokenization — caption(12/400/17) 토큰 적용.
+  feedbackText: { ...typography.caption, flex: 1 },
   statusRow: {
     gap: 8,
   },
-  sectionLabel: {
-    fontSize: 13,
-    fontWeight: '600',
-  },
+  // @MX:NOTE: [AUTO] SPEC-UI-002 book-auth-tokenization — sectionLabel(13/600/18) 토큰 적용.
+  sectionLabel: { ...typography.sectionLabel },
   statusChips: {
     flexDirection: 'row',
     padding: 4,
@@ -847,18 +832,14 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     alignItems: 'center',
   },
-  statusChipText: {
-    fontSize: 13,
-    fontWeight: '600',
-  },
+  // @MX:NOTE: [AUTO] SPEC-UI-002 book-auth-tokenization — sectionLabel(13/600/18) 토큰 적용.
+  statusChipText: { ...typography.sectionLabel },
   completeButton: {
     paddingVertical: 12,
     alignItems: 'center',
   },
-  completeButtonText: {
-    fontSize: 14,
-    fontWeight: '700',
-  },
+  // @MX:NOTE: [AUTO] SPEC-UI-002 book-auth-tokenization — actionLabel(14/700/20) 토큰 적용.
+  completeButtonText: { ...typography.actionLabel },
   visibilityRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -874,31 +855,23 @@ const styles = StyleSheet.create({
     flex: 1,
     gap: 2,
   },
-  visibilityLabel: {
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  visibilityHint: {
-    fontSize: 12,
-  },
+  // @MX:NOTE: [AUTO] SPEC-UI-002 book-auth-tokenization — ctaLabel(14/600/22) 토큰 적용.
+  visibilityLabel: { ...typography.ctaLabel },
+  // @MX:NOTE: [AUTO] SPEC-UI-002 book-auth-tokenization — caption(12/400/17) 토큰 적용.
+  visibilityHint: { ...typography.caption },
   deleteButton: {
     paddingVertical: 12,
     alignItems: 'center',
     borderWidth: 1,
   },
-  deleteButtonText: {
-    fontSize: 14,
-    fontWeight: '600',
-  },
+  // @MX:NOTE: [AUTO] SPEC-UI-002 book-auth-tokenization — ctaLabel(14/600/22) 토큰 적용.
+  deleteButtonText: { ...typography.ctaLabel },
   confirmBox: {
     padding: 16,
     gap: 12,
   },
-  confirmText: {
-    fontSize: 14,
-    fontWeight: '600',
-    textAlign: 'center',
-  },
+  // @MX:NOTE: [AUTO] SPEC-UI-002 book-auth-tokenization — ctaLabel(14/600/22) 토큰 적용.
+  confirmText: { ...typography.ctaLabel, textAlign: 'center' },
   confirmActions: {
     flexDirection: 'row',
     justifyContent: 'center',

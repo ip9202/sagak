@@ -154,15 +154,15 @@ const styles = StyleSheet.create({
   naverButton: {
     backgroundColor: '#03C75A',
   },
+  // @MX:NOTE: [AUTO] SPEC-UI-002 book-auth-tokenization — headingSm(16/600/23) 토큰 적용.
   naverButtonText: {
+    ...typography.headingSm,
     color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '600',
   },
+  // @MX:NOTE: [AUTO] SPEC-UI-002 book-auth-tokenization — headingSm(16/600/23) 토큰 적용.
   buttonText: {
+    ...typography.headingSm,
     color: '#000000',
-    fontSize: 16,
-    fontWeight: '600',
   },
   error: {
     ...typography.bodySm,
