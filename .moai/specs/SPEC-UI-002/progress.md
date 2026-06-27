@@ -166,4 +166,19 @@
 
 **검증**: 전체 1229/1229, tsc/lint clean, CI green (각 PR). lucide 마이그레이션 회귀 없음.
 
-**잔여**: `profile.bio` 스키마 추가, 독서 통계/완독 다이어리 라우트 구현, 모임 진도(current_page) 집계, `tokens.ts plusGlyph` unused 정리.
+**잔여**: `profile.bio` 스키마 추가, 독서 통계/완독 다이어리 라우트 구현, 모임 진도(current_page) 집계, `tokens.ts plusGlyph` unused 정리, `borderWidth.hairline` 토큰화 (P3 전역 정정).
+
+---
+
+## Book/Auth 화면 토큰화 (PR #90, 2026-06-27)
+
+**문맥**: SPEC-UI-002 token-only FROZEN 확대 적용 — BookSearch/BookDetail/login 화면 토큰화. 폐기된 #49/#50(06-23 주석 매핑 방식, 미달+충돌)을 PR #80(trackB) 패턴 진짜 토큰화(spread 교체)로 대체. #47/#48(CLUB)도 PR #77/#80/#84로 대체되어 close.
+
+### PR #90 (704553e) — Book/Auth 화면 토큰화
+- **신규 토큰**: `radius.cover: 8` (EVOLVABLE). BookDetailScreen cover(160×220) + `.pen` ChartZone(cornerRadius 8) 준거. sm(6)·md(10) 사이값. 표지·시각 영역 전용. token-only FROZEN 강제. @MX:NOTE [AUTO].
+- **토큰화** (27곳): BookSearchScreen(10), BookDetailScreen(15, lucide FEEDBACK_ICON PR #82 보존), auth/login.tsx(2). 매핑: title→displaySm, completeButtonText→actionLabel, sectionLabel/statusChip→sectionLabel, login button→headingSm 등. PR #80 패턴(spread + fontWeight as const 오버라이드).
+- **예외 유지**: login.tsx OAuth 브랜드색(#FFD400 kakao / #03C75A naver)은 기존 @MX:NOTE 예외.
+- **게이트**: tsc 0 · eslint . 0 · jest 1286/1286 (회귀 없음). 하드코딩 잔존 0건.
+- **PR 정리**: #47/#48/#49/#50(06-23 token-only conformance PR) close — 이후 develop에 동일 작업 PR(#77/#80/#82/#84)이 머지되어 중복/충돌, #49/#50은 주석 방식 미달. #90이 진짜 토큰화로 대체.
+
+**검증**: 전체 1286/1286, tsc/lint clean, CI green. Book/Auth token-only conformance 달성.

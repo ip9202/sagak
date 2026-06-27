@@ -72,7 +72,7 @@
 - Base spacing: 4px 스케일 (`$spacing-1`~`$spacing-12`: 4/8/12/16/20/24/32/40/48)
 - 콘텐츠 좌우 패딩: 16–20px (래퍼가 1회 처리)
 - 섹션 간격: 24–32px(major), 12–16px(related)
-- Radius: sm 6 / md 10 / lg 16 / xl 24 / full 9999
+- Radius: xs 4 / sm 6 / cover 8 / md 10 / lg 16 / xl 24 / full 9999
 - Shadow: sm `0 1px 3px rgba(45,31,14,0.08)` / md / lg — 브랜드 색조(45,31,14) 기반
 
 ## Iconography
