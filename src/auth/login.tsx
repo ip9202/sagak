@@ -13,7 +13,7 @@ import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
 import { AuthContext } from './AuthContext';
 import type { AuthProvider } from './types';
-import { colors, spacing, typography, radius } from '../theme/tokens';
+import { colors, spacing, typography, radius, borderWidth } from '../theme/tokens';
 
 /**
  * 로그인 화면 컴포넌트
@@ -143,7 +143,7 @@ const styles = StyleSheet.create({
   // AC-A2: Google 버튼 — tokens 기반 스타일 (M4 추가)
   googleButton: {
     backgroundColor: colors.bg.surface,
-    borderWidth: 1,
+    borderWidth: borderWidth.hairline,
     borderColor: colors.border.default,
   },
   googleButtonText: {

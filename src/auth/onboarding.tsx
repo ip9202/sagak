@@ -14,7 +14,7 @@ import React, { useState, useContext } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet } from 'react-native';
 import { AuthContext } from './AuthContext';
 import { getSupabaseClient } from '../lib/supabase/client';
-import { colors, spacing, typography, radius } from '../theme/tokens';
+import { colors, spacing, typography, radius, borderWidth } from '../theme/tokens';
 
 const NICKNAME_MAX_LENGTH = 20;
 const AVATAR_PLACEHOLDER_URL = 'https://example.com/avatar-default.png';
@@ -154,7 +154,7 @@ const styles = StyleSheet.create({
   },
   input: {
     width: '100%',
-    borderWidth: 1,
+    borderWidth: borderWidth.hairline,
     borderColor: colors.border.default,
     borderRadius: radius.md,
     paddingHorizontal: spacing[4],
@@ -174,7 +174,7 @@ const styles = StyleSheet.create({
     width: '100%',
     paddingVertical: spacing[3],
     borderRadius: radius.md,
-    borderWidth: 1,
+    borderWidth: borderWidth.hairline,
     borderColor: colors.border.default,
     alignItems: 'center',
     marginBottom: spacing[5],

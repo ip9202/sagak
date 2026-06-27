@@ -36,6 +36,7 @@ import {
   ChevronRight,
 } from 'lucide-react-native';
 import { useTheme } from '../../src/theme/theme';
+import { borderWidth } from '../../src/theme/tokens';
 import { useSession } from '../../src/auth/useSession';
 import { useUnreadCount } from '../../src/features/notification';
 import {
@@ -754,7 +755,7 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 1,
+    borderWidth: borderWidth.hairline,
     marginTop: 4,
   },
   logoutButton: {
