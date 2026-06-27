@@ -69,7 +69,7 @@ describe('SPEC-PROFILE-001 hooks', () => {
   });
 
   it('useProfile: getProfile 위임 + query key 포함 userId', async () => {
-    (getProfile as jest.Mock).mockResolvedValue({ id: 'u-1', nickname: '독자' });
+    (getProfile as jest.Mock).mockResolvedValue({ id: 'u-1', nickname: '독자', bio: null });
     const { Wrapper } = createWrapper();
     const { result } = renderHook(() => useProfile('u-1'), { wrapper: Wrapper });
 

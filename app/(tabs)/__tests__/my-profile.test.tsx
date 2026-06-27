@@ -98,7 +98,7 @@ function withTheme(ui: React.ReactElement) {
 const authenticatedSession = {
   session: { access_token: 'tok', user: { id: 'u-1' } },
   user: { id: 'u-1', email: 'reader@example.com' },
-  profile: { id: 'u-1', nickname: '독자', provider: 'naver' as const },
+  profile: { id: 'u-1', nickname: '독자', provider: 'naver' as const, bio: null },
   loading: false,
   isAuthenticated: true,
   isOnboarded: true,

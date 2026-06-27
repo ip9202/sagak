@@ -146,7 +146,7 @@ describe('FINDING-1: [bookId] 라우트 onDeleted → router.back() 연결 (AC-L
   const authenticatedSession = {
     session: { access_token: 'tok', user: { id: 'u-1' } },
     user: { id: 'u-1' },
-    profile: { id: 'u-1', nickname: '독자' },
+    profile: { id: 'u-1', nickname: '독자', bio: null },
     loading: false,
     isAuthenticated: true,
     isOnboarded: true,
