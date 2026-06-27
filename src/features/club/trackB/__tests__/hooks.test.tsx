@@ -126,16 +126,39 @@ beforeEach(() => {
 });
 
 describe('SPEC-CLUB-002 useHostClubs', () => {
-  it('host_id 필터로 clubs 목록을 조회한다', async () => {
-    const chain = buildChain([{ id: 'c1' }]);
+  it('host_id 필터로 clubs 목록 + 멤버 수 집계를 단일 라운드트립으로 조회한다', async () => {
+    // SPEC-UI-002 PR-3: PostgREST embedded aggregate club_members(count) 결과를
+    // member_count 로 평탄화한다. select 문자열에 count 집계 포함.
+    const chain = buildChain([
+      { id: 'c1', club_members: [{ count: 3 }] },
+      { id: 'c2', club_members: [{ count: 0 }] },
+    ]);
     supabaseMock.from.mockReturnValue(chain);
 
     const { Wrapper } = makeWrapper();
     const { result } = renderHook(() => useHostClubs('u1'), { wrapper: Wrapper });
 
-    await waitFor(() => expect(result.current.data).toEqual([{ id: 'c1' }]));
+    await waitFor(() =>
+      expect(result.current.data).toEqual([
+        { id: 'c1', member_count: 3 },
+        { id: 'c2', member_count: 0 },
+      ]),
+    );
     expect(supabaseMock.from).toHaveBeenCalledWith('clubs');
+    expect(chain.select).toHaveBeenCalledWith('*, club_members(count)');
     expect(chain.eq).toHaveBeenCalledWith('host_id', 'u1');
+  });
+
+  it('club_members 집계 누락 시 member_count 는 0 으로 폴백한다', async () => {
+    const chain = buildChain([{ id: 'c1', club_members: null }]);
+    supabaseMock.from.mockReturnValue(chain);
+
+    const { Wrapper } = makeWrapper();
+    const { result } = renderHook(() => useHostClubs('u1'), { wrapper: Wrapper });
+
+    await waitFor(() =>
+      expect(result.current.data).toEqual([{ id: 'c1', member_count: 0 }]),
+    );
   });
 
   it('빈 userId 면 비활성화된다', () => {
