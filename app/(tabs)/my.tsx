@@ -30,7 +30,6 @@ import { useRouter } from 'expo-router';
 import {
   Settings,
   Hourglass,
-  TrendingUp,
   Bell,
   Heart,
   ChevronRight,
@@ -451,33 +450,6 @@ export default function MyTab(): React.JSX.Element {
               ]}
             >
               독서 타이머
-            </Text>
-            <ChevronRight size={20} color={theme.colors.text.tertiary} />
-          </Pressable>
-          <View
-            style={[
-              styles.menuDivider,
-              { backgroundColor: theme.colors.border.default },
-            ]}
-          />
-          <Pressable
-            testID="my-stats-detail"
-            onPress={() => {
-              // @MX:TODO: [AUTO] 독서 통계 상세 화면 미구현 — 현재 화면에 요약이 이미 표시되므로 no-op. 전용 상세 라우트 추가 후 연결.
-            }}
-            accessibilityRole="button"
-            accessibilityLabel="독서 통계"
-            accessibilityHint="상세 독서 통계 화면으로 이동합니다."
-            style={[styles.menuRow, { borderRadius: theme.radius.md }]}
-          >
-            <TrendingUp size={20} color={theme.colors.text.secondary} />
-            <Text
-              style={[
-                styles.menuLabel,
-                { color: theme.colors.text.primary },
-              ]}
-            >
-              독서 통계
             </Text>
             <ChevronRight size={20} color={theme.colors.text.tertiary} />
           </Pressable>
