@@ -150,10 +150,10 @@
 
 ### PR #83 (401c2b6) — 마이(F15-My) `.pen` 재포팅
 - **Header**: title `마이`→`마이페이지`(displaySm 22/700) + Settings icon(lucide).
-- **Profile `.pen` 구조**: Avatar 64×64(avatar_url 있으면 Image, 없으면 $brand-200 원) + Nick displayXs(18/700) + Bio(정적 placeholder "매일 조금씩, 종이책과 함께", bodySm).
+- **Profile `.pen` 구조**: Avatar 64×64(avatar_url 있으면 Image, 없으면 $brand-200 원) + Nick displayXs(18/700) + Bio(BIO_PLACEHOLDER, bodySm).
 - **MenuList**: "활동" sectionLabel + 4행(Hourglass/TrendingUp/Bell/Heart lucide) + ChevronRight icon(기존 "›" 텍스트 대체).
 - **Stats label**: sectionLabel 토큰화.
-- **한계(@MX:TODO)**: `profile.bio` 스키마 부재(Bio 정적 placeholder), 독서 통계/완독 다이어리 리스트 라우트 부재(no-op+TODO).
+- **한계(@MX:TODO, 2026-06-27 PR #93/#94로 해소)**: 독서 통계 메뉴 제거(PR #94), 완독 다이어리 리스트는 PR #87로 구현됨.
 - **Gate**: tsc 0 · eslint . 0 · jest 1225/1225. 테스트: tabs-shells 헤더 타이틀 단언 업데이트.
 
 ### PR #84 (21096c9) — 모임(F11-Clubs) `.pen` 재포팅
@@ -182,3 +182,30 @@
 - **PR 정리**: #47/#48/#49/#50(06-23 token-only conformance PR) close — 이후 develop에 동일 작업 PR(#77/#80/#82/#84)이 머지되어 중복/충돌, #49/#50은 주석 방식 미달. #90이 진짜 토큰화로 대체.
 
 **검증**: 전체 1286/1286, tsc/lint clean, CI green. Book/Auth token-only conformance 달성.
+
+---
+
+## 토큰화 마무리 + 마이 메뉴 정리 (PR #92, #94, 2026-06-27)
+
+**문맥**: SPEC-UI-002 token-only FROZEN 정합 마무리 + 마이 메뉴 구조 정리. P3 전역 정정(borderWidth.hairline) + 독서 통계 메뉴 제거(사용자 결정).
+
+### PR #92 (0c23f0a) — borderWidth.hairline P3 전역 토큰화
+- **@MX:NOTE 실행**: tokens.ts의 `borderWidth: 1` 하드코딩 지시(P3 전역 정정) 실행.
+- **토큰화 대상**: `borderWidth: 1` 하드코딩 12곳/11파일 → `borderWidth.hairline` 토큰 대체.
+  - Button.tsx 조건부 `? 1 : 0` → `? theme.borderWidth.hairline : 0` 포함.
+- **예외 유지**: 0.5/3/0 값은 제외(의도적 다른 값).
+- **import 전략**: `theme.borderWidth` vs imported `borderWidth` 파일 패턴 준수.
+- **@MX:NOTE 갱신**: tokens.ts의 미래형 → 과거형 전환(P3 완료).
+- **검증**: tsc 0 · eslint 0 · jest 1286/1286. borderWidth:1 잔존 0건.
+
+### PR #94 (0aad641) — 독서 통계 no-op 메뉴 제거
+- **메뉴 구조 변경**: `my.tsx:464` 독서 통계 메뉴(my-stats-detail, TrendingUp) + @MX:TODO 제거.
+- **사용자 결정**: 상세 화면 신규 대신 메뉴 폐지 — 마이에 이미 통계+배지+포인트 표시되어 상세 화면 차별 가치 약함.
+- **메뉴 축소**: 4행→3행(독서타이머/알림센터/완독다이어리).
+- **import 정리**: TrendingUp import 제거.
+- **.pen F15-My 차이**: Row-독서 통계와 의도적 차이(상세 화면 미구현에 따른 메뉴 축소).
+- **검증**: tsc 0 · eslint 0 · jest 1295/1295.
+
+**검증**: 전체 1295/1295, tsc/lint clean, CI green.
+
+**잔여**: 모임 진도(current_page) 집계, tokens.ts plusGlyph unused 정리.

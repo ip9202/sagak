@@ -234,14 +234,15 @@ Phase 5 (배포)
 #### SPEC-PROFILE-001: 마이페이지, 통계 및 보상
 - **도메인**: PROFILE
 - **우선순위**: medium
-- **상태**: ✅ 구현 완료 (8/8 REQ, PR #36 e616614, 2026-06-20, 98.82% coverage)
-- **핵심 범위**: 사용자 프로필 조회/수정(Profile 타입 전체 컬럼), 독서 통계(완독 수·누적 시간·감정 기록 수, 하이브리드 집계), 포인트 내역 조회(`point_logs` ref_id 제외, MVP 조회 전용), 성취 배지 시각화(총건수 기준), 설정(알림/공개범위), 이용약관·개인정보 처리방침 링크, 로그아웃(SPEC-AUTH-001 위임)
-- **DB 엔터티**: `users`, `point_logs`, `reading_sessions`(통계), `emotion_records`
+- **상태**: ✅ 구현 완료 (8/8 REQ, PR #36 e616614 + PR #93 187d956, 2026-06-27, 98.82% coverage)
+- **핵심 범위**: 사용자 프로필 조회/수정(Profile 타입 전체 컬럼 + bio), 독서 통계(완독 수·누적 시간·감정 기록 수, 하이브리드 집계), 포인트 내역 조회(`point_logs` ref_id 제외, MVP 조회 전용), 성취 배지 시각화(총건수 기준), 설정(알림/공개범위), 이용약관·개인정보 처리방침 링크, 로그아웃(SPEC-AUTH-001 위임)
+- **DB 엔터티**: `users`(bio 추가), `point_logs`, `reading_sessions`(통계), `emotion_records`
 - **API/Edge Function**: `/users/{id}`, `/users/{id}/stats`, `/users/{id}/points`
 - **의존성**: SPEC-AUTH-001(프로필), SPEC-ROUTINE-001(통계), SPEC-EMOTION-001(기록 수)
 - **구현 산출물**: `src/features/profile/*.ts` (queries/mutations/useProfile/useUserStats/usePointLogs/badges/types), `app/(tabs)/my.tsx`, `app/(tabs)/my/edit.tsx`, 통계 대시보드
 - **제외**: 포인트 사용(굿즈 교환, 후순위), 프리미엄 유료화(비목표), 데이터 내보내기(확장)
 - **SPEC 정정 사항 (sync 2026-06-20)**: point_logs.ref_id 제거(실제 스키마), 감정 배지 총건수(emotion_records 종류 컬럼 없음), 화면 경로 my.tsx(Profile 타입 vs auth UserProfile), 통계 하이브리드 집계(COUNT head:true + JS SUM)
+- **후속 PR (PR #93, 2026-06-27)**: users.bio 스키마 추가(nullable, CHECK LENGTH <= 140), my/edit.tsx TextInput 신규, my.tsx 동적 렌더링, 5.3 임시 방침 제거
 
 ---
 
@@ -308,9 +309,9 @@ product.md "비목표" + SPEC-DB-001 "제외 범위" 기반:
 | 3 | SPEC-FEED-001 | ✅ | ✅ | ✅ | 구현 완료 (8/8 REQ, PR #25 63ddf12, 2026-06-20, 913 테스트) |
 | 4 | SPEC-ROUTINE-001 | ✅ | ✅ | ✅ | 구현 완료 (10/10 REQ, PR #31 9ddd1a4, 2026-06-20, 2881 LOC 추가) |
 | 4 | SPEC-NOTIF-001 | ✅ | ✅ | ✅ | 구현 완료 (13/13 REQ — PR #34 5db38e7 + PR #38 8f532d6 + PR #41 cc87323. N3 Android FCM 해결, REQ-003 WHERE 절 수정. N7 Service Account Key 필요) |
-| 4 | SPEC-PROFILE-001 | ✅ | ✅ | ✅ | 구현 완료 (8/8 REQ, PR #36 e616614, 2026-06-20) |
+| 4 | SPEC-PROFILE-001 | ✅ | ✅ | ✅ | 구현 완료 (8/8 REQ, PR #36 e616614 + PR #93 187d956, 2026-06-27) |
 | 5 | SPEC-DEPLOY-001 | ✅ | ✅ | ✅ | 진행 중 (M1+M5 머지, PR #15 2514263, 2026-06-17; M2/M3/M4/M6 미완료 — M6 블로킹: CLUB/NOTIF 의존) |
-| 0 | SPEC-UI-002 | ✅ | ✅ | ✅ | 구현 PR 누적 완료 (PR #63, #70, 2026-06-25 + PR #76-#78, 2026-06-26: Pencil↔앱 디자인 차이 수정 — 폰트/서재/토큰/SafeArea) — 화면 패턴, 14개 도메인 SPEC 선행 의존성 |
+| 0 | SPEC-UI-002 | ✅ | ✅ | ✅ | 구현 PR 누적 완료 (PR #63, #70, 2026-06-25 + PR #76-#84, 2026-06-26: Pencil↔앱 디자인 차이 수정 — 폰트/서재/토큰/SafeArea + PR #92/#94, 2026-06-27: borderWidth.hairline P3 정정 + 독서 통계 메뉴 제거) — 화면 패턴, 14개 도메인 SPEC 선행 의존성 |
 
 **총 REQ 수: 219개 / 15개 SPEC 전체 작성 완료 (2026-06-14)**
 
