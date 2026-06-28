@@ -74,7 +74,8 @@ export default function MyTab(): React.JSX.Element {
   const session = useSession();
   // @MX:WARN: [AUTO] useUserIdentities 는 반드시 early return(loading/signed-out) 이전에 호출.
   // @MX:REASON: React hooks 규칙 — loading→인증 전환 시 hook 호출 수가 바뀌면 런타임 위반. 본문에서는 linkedProviders 값만 소비.
-  const { data: linkedProviders } = useUserIdentities();
+  //             userId 전달로 미인증(loading) 시 쿼리 비활성화(enabled: Boolean(userId)) — useUserStats 패턴 일관.
+  const { data: linkedProviders } = useUserIdentities(session?.user?.id);
   const unreadQuery = useUnreadCount();
   const unreadCount = unreadQuery.data ?? 0;
   const [isSigningOut, setIsSigningOut] = useState(false);

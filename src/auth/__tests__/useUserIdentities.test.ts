@@ -10,7 +10,7 @@ jest.mock('../../lib/supabase/client', () => ({
 import { getSupabaseClient } from '../../lib/supabase/client';
 import {
   fetchUserIdentities,
-  USER_IDENTITIES_QUERY_KEY,
+  userIdentitiesKey,
 } from '../useUserIdentities';
 
 const mockGetUserIdentities = jest.fn();
@@ -62,19 +62,23 @@ describe('fetchUserIdentities', () => {
     expect(await fetchUserIdentities()).toEqual(['kakao']);
   });
 
-  it('중복 provider 도 그대로 유지 (동일 provider 다중 identity 가능)', async () => {
+  it('동일 provider 중복 identity 제거 (Set, 첫 등장 순서 유지)', async () => {
     mockGetUserIdentities.mockResolvedValue({
       data: {
-        identities: [{ provider: 'kakao' }, { provider: 'kakao' }],
+        identities: [{ provider: 'kakao' }, { provider: 'kakao' }, { provider: 'naver' }],
       },
       error: null,
     });
-    expect(await fetchUserIdentities()).toEqual(['kakao', 'kakao']);
+    expect(await fetchUserIdentities()).toEqual(['kakao', 'naver']);
   });
 });
 
-describe('USER_IDENTITIES_QUERY_KEY', () => {
-  it('안정적 query key', () => {
-    expect(USER_IDENTITIES_QUERY_KEY).toEqual(['auth', 'identities']);
+describe('userIdentitiesKey', () => {
+  it('userId 별 쿼리 키 생성 (캐시 격리)', () => {
+    expect(userIdentitiesKey('u-1')).toEqual(['auth', 'userIdentities', 'u-1']);
+  });
+
+  it('userId 없을 때도 키 생성 (enabled false 시 미사용)', () => {
+    expect(userIdentitiesKey()).toEqual(['auth', 'userIdentities', undefined]);
   });
 });

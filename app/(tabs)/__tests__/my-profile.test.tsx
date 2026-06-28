@@ -129,7 +129,7 @@ beforeEach(() => {
     { id: 'completion-5', category: 'completion', label: '독자', threshold: 5, current: 3, earned: false },
   ]);
   // 연결계정 identities 기본값 — 빈 배열(profile.provider 폴백). 다중 표시 테스트에서 개별 override.
-  mockedUseUserIdentities.mockReturnValue({ data: [], isLoading: false });
+  mockedUseUserIdentities.mockReturnValue({ data: [], isLoading: false, error: null, isFetching: false, isError: false });
 });
 
 describe('SPEC-PROFILE-001: 마이 탭 통계/배지/포인트/설정 섹션', () => {
@@ -165,19 +165,19 @@ describe('SPEC-PROFILE-001: 마이 탭 통계/배지/포인트/설정 섹션', (
 
 describe('연결계정 다중 표시 (useUserIdentities 기반)', () => {
   it('네이버+카카오 연결 시 "네이버, 카카오" 다중 표시', () => {
-    mockedUseUserIdentities.mockReturnValue({ data: ['naver', 'kakao'], isLoading: false });
+    mockedUseUserIdentities.mockReturnValue({ data: ['naver', 'kakao'], isLoading: false, error: null, isFetching: false, isError: false });
     const { getByText } = withTheme(<MyTab />);
     expect(getByText('네이버, 카카오')).toBeTruthy();
   });
 
   it('identities 빈 시 profile.provider 폴백 — "네이버"', () => {
-    mockedUseUserIdentities.mockReturnValue({ data: [], isLoading: false });
+    mockedUseUserIdentities.mockReturnValue({ data: [], isLoading: false, error: null, isFetching: false, isError: false });
     const { getByText } = withTheme(<MyTab />);
     expect(getByText('네이버')).toBeTruthy();
   });
 
   it('로딩(data undefined) 시에도 profile.provider 폴백', () => {
-    mockedUseUserIdentities.mockReturnValue({ data: undefined, isLoading: true });
+    mockedUseUserIdentities.mockReturnValue({ data: undefined, isLoading: true, error: null, isFetching: false, isError: false });
     const { getByText } = withTheme(<MyTab />);
     expect(getByText('네이버')).toBeTruthy();
   });
