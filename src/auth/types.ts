@@ -9,6 +9,18 @@ import type { Session, User } from '@supabase/supabase-js';
 // @MX:REASON: 잘못된 provider 문자열은 OAuth 호출 실패 및 DB CHECK 위반을 유발한다. 세 제공자 값은 DB 스키마와 단일 진실 원천을 공유해야 한다.
 export type AuthProvider = 'kakao' | 'naver' | 'google';
 
+// @MX:NOTE: [AUTO] auth.identities.provider → AuthProvider 정규화.
+//           Supabase 커스텀 OIDC provider(naver)는 'custom:naver' 형식으로 저장되나,
+//           users.provider 와 UI(PROVIDER_LABEL)는 'naver' 를 사용하므로 접두(custom:)를 제거해 매핑한다.
+//           kakao/google 은 네이티브 provider 로 접두 없이 통과. 미지원 provider 는 null (UI 폴백).
+export function normalizeIdentityProvider(raw: string): AuthProvider | null {
+  const base = raw.startsWith('custom:') ? raw.slice('custom:'.length) : raw;
+  if (base === 'naver' || base === 'kakao' || base === 'google') {
+    return base;
+  }
+  return null;
+}
+
 /**
  * public.users 테이블 행 슬림 스키마 (세션 컨텍스트용)
  * nickname/avatar_url/bio는 nullable (온보딩 미완료 또는 빈 값 허용)

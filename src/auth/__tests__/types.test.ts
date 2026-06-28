@@ -5,6 +5,7 @@
  */
 
 import type { AuthProvider, UserProfile, AuthContextValue } from '../types';
+import { normalizeIdentityProvider } from '../types';
 
 describe('AuthProvider type', () => {
   it('accepts exactly three provider values', () => {
@@ -81,5 +82,29 @@ describe('AuthContextValue type', () => {
     expect(typeof value.signInWithProvider).toBe('function');
     expect(typeof value.signOut).toBe('function');
     expect(typeof value.refreshProfile).toBe('function');
+  });
+});
+
+/**
+ * normalizeIdentityProvider — auth.identities.provider 값을 users.provider AuthProvider 로 정규화.
+ * Supabase 커스텀 OIDC provider(naver)는 'custom:naver' 형식으로 저장되므로 접두 제거 후 매핑.
+ */
+describe('normalizeIdentityProvider', () => {
+  it('custom:naver → naver (Supabase 커스텀 OIDC provider)', () => {
+    expect(normalizeIdentityProvider('custom:naver')).toBe('naver');
+  });
+
+  it('kakao / google 은 그대로 매핑 (네이티브 provider)', () => {
+    expect(normalizeIdentityProvider('kakao')).toBe('kakao');
+    expect(normalizeIdentityProvider('google')).toBe('google');
+  });
+
+  it('이미 정규화된 naver 도 통과 (멱등)', () => {
+    expect(normalizeIdentityProvider('naver')).toBe('naver');
+  });
+
+  it('지원하지 않는 provider → null (apple / custom:facebook)', () => {
+    expect(normalizeIdentityProvider('apple')).toBeNull();
+    expect(normalizeIdentityProvider('custom:facebook')).toBeNull();
   });
 });
