@@ -68,14 +68,20 @@ jest.mock('../../../src/features/notification', () => ({
   useUnreadCount: jest.fn(() => ({ data: 0 })),
 }));
 
+jest.mock('../../../src/auth/useUserIdentities', () => ({
+  useUserIdentities: jest.fn(),
+}));
+
 import { useSession } from '../../../src/auth/useSession';
 import { useUserStats, usePointLogs, computeBadges } from '../../../src/features/profile';
+import { useUserIdentities } from '../../../src/auth/useUserIdentities';
 import MyTab from '../my';
 
 const mockedUseSession = useSession as jest.MockedFunction<typeof useSession>;
 const mockedUseUserStats = useUserStats as jest.Mock;
 const mockedUsePointLogs = usePointLogs as jest.Mock;
 const mockedComputeBadges = computeBadges as jest.Mock;
+const mockedUseUserIdentities = useUserIdentities as jest.Mock;
 
 function createTestQueryClient(): QueryClient {
   return new QueryClient({
@@ -122,6 +128,8 @@ beforeEach(() => {
     { id: 'completion-1', category: 'completion', label: '첫 완독', threshold: 1, current: 3, earned: true },
     { id: 'completion-5', category: 'completion', label: '독자', threshold: 5, current: 3, earned: false },
   ]);
+  // 연결계정 identities 기본값 — 빈 배열(profile.provider 폴백). 다중 표시 테스트에서 개별 override.
+  mockedUseUserIdentities.mockReturnValue({ data: [], isLoading: false, error: null, isFetching: false, isError: false });
 });
 
 describe('SPEC-PROFILE-001: 마이 탭 통계/배지/포인트/설정 섹션', () => {
@@ -152,5 +160,25 @@ describe('SPEC-PROFILE-001: 마이 탭 통계/배지/포인트/설정 섹션', (
   it('P27: 개인정보 처리방침 항목 노출', () => {
     const { getByText } = withTheme(<MyTab />);
     expect(getByText('개인정보 처리방침')).toBeTruthy();
+  });
+});
+
+describe('연결계정 다중 표시 (useUserIdentities 기반)', () => {
+  it('네이버+카카오 연결 시 "네이버, 카카오" 다중 표시', () => {
+    mockedUseUserIdentities.mockReturnValue({ data: ['naver', 'kakao'], isLoading: false, error: null, isFetching: false, isError: false });
+    const { getByText } = withTheme(<MyTab />);
+    expect(getByText('네이버, 카카오')).toBeTruthy();
+  });
+
+  it('identities 빈 시 profile.provider 폴백 — "네이버"', () => {
+    mockedUseUserIdentities.mockReturnValue({ data: [], isLoading: false, error: null, isFetching: false, isError: false });
+    const { getByText } = withTheme(<MyTab />);
+    expect(getByText('네이버')).toBeTruthy();
+  });
+
+  it('로딩(data undefined) 시에도 profile.provider 폴백', () => {
+    mockedUseUserIdentities.mockReturnValue({ data: undefined, isLoading: true, error: null, isFetching: false, isError: false });
+    const { getByText } = withTheme(<MyTab />);
+    expect(getByText('네이버')).toBeTruthy();
   });
 });

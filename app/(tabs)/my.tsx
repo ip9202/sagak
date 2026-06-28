@@ -46,6 +46,7 @@ import {
   BadgeCard,
 } from '../../src/features/profile';
 import type { AuthProvider } from '../../src/auth/types';
+import { useUserIdentities } from '../../src/auth/useUserIdentities';
 
 /** 초를 "Nh" 또는 "Nm" 표기로 변환 (통계 카드 표시용) */
 function formatReadingTime(totalSeconds: number): string {
@@ -71,6 +72,10 @@ export default function MyTab(): React.JSX.Element {
   const theme = useTheme();
   const router = useRouter();
   const session = useSession();
+  // @MX:WARN: [AUTO] useUserIdentities 는 반드시 early return(loading/signed-out) 이전에 호출.
+  // @MX:REASON: React hooks 규칙 — loading→인증 전환 시 hook 호출 수가 바뀌면 런타임 위반. 본문에서는 linkedProviders 값만 소비.
+  //             userId 전달로 미인증(loading) 시 쿼리 비활성화(enabled: Boolean(userId)) — useUserStats 패턴 일관.
+  const { data: linkedProviders } = useUserIdentities(session?.user?.id);
   const unreadQuery = useUnreadCount();
   const unreadCount = unreadQuery.data ?? 0;
   const [isSigningOut, setIsSigningOut] = useState(false);
@@ -199,9 +204,15 @@ export default function MyTab(): React.JSX.Element {
 
   const nickname = profile?.nickname ?? '독자';
   const bioText = profile?.bio?.trim() ? profile.bio : BIO_PLACEHOLDER;
-  const providerLabel = profile
-    ? PROVIDER_LABEL[profile.provider]
-    : '알 수 없음';
+  // 연결계정 다중 표시 — auth.identities(진실 원천) 기반. 동일 이메일로 네이버+카카오톡을
+  // 연결한 경우 모두 표시. identities 미로드/빈값/에러 시 profile.provider(가입 provider) 폴백.
+  // linkedProviders 는 useSession 직후(early return 전)에 미리 호출해 hooks 순서를 일관시킨다.
+  const providerLabel =
+    linkedProviders && linkedProviders.length > 0
+      ? linkedProviders.map((p) => PROVIDER_LABEL[p]).join(', ')
+      : profile
+        ? PROVIDER_LABEL[profile.provider]
+        : '알 수 없음';
   const email = user.email ?? null;
   const avatarUrl = profile?.avatar_url ?? null;
 

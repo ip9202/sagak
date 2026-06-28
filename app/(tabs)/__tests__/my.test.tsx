@@ -48,6 +48,11 @@ jest.mock('../../../src/auth/useSession', () => ({
   useSession: jest.fn(),
 }));
 
+// 연결계정 identities 훅 stub — MyTab 이 useUserIdentities 호출 (빈 배열 폴백).
+jest.mock('../../../src/auth/useUserIdentities', () => ({
+  useUserIdentities: jest.fn(() => ({ data: [], isLoading: false, error: null, isFetching: false, isError: false })),
+}));
+
 // SPEC-PROFILE-001: my.tsx 가 통계/포인트 훅을 호출 — 렌더링 분기 테스트용 stub.
 // (실제 데이터 검증은 my-profile.test.tsx 가 담당)
 jest.mock('../../../src/features/profile', () => ({
