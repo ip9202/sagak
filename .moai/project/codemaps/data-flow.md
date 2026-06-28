@@ -1152,6 +1152,127 @@ GRANT EXECUTE ON FUNCTION get_host_clubs_progress(uuid) TO authenticated;
 
 ---
 
+## 13. Linked Identities Flow (연결계정 다중 표시)
+
+**목적**: auth.identities(Supabase 진실 원천) 기반으로 연결된 모든 인증 provider를 조회해 다중 표시("네이버, 카카오")
+
+**진입점**: `app/(tabs)/my.tsx` → `useUserIdentities`
+
+```mermaid
+sequenceDiagram
+    participant Screen as MyTab
+    participant Hook as useUserIdentities
+    participant Query as React Query
+    participant Client as Supabase Client
+    participant Auth as auth.getUserIdentities()
+    participant Normalize as normalizeIdentityProvider
+    participant UI as Provider Label
+
+    Screen->>Hook: useUserIdentities(session?.user?.id)
+    Note over Hook: early return 전 호출<br/>(hooks 규칙 준수)
+    
+    alt userId 없음 (미인증)
+        Hook->>Query: enabled: false
+        Query->>Query: 쿼리 비활성화
+        Query-->>Hook: { data: undefined, isLoading: false }
+    else userId 있음 (인증됨)
+        Hook->>Query: queryKey: ['auth', 'userIdentities', userId]
+        Hook->>Query: enabled: true
+        Query->>Client: client.auth.getUserIdentities()
+        Client->>Auth: getUserIdentities()
+        Auth-->>Client: { identities: [{provider, ...}] }
+        Client-->>Query: identities[]
+        
+        Query->>Normalize: identities.map(normalizeIdentityProvider)
+        Note over Normalize: custom:naver → naver<br/>kakao/google → 통과<br/>미지원 → null
+        Normalize-->>Query: (AuthProvider | null)[]
+        
+        Query->>Query: filter(null 제거)
+        Query->>Query: Set으로 중복 제거
+        Note over Query: 동일 provider 중복<br/>예: kakao 2개 → 1개
+        Query-->>Hook: AuthProvider[]
+        Hook-->>Screen: linkedProviders
+    end
+    
+    Screen->>Screen: linkedProviders.map(PROVIDER_LABEL).join(', ')
+    alt linkedProviders = ['naver', 'kakao']
+        Screen->>UI: "네이버, 카카오"
+    else linkedProviders = []
+        Screen->>UI: profile.provider 폴백
+    end
+```
+
+### Key Implementation
+
+**File:** `src/auth/useUserIdentities.ts`
+
+```typescript
+export function useUserIdentities(userId?: string) {
+  return useQuery<AuthProvider[], Error>({
+    queryKey: userIdentitiesKey(userId),
+    queryFn: fetchUserIdentities,
+    enabled: Boolean(userId), // 미인증 시 비활성화
+  })
+}
+
+export async function fetchUserIdentities(): Promise<AuthProvider[]> {
+  const { data, error } = await getSupabaseClient().auth.getUserIdentities()
+  if (error) throw error
+  
+  const providers = (data?.identities ?? [])
+    .map((identity) => normalizeIdentityProvider(identity.provider))
+    .filter((provider): provider is AuthProvider => provider !== null)
+  
+  return Array.from(new Set(providers)) // 중복 제거
+}
+```
+
+**File:** `src/auth/types.ts`
+
+```typescript
+// auth.identities.provider → AuthProvider 정규화
+export function normalizeIdentityProvider(raw: string): AuthProvider | null {
+  const base = raw.startsWith('custom:') ? raw.slice('custom:'.length) : raw
+  if (base === 'naver' || base === 'kakao' || base === 'google') {
+    return base
+  }
+  return null // 미지원 provider
+}
+```
+
+**File:** `app/(tabs)/my.tsx`
+
+```typescript
+// @MX:WARN: [AUTO] useUserIdentities는 반드시 early return 전에 호출
+const { data: linkedProviders } = useUserIdentities(session?.user?.id)
+
+const providerLabel = linkedProviders && linkedProviders.length > 0
+  ? linkedProviders.map((p) => PROVIDER_LABEL[p]).join(', ')
+  : profile ? PROVIDER_LABEL[profile.provider] : '알 수 없음'
+```
+
+### Flow Notes
+
+- **데이터 소스 전환**: users.provider(가입 시 단일 provider) → auth.identities(Supabase 진실 원천, 모든 연결 identity). 동일 이메일로 네이버+카카오톡 연결 시 실제 연결 상태를 반영.
+- **React hooks 규칙 준수**: useUserIdentities를 early return(loading/signed-out) 이전에 호출해야 함. loading→인증 전환 시 hook 호출 수가 바뀌면 런타임 위반.
+- **useUserStats 패턴 일관**: enabled: Boolean(userId)로 미인증 시 쿼리 비활성화. userId를 queryKey에 포함해 사용자별 캐시 격리.
+- **정규화 로직**: normalizeIdentityProvider로 커스텀 OIDC provider(naver)의 'custom:' 접두 제거. 미지원 provider는 null로 필터링.
+- **중복 제거**: Set으로 동일 provider 중복 제거("카카오, 카카오" 혼란 방지, 순서 유지).
+- **폴백 전략**: linkedProviders 미로드/빈값/에러 시 profile.provider(가입 provider) 폴백.
+
+---
+
 ## Data Flow Summary
+| Auth Guard | `app/index.tsx` | useSession | AuthContext | SecureStore/AsyncStorage |
+| OAuth Deep-link | `app/(auth)/auth/callback.tsx` | useLocalSearchParams, AuthContext | Supabase Client | Router |
+| Book Search | `app/(tabs)/search.tsx` | searchApi | Edge Function (kakao-book-search) | Kakao Book API |
+| Barcode Scan | `app/(tabs)/scan.tsx` | BarcodeScanner, isbn.ts, debounce.ts, resolveBookId | Supabase (books) | Camera (expo-camera) |
+| Book Detail | `app/(tabs)/[bookId].tsx` | bookDetailApi, useLibrary | Supabase (PostgREST) | React Query Cache |
+| Library Mutation | `src/features/library/useLibraryItem.ts` | libraryApi | Supabase (PostgREST + Trigger) | React Query Cache |
+| Query Infrastructure | `app/_layout.tsx` | getQueryClient | globalThis Cache | QueryClientProvider |
+| gen-types Pipeline | `scripts/gen-types-with-header.js` | npx supabase gen types | Supabase DB (psql) | src/types/supabase.ts |
+| Emotion Record | `src/features/emotion/EmotionInputScreen.tsx` | emotionApi | Supabase (PostgREST) | React Query Cache |
+| Sticker Reaction | `src/features/emotion/useStickerReaction.ts` | stickerApi | Supabase (PostgREST) | React Query Cache |
 | Completion Report | `CompletionDiaryScreen` | useCompletionReport, completionApi | Supabase (PostgREST) | useState/useEffect (6상태) |
 | Host Clubs Progress | `app/(tabs)/clubs.tsx` | useHostClubs, get_host_clubs_progress RPC | PostgreSQL (RPC) | React Query (Promise.all + degradation) |
+| Linked Identities | `app/(tabs)/my.tsx` | useUserIdentities, normalizeIdentityProvider | auth.getUserIdentities() | React Query (enabled: Boolean(userId)) |

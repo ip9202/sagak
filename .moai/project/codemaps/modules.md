@@ -31,7 +31,8 @@
 |------|------|------|------|-------------|-----------|
 | Auth Context | `src/auth/AuthContext.tsx` | Business | 인증 상태 관리, OAuth 토큰 교환 | AuthContext, AuthProvider, onAuthStateChange | AUTH-001 REQ-AUTH-010 |
 | Session Hook | `src/auth/useSession.ts` | Business | 세션 훅 (사용자/프로필/상태) | useSession (반환: session, user, profile, loading, isAuthenticated, isOnboarded, signInWithProvider, signOut, refreshProfile) | AUTH-001 REQ-AUTH-030~033 |
-| Auth Types | `src/auth/types.ts` | Business | 인증 타입 정의 | AuthProvider ('kakao'\|'naver'\|'google'), UserProfile, AuthContextValue | AUTH-001 |
+| Auth Types | `src/auth/types.ts` | Business | 인증 타입 정의 | AuthProvider ('kakao'\|'naver'\|'google'), UserProfile, AuthContextValue, normalizeIdentityProvider (auth.identities.provider → AuthProvider 정규화) | AUTH-001 |
+| User Identities Hook | `src/auth/useUserIdentities.ts` | Business | 연결계정 조회 훅 (auth.identities 기반) | useUserIdentities(userId), fetchUserIdentities, userIdentitiesKey — React Query 훅, auth.identities를 AuthProvider[]로 정규화해 다중 표시("네이버, 카카오") 지원, enabled: Boolean(userId)로 미인증 시 비활성화 | AUTH-001 |
 | OAuth Utils | `src/auth/oauth.ts` | Business | OAuth 리다이렉트 URI 생성 | getOAuthRedirectUri | AUTH-001 REQ-AUTH-002 |
 | Login Screen | `src/auth/login.tsx` | Business | 로그인 화면 구현 | OAuth 버튼, 폼 | AUTH-001 |
 | Onboarding Screen | `src/auth/onboarding.tsx` | Business | 온보딩 화면 구현 | 닉네임 입력, 프로필 설정 | AUTH-001 |
