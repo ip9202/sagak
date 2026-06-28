@@ -175,7 +175,9 @@ export default function TabsLayout() {
       <Tabs.Screen name="clubs/new" options={{ href: null, headerShown: false }} />
       <Tabs.Screen name="clubs/[clubId]/feed" options={{ href: null, headerShown: false }} />
       {/* @MX:NOTE: [AUTO] SPEC-ROUTINE-001(completion) / SPEC-EMOTION-001(emotion) 하위 라우트.
-          선언 누락 시 expo-router 자동 탭 노출로 SPEC-UI-002 캡슐형 4탭 깨짐 (회귀). href:null 로 숨김. */}
+          선언 누락 시 expo-router 자동 탭 노출로 SPEC-UI-002 캡슐형 4탭 깨짐 (회귀). href:null 로 숨김.
+          completion/index (완독 다이어리 리스트) 포함 — 마이 탭 router.push('/completion') 진입 전용. */}
+      <Tabs.Screen name="completion/index" options={{ href: null, headerShown: false }} />
       <Tabs.Screen name="completion/[bookId]" options={{ href: null, headerShown: false }} />
       <Tabs.Screen name="emotion/[bookId]" options={{ href: null, headerShown: false }} />
       </Tabs>
