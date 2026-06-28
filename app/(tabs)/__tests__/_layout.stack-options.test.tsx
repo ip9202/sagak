@@ -9,6 +9,8 @@
  */
 import React from 'react';
 import { render } from '@testing-library/react-native';
+import fs from 'fs';
+import path from 'path';
 
 jest.mock('@react-native-async-storage/async-storage', () => ({
   default: { getItem: jest.fn(), setItem: jest.fn(), removeItem: jest.fn(), clear: jest.fn() },
@@ -124,5 +126,48 @@ describe('S3/S4 + REQ-NAV-013: 동적 라우트 등록 + 전환 옵션', () => {
   it('동적 라우트는 headerShown:false로 헤더 없이 풀스크린 렌더링된다 (REQ-NAV-013 기본 슬라이드)', () => {
     const book = registeredScreens.find((s) => s.name === '[bookId]');
     expect(book?.options?.headerShown).toBe(false);
+  });
+});
+
+/**
+ * REQ-SCREEN-043 회귀 방지: (tabs) 하위 모든 라우트 파일이 _layout.tsx 에 <Tabs.Screen> 으로
+ * 선언되었는지 전수 검사. 선언 누락 시 expo-router 가 미선언 라우트를 자동으로 탭바에 노출하여
+ * SPEC-UI-002 캡슐형 4탭이 깨짐 (과거 PR #87 completion/index 누락 회귀와 동일 패턴).
+ *
+ * 라우트 name 매핑 규칙: (tabs)/ 기준 파일 경로에서 .tsx 확장자 제거
+ *   index.tsx → "index", completion/index.tsx → "completion/index", clubs/[clubId].tsx → "clubs/[clubId]"
+ */
+const TABS_DIR = path.resolve(__dirname, '..');
+
+function collectRouteNames(dir: string, rel = ''): string[] {
+  let names: string[] = [];
+  for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+    // __tests__ 디렉토리와 _layout.tsx 등 _ 접두 파일은 라우트가 아님
+    if (entry.name === '__tests__' || entry.name.startsWith('_')) continue;
+    const relPath = rel ? `${rel}/${entry.name}` : entry.name;
+    const full = path.join(dir, entry.name);
+    if (entry.isDirectory()) {
+      names = names.concat(collectRouteNames(full, relPath));
+    } else if (entry.name.endsWith('.tsx')) {
+      names.push(relPath.replace(/\.tsx$/, ''));
+    }
+  }
+  return names;
+}
+
+describe('REQ-SCREEN-043 회귀 방지: (tabs) 모든 라우트 _layout 선언 전수 검사', () => {
+  beforeEach(() => {
+    const session = { user: { id: 'u1' } } as any;
+    const user = { id: 'u1' } as any;
+    render(<TabsLayout />, {
+      wrapper: wrap({ ...baseAuth, session, user, profile: onboardedProfile }),
+    });
+  });
+
+  it('선언 누락 라우트가 없어야 한다 (누락 시 expo-router 자동 탭 노출 → 캡슐형 4탭 위반)', () => {
+    const routeNames = collectRouteNames(TABS_DIR);
+    const declared = new Set(registeredScreens.map((s) => s.name));
+    const undeclared = routeNames.filter((n) => !declared.has(n));
+    expect(undeclared).toEqual([]);
   });
 });
