@@ -48,26 +48,75 @@ export function validateMessage(message: string | null): string | null {
   return `message must be at most ${MESSAGE_MAX_LENGTH} characters`;
 }
 
-/** 공통 CORS + JSON 헤더 */
-const JSON_HEADERS: Record<string, string> = {
-  'Content-Type': 'application/json',
-  'Access-Control-Allow-Origin': '*',
-};
+/**
+ * 운영 배포 보안 요구사항 (SPEC-CLUB-001 progress.md): CORS Origin 화이트리스트.
+ * @MX:ANCHOR: [AUTO] CORS 단일 검증/반환 함수 — index.ts 의 preflight + JSON 응답이 모두 경유
+ * @MX:REASON: `*` 와일드카드는 악의적 사이트의 인증 요청 헤더 전송을 허용하므로 화이트리스트로 좁힌다.
+ */
+const ALLOWED_METHODS = 'POST, OPTIONS';
+const ALLOWED_HEADERS =
+  'authorization, x-client-info, apikey, content-type';
+
+/**
+ * 요청 Origin 이 허용 목록에 포함되는지 검증한다.
+ *
+ * @param origin - 요청의 Origin 헤더 값 (null 허용)
+ * @param allowedOrigins - 허용 origin 문자열 배열 (보통 환경 변수에서 쉼표 구분 파싱)
+ * @returns 허용 시 해당 origin 문자열, 거부 시 null
+ */
+export function resolveAllowedOrigin(
+  origin: string | null,
+  allowedOrigins: readonly string[],
+): string | null {
+  if (!origin || origin.length === 0) return null;
+  if (allowedOrigins.includes(origin)) return origin;
+  return null;
+}
+
+/**
+ * CORS preflight(OPTIONS) 응답용 헤더를 생성한다.
+ * 허용된 origin 만 Access-Control-Allow-Origin 에 반영된다.
+ */
+export function buildCorsPreflightHeaders(
+  allowedOrigin: string,
+): Record<string, string> {
+  return {
+    'Access-Control-Allow-Origin': allowedOrigin,
+    'Access-Control-Allow-Methods': ALLOWED_METHODS,
+    'Access-Control-Allow-Headers': ALLOWED_HEADERS,
+  };
+}
+
+/**
+ * 일반 JSON 응답용 헤더를 생성한다. 허용된 origin 만 CORS 에 반영된다.
+ */
+export function buildJsonHeaders(
+  allowedOrigin: string,
+): Record<string, string> {
+  return {
+    'Content-Type': 'application/json',
+    'Access-Control-Allow-Origin': allowedOrigin,
+  };
+}
 
 /**
  * 표준화된 JSON 에러 응답을 생성한다.
+ *
+ * @param allowedOrigin - 사전 검증(resolveAllowedOrigin)된 origin. 빈 문자열이면 CORS 헤더 미포함.
  */
 export function buildErrorResponse(
   status: number,
   error: string,
   detail?: string,
+  allowedOrigin = '',
 ): Response {
   const body: Record<string, unknown> = { ok: false, error };
   if (detail !== undefined) body.detail = detail;
-  return new Response(JSON.stringify(body), {
-    status,
-    headers: JSON_HEADERS,
-  });
+  const headers =
+    allowedOrigin.length > 0
+      ? buildJsonHeaders(allowedOrigin)
+      : { 'Content-Type': 'application/json' };
+  return new Response(JSON.stringify(body), { status, headers });
 }
 
 /**
@@ -127,12 +176,18 @@ export function extractJwtSub(authHeader: string | null): string | null {
 
 /**
  * 표준화된 JSON 성공 응답을 생성한다.
+ *
+ * @param allowedOrigin - 사전 검증(resolveAllowedOrigin)된 origin. 빈 문자열이면 CORS 헤더 미포함.
  */
-export function buildSuccessResponse(payload: ProcessJoinResponse): Response {
-  return new Response(JSON.stringify(payload), {
-    status: 200,
-    headers: JSON_HEADERS,
-  });
+export function buildSuccessResponse(
+  payload: ProcessJoinResponse,
+  allowedOrigin = '',
+): Response {
+  const headers =
+    allowedOrigin.length > 0
+      ? buildJsonHeaders(allowedOrigin)
+      : { 'Content-Type': 'application/json' };
+  return new Response(JSON.stringify(payload), { status: 200, headers });
 }
 
 function isString(value: unknown): value is string {
@@ -192,6 +247,86 @@ export function parseRequestBody(rawBody: string): ParseResult {
       book_id: obj.book_id,
       requester_id: obj.requester_id,
       message,
+    },
+  };
+}
+
+// ============================================================================
+// 운영 배포 보안 요구사항 (SPEC-CLUB-001 progress.md) — skeleton 완성용 순수 로직
+// ============================================================================
+
+/** PostgREST/Supabase UNIQUE 위반 에러 코드 */
+const UNIQUE_VIOLATION_CODE = '23505';
+
+/**
+ * Supabase/PostgREST 에러 객체가 UNIQUE 위반(23505)인지 검사한다.
+ *
+ * join_requests(club_id, requester_id) UNIQUE 위반 시 호출자가 409 응답으로 변환한다.
+ * 멱등성 비재시도 정책(invokeEdgeFunction)과 race condition 방어 목적.
+ *
+ * @param error - Supabase client 의 error 필드 (code 속성 포함 가능)
+ * @returns 23505 위반 시 true, 그 외 false
+ */
+export function isUniqueViolation(error: unknown): boolean {
+  if (!error || typeof error !== 'object') return false;
+  const code = (error as { code?: unknown }).code;
+  return code === UNIQUE_VIOLATION_CODE;
+}
+
+/**
+ * lazy 생성되는 group 클럽의 name 을 생성한다.
+ *
+ * clubs.name 은 NOT NULL 이므로 lazy INSERT 시 반드시 값이 필요하다.
+ * 도메인 의미(사용자 노출 이름)는 본 skeleton 범위가 아니므로 식별 가능한 형식만 제공.
+ *
+ * @param bookId - clubs.book_id 로 사용되는 UUID
+ * @returns `group-{bookId 앞 8자}` 형식의 name
+ */
+export function buildLazyClubName(bookId: string): string {
+  const prefix = bookId.length >= 8 ? bookId.slice(0, 8) : bookId;
+  return `group-${prefix}`;
+}
+
+/**
+ * SPEC-NOTIF-001 send-notification Edge Function 호출 바디 빌더.
+ * @MX:ANCHOR: [AUTO] join_request_received 알림 페이로드 단일 진실 — index.ts 가 경유하는 유일 빌더
+ * @MX:REASON: 템플릿 변수(requester_nickname, club_title) 키 불일치는 알림 문구 깨짐으로 이어진다.
+ *
+ * @param input.hostUserId - 알림 수신자 = lazy 생성된 클럽의 host(target_user_id)
+ * @param input.requestId - 생성된 join_requests.id (ref_id 로 사용, 딥링크용)
+ * @param input.requesterNickname - 요청자 닉네임 (null 시 빈 문자열 graceful degradation)
+ * @param input.clubTitle - 클럽 표시명 (보통 buildLazyClubName 결과)
+ * @returns send-notification 요청 본문 (user_id, type, ref_id, data)
+ */
+export interface SendNotificationPayloadInput {
+  hostUserId: string;
+  requestId: string;
+  requesterNickname: string | null;
+  clubTitle: string;
+}
+
+/** send-notification 호출 바디 (logic.ts 의 SendNotificationBody 와 구조 일치) */
+export interface SendNotificationPayload {
+  user_id: string;
+  type: 'join_request_received';
+  ref_id: string;
+  data: {
+    requester_nickname: string;
+    club_title: string;
+  };
+}
+
+export function buildSendNotificationPayload(
+  input: SendNotificationPayloadInput,
+): SendNotificationPayload {
+  return {
+    user_id: input.hostUserId,
+    type: 'join_request_received',
+    ref_id: input.requestId,
+    data: {
+      // @MX:NOTE: [AUTO] requester_nickname null 시 빈 문자열 — SPEC-NOTIF-001 acceptance N33 (graceful degradation)
+      requester_nickname: input.requesterNickname ?? '',
+      club_title: input.clubTitle,
     },
   };
 }
