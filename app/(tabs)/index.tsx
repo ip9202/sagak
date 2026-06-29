@@ -7,7 +7,8 @@
  *
  * 데이터 흐름:
  *  - useSession: 미인증/로딩(null) 시 빈 userId → 쿼리 비활성화
- *  - useLibrary({status:'reading'}): 첫 항목을 CurrentBook 으로 표시
+ *  - useLibrary({status:'reading'}): pickCurrentBook(updated_at DESC) 으로 CurrentBook 선택
+ *    (정책 5.2 fix: 홈은 updated_at 기준 — 신규 reading 책(last_progress_at=null)이 [0] 에 노출)
  *  - useAlarmSettings: alarm_enabled && alarm_time 시 동적 카피("매일 HH:MM에 알려드릴게요")
  *
  * SPEC-UI-002 준수:
@@ -37,6 +38,7 @@ import { Bell } from 'lucide-react-native';
 import { useTheme } from '../../src/theme/theme';
 import { useSession } from '../../src/auth/useSession';
 import { useLibrary } from '../../src/features/library/useLibrary';
+import { pickCurrentBook } from '../../src/features/library/pickCurrentBook';
 import { useAlarmSettings } from '../../src/features/routine/useAlarmSettings';
 import { BookCard } from '../../src/components/BookCard';
 import { Button } from '../../src/components/Button';
@@ -76,7 +78,8 @@ export default function HomeTab(): React.JSX.Element {
   const { data: alarmSettings } = useAlarmSettings();
 
   // @MX:NOTE: [AUTO] 미인증/세션 로딩(useSession null) 시 빈 userId → 쿼리 비활성화. 인증 복구 후 자동 활성화.
-  const currentBook = readingList?.[0];
+  // @MX:NOTE: [AUTO] 정책 5.2 fix: 홈 CurrentBook 은 updated_at DESC 기준 — 신규 reading 전환 책(last_progress_at=null)이 홈 [0] 에 노출된다. 서재는 last_progress_at 유지.
+  const currentBook = pickCurrentBook(readingList);
   const hasCurrentBook = Boolean(currentBook);
 
   // 알림 설정 동적 카피 — alarm_enabled && alarm_time 일 때만 시간 표시.

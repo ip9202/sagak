@@ -286,6 +286,60 @@ describe('SPEC-NAV-001 홈 탭: F03-Home 렌더링', () => {
       fireEvent.press(getByTestId('home-empty-search-cta'));
       expect(mockPush).toHaveBeenCalledWith('/search');
     });
+
+    // 정책 5.2 fix 회귀: last_progress_at=null 인 신규 reading 책이
+    // updated_at 최신이면 홈 [0] 에 노출되어야 한다.
+    it('last_progress_at=null 신규 reading 책이 updated_at 최신이면 홈에 노출된다', async () => {
+      const oldProgress: LibraryItem = {
+        id: 'ub-old',
+        book_id: 'b-old',
+        user_id: 'u-1',
+        status: 'reading',
+        current_page: 50,
+        is_public: true,
+        last_progress_at: '2026-06-28T11:34:00Z',
+        created_at: '2026-06-01T00:00:00Z',
+        updated_at: '2026-06-28T11:34:00Z',
+        books: {
+          id: 'b-old',
+          title: '넥서스',
+          author: 'a',
+          cover_url: null,
+          total_pages: 400,
+        },
+      } as LibraryItem;
+      const newReading: LibraryItem = {
+        id: 'ub-new',
+        book_id: 'b-new',
+        user_id: 'u-1',
+        status: 'reading',
+        current_page: 0,
+        is_public: true,
+        last_progress_at: null,
+        created_at: '2026-06-29T00:00:00Z',
+        updated_at: '2026-06-29T12:17:00Z',
+        books: {
+          id: 'b-new',
+          title: '불편한 편의점',
+          author: 'b',
+          cover_url: null,
+          total_pages: 300,
+        },
+      } as LibraryItem;
+      // getLibrary 는 last_progress_at DESC 로 반환(기존 동작)하지만,
+      // 홈은 updated_at 기준으로 newReading 을 선택해야 한다.
+      mockedUseLibrary.mockReturnValue({
+        data: [oldProgress, newReading],
+        isLoading: false,
+        isError: false,
+        error: null,
+      } as any);
+      const { getByText, queryByText } = renderTab(createTestQueryClient());
+      await waitFor(() => {
+        expect(getByText('불편한 편의점')).toBeTruthy();
+      });
+      expect(queryByText('넥서스')).toBeNull();
+    });
   });
 
   describe('CTA "오늘의 감정 기록하기"', () => {
