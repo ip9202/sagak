@@ -340,22 +340,38 @@ Track A 독자 목록에 노출된다.
 **상태**: 미해결 — 사용자 승인 대기. MVP v1.0.0은 (A) 정책으로 작성됨
 (REQ-LIB-022). (C) 선택 시 SPEC-DB-001 버전 업 및 마이그레이션 필요.
 
-### 5.2 서재 정렬 기본값 — 미해결
+### 5.2 서재 정렬 기본값 — 홈/서재 분리 확정 (fix)
 
-**질문**: 서재 목록의 기본 정렬 기준은 무엇인가?
+**질문**: 서재 목록 및 홈 "지금 읽는 책"의 정렬 기준은 무엇인가?
 
-**옵션**:
-- (A) `last_progress_at` 내림차순 — 최근 활동 순 (기본 가정, v1.0.0)
+**결정 (화면별 분리)**:
+- **서재 화면(LibraryScreen)**: `last_progress_at` 내림차순 — 최근 진행 순.
+  getLibrary 의 DB `.order('last_progress_at', {ascending:false})` 유지.
+- **홈 "지금 읽는 책"(HomeTab CurrentBook)**: `updated_at` 내림차순 — 최근
+  reading 전환/추가/진행한 책이 [0]. `pickCurrentBook(list)` (클라이언트
+  재정렬) 사용. getLibrary 의 DB 정렬은 변경하지 않는다.
+
+**근거**: 신규로 reading 상태로 전환/추가한 책은 진행 기록이 없어
+`last_progress_at = null` 이며, last_progress_at DESC 정렬 시 null 이 뒤로
+밀려 홈 [0] 에서 누락되는 버그(2026-06-29 보고)가 발생했다. 사용자 기대:
+"서재에서 읽기 중으로 바뀌는 책이 현재 읽는 책이 되는 게 당연".
+DB 실측(강력쓠주먹 naver): updated_at 최신 신규 reading 책이 last_progress_at=null
+으로 홈에서 밀림. updated_at 은 status/current_page/visibility 갱신 시 DB가
+자동 갱신하므로 "가장 최근에 의미있게 바뀐 책"을 가장 잘 반영한다.
+
+**옵션(참고용, 환기)**:
+- (A) `last_progress_at` 내림차순 — 서재 기본값(유지)
 - (B) `created_at` 내림차순 — 최근 추가 순
 - (C) `title` 가나다순 — 가독성 우선
 - (D) 상태별 그룹화 + 각 그룹 내 `last_progress_at` 내림차순
+- (E) 화면별 분리: 서재=last_progress_at DESC, 홈=updated_at DESC (채택)
 
-**영향**: (A)는 오래 안 읽은 책이 아래로 밀려 사용자가 잊을 수 있음. (B)는 추가
-순서가 읽기 우선순위와 다를 수 있음. (C)는 시계열 정보 손실. (D)는 가장 정보성이
-높으나 구현 복잡도 증가.
+**영향**: (E)는 홈과 서재의 정렬 의도가 달라져 인지 부담이 약간 증가할 수 있으나,
+"방금 읽기 시작한 책이 홈에 뜬다"는 사용자 기대를 직접 충족. 서재는 기존 동작
+유지로 회귀 리스크 최소.
 
-**상태**: 미해결 — 사용자 승인 대기. MVP v1.0.0은 (A)를 기본으로 지원하되,
-사용자가 설정에서 변경 가능하도록 설계(REQ-LIB-003).
+**상태**: 확정 — 홈은 updated_at DESC (pickCurrentBook), 서재는 last_progress_at
+DESC (getLibrary DB order). REQ-LIB-003 설정 변경 옵션은 서재 정렬에만 적용.
 
 ### 5.3 서재 항목 삭제 시 자식 데이터 처리 정책 — 미해결
 

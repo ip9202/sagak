@@ -115,3 +115,32 @@ SPEC 인수기준(acceptance.md) ↔ 코드/테스트 매핑 결과 빈 구멍 4
 - tsc --noEmit clean, CI 3/3 green (Lint/Test/Typecheck).
 
 **비고**: 프로덕션 코드 변경 없음. PR #69 구현이 SPEC 인수기준 정상 충족 재확인.
+
+## 홈 "지금 읽는 책" 정렬 버그 fix (2026-06-29)
+
+### 버그 (DB 확정)
+홈 "지금 읽는 책"이 readingList?.[0] 인데, getLibrary 는 last_progress_at DESC 정렬.
+신규 reading 전환/추가 책은 진행 기록이 없어 last_progress_at=null → 정렬에서 밀려
+홈 [0] 에서 누락. DB 실측(강력쓠주먹 naver): updated_at 최신인 신규 reading 책이
+홈에 안 뜨고, last_progress_at 과거값인 책이 [0] 표시됨.
+
+### 결정: 정책 5.2 홈/서재 분리 (옵션 E)
+- 홈 CurrentBook: updated_at DESC (pickCurrentBook, 클라이언트 재정렬)
+- 서재 LibraryScreen: last_progress_at DESC 유지 (getLibrary DB order 변경 없음)
+
+근거: 신규 reading 책(last_progress_at=null)이 홈에 떠야 한다는 사용자 기대 충족.
+updated_at 은 status/current_page/visibility 갱신 시 DB가 자동 갱신하므로 "가장
+최근에 의미있게 바뀐 책"을 가장 잘 반영. 서재는 기존 동작 유지로 회귀 리스크 최소.
+
+### TDD 산출물
+- 신규: src/features/library/pickCurrentBook.ts (홈 CurrentBook 선택 순수 함수)
+- 신규 테스트: src/features/library/__tests__/pickCurrentBook.test.ts (5 cases, 100% cov)
+- 수정: app/(tabs)/index.tsx (readingList?.[0] → pickCurrentBook(readingList))
+- 수정: app/(tabs)/__tests__/index.test.tsx (정렬 회귀 시나리오 추가)
+- SPEC 갱신: 정책 5.2 (5.2 서재 정렬 기본값 — 홈/서재 분리 확정)
+
+### 게이트
+- tsc --noEmit: 0 에러
+- jest 전체: 145 suites / 1326 tests PASS
+- 커버리지: pickCurrentBook.ts 100%, index.tsx 100% (lines/funcs)
+- lint: 0 에러 0 워닝
