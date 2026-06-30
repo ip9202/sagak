@@ -21,22 +21,37 @@ const READERS_SELECT = 'user_id, book_id, current_page, started_reading_at';
  * - book_id 필수 필터
  * - started_reading_at DESC 정렬 (최근 시작 우선)
  * - 제한 컬럼만 SELECT (보안 뷰 노출 컬럼 준수)
+ * - currentUserId 제공 시 본인을 목록에서 제외 (.neq). 자기 자신에게 합류 요청을 보낼 수 없기 때문.
  *
  * @returns 공개 독자 Row 배열 (빈 결과 가능)
  * @throws AppError RLS/네트워크 에러 시
  */
+// @MX:NOTE: [AUTO] 본인 제외 정책 — 자기 자신에게 "같이 읽어요" 요청을 보낼 수 없으므로 currentUserId 로 .neq("user_id") 제외. 빈 userId(미인증) 시 미적용(하위 호환).
 export async function fetchActiveReaders(
   bookId: string,
+  currentUserId?: string,
 ): Promise<UserBooksPublicRow[]> {
   const client = getSupabaseClient();
 
   let result: { data: UserBooksPublicRow[] | null; error: unknown };
   try {
-    result = await client
+    // @MX:NOTE: [AUTO] PostgREST 쿼리 빌더 체인 — 타입 추론이 복잡하여 unknown 단언 사용. 체인은 eq → neq(옵션) → order 순.
+    let query: unknown = client
       .from('user_books_public')
       .select(READERS_SELECT)
-      .eq('book_id', bookId)
-      .order('started_reading_at', { ascending: false, nullsFirst: false });
+      .eq('book_id', bookId);
+    if (currentUserId && currentUserId.length > 0) {
+      query = (query as { neq: (col: string, val: string) => unknown }).neq(
+        'user_id',
+        currentUserId,
+      );
+    }
+    result = await (query as {
+      order: (
+        col: string,
+        opts: { ascending: boolean; nullsFirst: boolean },
+      ) => Promise<{ data: UserBooksPublicRow[] | null; error: unknown }>;
+    }).order('started_reading_at', { ascending: false, nullsFirst: false });
   } catch (error) {
     throw normalizeError(error);
   }

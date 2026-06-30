@@ -42,15 +42,17 @@ const CLUB_KEY_ROOT = ['club'] as const;
  * fetchActiveReaders 결과에 resolveClubIdsForUsers 로 club_id 매핑을 얹어 ActiveReader[] 반환.
  * 빈 bookId 면 쿼리를 비활성화한다.
  *
+ * currentUserId 제공 시 fetchActiveReaders 가 본인을 서버에서 제외한다 (본인 제외 정책).
+ *
  * @MX:ANCHOR: [AUTO] useActiveReaders — ReadersScreen(T-010) 의 단일 데이터 소스. club_id 분기 계약이 JoinRequestSheet(T-011) 에 전파된다.
  * @MX:REASON: ReadersScreen 이 이 훅의 반환 형태(ActiveReader.club_id nullable)에 의존하며, 분기 로직이 바뀌면 요청 전송 경로(create vs edge)가 잘못 라우팅된다.
  */
-export function useActiveReaders(bookId: string) {
+export function useActiveReaders(bookId: string, currentUserId?: string) {
   return useQuery<ActiveReader[]>({
     queryKey: ['club', 'readers', bookId],
     enabled: bookId.length > 0,
     queryFn: async (): Promise<ActiveReader[]> => {
-      const rows = await fetchActiveReaders(bookId);
+      const rows = await fetchActiveReaders(bookId, currentUserId);
       if (rows.length === 0) return [];
       // user_books_public.user_id 는 string | null(gen-types)이나 뷰 정책상 null 이 아님.
       // null 행은 방어적으로 제외하고 매핑한다.

@@ -138,3 +138,12 @@ describe('SPEC-CLUB-001 T-010: ReadersScreen 독자 카드 목록', () => {
     expect(queryByText(/랭킹/)).toBeNull();
   });
 });
+
+// @MX:NOTE: [AUTO] 본인(현재 로그인 사용자)은 독자 목록에서 제외 — ReadersScreen 이 session.user.id 를 useActiveReaders 로 전달해야 한다.
+describe('SPEC-CLUB-001 fix: ReadersScreen 본인 제외 전달', () => {
+  it('session.user.id 를 useActiveReaders(bookId, userId) 로 전달한다', () => {
+    useReadersMock.mockReturnValue({ data: [], isLoading: false, isError: false } as any);
+    renderScreen();
+    expect(useReadersMock).toHaveBeenCalledWith('b-1', 'u-me');
+  });
+});
