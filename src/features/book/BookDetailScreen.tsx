@@ -121,18 +121,21 @@ function statusLabel(s: ReadingStatus): string {
 /**
  * @MX:NOTE: [AUTO] 상태 탭 클릭 시 Alert.alert 의 title/message 를 반환 (세 탭 동일 패턴).
  *           completed → reading 역전환 시 메시지를 다르게 제안 (정책 5.1-A).
+ *           reading 전환 시 기존 읽던 책의 보관함 자동 이동을 안내한다 (정책 5.5 — reading 단일).
  */
 function statusAlertContent(
   next: ReadingStatus,
   isReverseFromCompleted: boolean,
 ): { title: string; message: string } {
+  // 정책 5.5 (reading 단일): reading 전환 시 DB 가 기존 reading 책을 자동 shelved 로 전환한다.
+  const singleReadingNotice = ' 지금 읽는중인 책이 있다면 보관함으로 이동해요.';
   switch (next) {
     case 'reading':
       return {
         title: '읽는중으로 변경',
         message: isReverseFromCompleted
-          ? '완독한 책을 다시 읽는중으로 변경할까요?'
-          : '이 책을 읽는중으로 변경할까요?',
+          ? '완독한 책을 다시 읽는중으로 변경할까요?' + singleReadingNotice
+          : '이 책을 읽는중으로 변경할까요?' + singleReadingNotice,
       };
     case 'completed':
       return {
