@@ -40,12 +40,14 @@ describe('SPEC-LIBRARY-001 TASK-004: libraryApi CRUD', () => {
       });
     });
 
-    it('user_books 에 (book_id, user_id, status=reading) 을 INSERT 한다', async () => {
+    // 정책 5.5 (reading 단일): addBook 기본 status 는 'shelved'.
+    // 서재 추가는 보관 상태로 시작하며, "읽기 시작" 명시 시 reading 으로 전환된다.
+    it('user_books 에 (book_id, user_id, status=shelved) 를 INSERT 한다 (기본값 shelved, 정책 5.5)', async () => {
       const inserted = {
         id: 'ub-1',
         book_id: 'book-uuid-1',
         user_id: 'user-uuid-1',
-        status: 'reading',
+        status: 'shelved',
         current_page: null,
       };
       insertMock.mockReturnValue({ select: selectMock });
@@ -56,9 +58,23 @@ describe('SPEC-LIBRARY-001 TASK-004: libraryApi CRUD', () => {
       expect(insertMock).toHaveBeenCalledWith({
         book_id: 'book-uuid-1',
         user_id: 'user-uuid-1',
+        status: 'shelved',
+      });
+      expect(result).toMatchObject({ id: 'ub-1', book_id: 'book-uuid-1', status: 'shelved' });
+    });
+
+    it('status 를 명시 전달하면 기본값(shelved) 대신 해당 값을 사용한다', async () => {
+      const inserted = { id: 'ub-2', book_id: 'book-uuid-1', user_id: 'user-uuid-1', status: 'reading' };
+      insertMock.mockReturnValue({ select: selectMock });
+      selectMock.mockReturnValue({ single: jest.fn().mockResolvedValue({ data: inserted, error: null }) });
+
+      await addBook({ bookId: 'book-uuid-1', userId: 'user-uuid-1', status: 'reading' });
+
+      expect(insertMock).toHaveBeenCalledWith({
+        book_id: 'book-uuid-1',
+        user_id: 'user-uuid-1',
         status: 'reading',
       });
-      expect(result).toMatchObject({ id: 'ub-1', book_id: 'book-uuid-1', status: 'reading' });
     });
 
     it('UNIQUE 위반(23505) 시 VALIDATION AppError 를 throw 한다 (이미 등록된 책)', async () => {

@@ -228,6 +228,10 @@ labels: [library, user-books, progress-tracking, reading-status, visibility, cru
 이 UPDATE 본문은 `status` 값만 포함하며, `completed_at`은 포함하지 않는다.
 `completed_at` 설정은 DB 트리거가 자동 처리한다.
 
+> 정책 5.5 (reading 단일): `status='reading'`으로 전환 시 DB `enforce_single_reading`
+> 트리거가 같은 사용자의 기존 `reading` 행을 자동으로 `shelved`로 전환한다. 클라이언트는
+> 단일 `status` UPDATE만 전송한다 (추가 클라이언트 로직 불필요).
+
 #### REQ-LIB-021: 완독 처리 (reading → completed)
 
 **WHEN** 사용자가 `status`를 `'reading'`에서 `'completed'`로 전환하면,
@@ -315,7 +319,10 @@ Track A 독자 목록에 노출된다.
    SPEC-DB-001에서 예비용으로 예약되어 있으며(DB 트리거가 이미 자동 생성),
    본 SPEC은 Edge Function을 호출하지 않는다.
 7. **백엔드 스키마 변경**: `user_books` 테이블, 트리거, RLS 정책, 보안 뷰는
-   SPEC-DB-001에 이미 구현되어 있으며, 본 SPEC은 변경하지 않는다.
+   SPEC-DB-001에 이미 구현되어 있으며, 본 SPEC은 원칙적으로 변경하지 않는다.
+   **예외 (정책 5.5)**: reading 단일 정책을 위해 부분 UNIQUE 인덱스 + 배타적 전환
+   트리거 + 기본값 변경을 포함한 스키마 마이그레이션(`20240630000001_enforce_single_reading_policy`)을
+   본 SPEC이 주도한다.
 8. **데이터 페칭 라이브러리 선택**: React Query vs SWR vs 순수 훅은
    SPEC-API-001 미결정 사항 6.1이며, 본 SPEC 범위 밖이다. 본 SPEC은 라이브러리
    무관하게 인터페이스를 정의한다.
@@ -390,6 +397,30 @@ FK `ON DELETE RESTRICT` 정책은 유지됨.
 
 **상태**: 미해결 — 사용자 승인 대기. MVP v1.0.0은 (A)로 작성됨. 후속 버전에서
 (B) 추가 가능.
+
+### 5.5 reading 단일 정책 — 해결됨 (2026-06-30 채택)
+
+**질문**: 한 사용자가 동시에 여러 책을 `reading` 상태로 보유할 수 있는가?
+
+**결정**: 아니오 — 한 사용자는 동시에 **최대 1개의 `status='reading'` 행**만 보유한다.
+새 `reading`이 발생하면(INSERT `reading` 또는 타 상태→`reading` UPDATE) 기존 `reading`
+행은 자동으로 `shelved`로 배타 전환된다.
+
+**구현**:
+- `addBook` 기본 status: `'reading'` → **`'shelved'`** (서재 추가는 보관 상태로 시작)
+- 부분 UNIQUE 인덱스 `user_books_one_reading_per_user ON (user_id) WHERE status='reading'`
+  — 동시성 최종 방어선 (위반 시 23505 `unique_violation`)
+- `enforce_single_reading()` BEFORE INSERT OR UPDATE OF status 트리거 — 기존 `reading`
+  자동 `shelved` 전환 (트리거 이름이 알파벳순 실행 규칙에 의해 다른 BEFORE 트리거보다 선행)
+- 기존 다중 `reading` 데이터 정리: `updated_at` DESC 최신 1개만 `reading` 유지
+
+**영향**: 홈 "지금 읽는 책"은 유일한 `reading` 책 1권으로 단순화된다 (`pickCurrentBook`
+updated_at 휴리스틱 불필요 — PR #101 흡수/close). 사용자가 다른 책을 "읽기 시작"하면
+직전 `reading` 책이 보관함으로 이동함을 UI가 안내한다.
+
+**상태**: 해결됨 — 2026-06-30 채택. 제외 범위 7(스키마 변경 금지)에 대한 예외로
+SPEC-LIBRARY-001이 스키마 변경을 주도한다 (migration `20240630000001_enforce_single_reading_policy`).
+REQ-LIB-020 에 단일 보장 조건이 추가되었다.
 
 ---
 

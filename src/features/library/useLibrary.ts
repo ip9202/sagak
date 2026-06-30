@@ -255,7 +255,7 @@ export interface AddBookMutationInput {
 
 /**
  * 서재에 책 추가 mutation (REQ-LIB-001 / REQ-LIB-002).
- * - 기본 status='reading', current_page=0, is_public=true (DB default 의존)
+ * - 기본 status='shelved' (정책 5.5 — reading 단일), current_page=0, is_public=true (DB default 의존)
  * - UNIQUE(user_id, book_id) 위반 → AppError category='VALIDATION', code='23505'
  *   (libraryApi.addBook → normalizeError → classifyError 경유, HTTP 409 아님에 주의)
  *

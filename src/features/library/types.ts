@@ -38,7 +38,7 @@ export interface LibraryFilter {
   status?: ReadingStatus;
 }
 
-/** addBook 입력 — book_id 와 user_id 만 필수, status 는 기본 reading */
+/** addBook 입력 — book_id 와 user_id 만 필수, status 는 기본 shelved (정책 5.5) */
 export interface AddBookInput {
   bookId: string;
   userId: string;
