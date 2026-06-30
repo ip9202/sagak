@@ -295,9 +295,10 @@ describe('SPEC-LIBRARY-001 TASK-010: 상태 탭 Alert 확인 다이얼로그', (
       expect(getByTestId('status-chip-reading')).toBeTruthy();
     });
     fireEvent.press(getByTestId('status-chip-reading'));
+    // 정책 5.5 (reading 단일): reading 전환 시 기존 읽던 책의 보관함 자동 이동 안내 포함
     expect(alertSpy).toHaveBeenCalledWith(
       '읽는중으로 변경',
-      '이 책을 읽는중으로 변경할까요?',
+      expect.stringContaining('보관함으로 이동'),
       expect.any(Array),
     );
     confirmStatusAlert(alertSpy);
@@ -493,7 +494,7 @@ describe('SPEC-LIBRARY-001: 서재에 추가 진입점 (미등록 책)', () => {
     });
   });
 
-  it('버튼 press 시 addBook 을 호출한다 (기본 reading)', async () => {
+  it('버튼 press 시 addBook 을 호출한다 (기본 shelved, 정책 5.5)', async () => {
     addBookMock.mockResolvedValue({ ...sampleLibraryItem, id: 'ub-new' } as any);
     mockedUseLibraryItem.mockReturnValue({
       data: null,
@@ -507,7 +508,7 @@ describe('SPEC-LIBRARY-001: 서재에 추가 진입점 (미등록 책)', () => {
     });
     fireEvent.press(getByTestId('add-to-library-button'));
     await waitFor(() => {
-      // useAddBook 은 status 생략 시 undefined 전달, addBook 내부 ?? 'reading' 기본값 적용
+      // useAddBook 은 status 생략 시 undefined 전달, addBook 내부 ?? 'shelved' 기본값 적용 (정책 5.5)
       expect(addBookMock).toHaveBeenCalledWith(
         expect.objectContaining({
           bookId: 'b-1',
