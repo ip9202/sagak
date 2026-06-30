@@ -115,3 +115,39 @@ SPEC 인수기준(acceptance.md) ↔ 코드/테스트 매핑 결과 빈 구멍 4
 - tsc --noEmit clean, CI 3/3 green (Lint/Test/Typecheck).
 
 **비고**: 프로덕션 코드 변경 없음. PR #69 구현이 SPEC 인수기준 정상 충족 재확인.
+
+---
+
+## PR 후속 #3 (2026-06-30)
+
+### PR #102 (350e7f0) — 정책 5.5 reading 단일 정책 구현
+
+**문맥**: 기존 시스템은 사용자가 도서별로 reading 상태를 복수 보유 가능(서재 기본값 'reading'). 정책 5.5로 reading 단일 보장 요구 — 한 사용자는 동시에 최대 1개의 reading만 허용.
+
+**구현 내용 (DB 마이그레이션 + 클라이언트 수정)**:
+- **migration 20240630000001_enforce_single_reading_policy.sql**:
+  1. **다중 reading 정리**: 사용자별 updated_at DESC 최신 1개만 reading 유지, 나머지는 shelved로 전환. 정전 결과 보장(deterministic) — id DESC tie-breaker.
+  2. **부분 UNIQUE 인덱스**: `user_books_one_reading_per_user(user_id WHERE status='reading')` — 동시성 경쟁 시 23505 unique_violation 최종 방어.
+  3. **status 기본값 변경**: 'reading' → 'shelved' (서재 추가는 보관 상태로 시작).
+  4. **enforce_single_reading() 트리거**: BEFORE INSERT OR UPDATE OF status, FOR EACH ROW. 새 reading 발생(INSERT reading 또는 비-reading→reading UPDATE) 시 기존 reading을 shelved로 배타 전환. 트리거 이름 `enforce_single_reading`은 알파벳순 실행 규칙에 의해 기존 `on_user_books_update`/`trg_user_books_updated_at`보다 선행 실행 보장.
+  5. **MX 태그**: @MX:ANCHOR — DB 단일 진실 원천, 트리거 이름 변경 금지(실행 순서 의존). @MX:REASON — 부분 UNIQUE 검사 전에 기존 reading을 전환하지 않으면 정상 배타 전환이 23505로 오작동.
+
+- **클라이언트 수정** (`src/features/library/`):
+  - **addBook 기본값**: status 'shelved'로 명시적 전달(기존 'reading' 제거).
+  - **useAddBook UI 피드백**: reading 전환 시 "이미 읽고 있는 책이 있습니다. 기존 reading은 보관함으로 이동됩니다." 안내 메시지 추가 (AppError 사용자 메시지).
+
+**검증 상태**:
+- **tsc 0, jest 1321 PASS** (1221→1321, 시나리오 A-E 테스트 추가).
+- **시나리오 A (배타 전환)**: 기존 reading A → 새 책 B reading → A 자동 shelved 검증.
+- **시나리오 B (동시성 방어)**: 동시 reading 전환 시 한쪽 23505 unique_violation, 클라이언트 AppError(VALIDATION) 분류 검증.
+- **시나리오 C (no-op)**: 이미 reading인 행을 다시 reading으로 UPDATE 시 무의미한 자기 갱신/재귀 방지 검증(트리거 내 `OLD.status IS DISTINCT FROM 'reading'` 가드).
+- **시나리오 D (completion_reports 회귀 없음)**: reading→shelved 트리거 시 `generate_completion_report_trigger`(AFTER UPDATE OF status)가 미발동 검증(reading→completed만 감지하도록 조건 있음).
+- **시나리오 E (정리 결정성)**: 다중 reading 정리(updated_at DESC, id DESC)가 실행 순서 무관하게 동일 결과 보장 검증.
+
+**리뷰**:
+- **manager-quality 독립 리뷰**: Critical 0, W2(Spec 통일성), S1(MX:ANCHOR 누락 복구), W3(사용자 메시지) 수정. W1(수정 권장)은 오탐으로 직접 검증 후 반영 무효화.
+
+**SPEC 정책 5.5 추가**: spec.md에 정책 5.5 문서화 완료(reading 단일 보장, 기존 reading 자동 shelved 배타 전환, 동시성 23505 방어).
+
+**회귀 맥락**: 기존 reading 복수 보유 → 정책 5.5로 단일 강제, 정리 마이그레이션으로 기존 데이터 보존(updated_at DESC 최신 1개).
+
