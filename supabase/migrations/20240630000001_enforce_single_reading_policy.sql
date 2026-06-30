@@ -24,13 +24,14 @@
 -- 1. 다중 reading 데이터 정리
 --    사용자별 updated_at DESC 최신 1개만 reading 유지, 나머지 shelved 전환.
 --    정리 시점엔 아직 enforce_single_reading 트리거가 없으므로 전환은 안전하게 no-op cascade.
---    (기존 on_user_books_update / completion_reports 트리거는 reading→shelved 에 반응하지 않음)
+--    (on_user_books_update 트리거는 발생하나 updated_at 갱신 외 부작용 없음.
+--     completion_reports 트리거는 reading→completed 만 감지하므로 reading→shelved 에 반응하지 않음)
 -- ============================================================
 WITH ranked AS (
     SELECT id,
            ROW_NUMBER() OVER (
                PARTITION BY user_id
-               ORDER BY updated_at DESC
+               ORDER BY updated_at DESC, id DESC
            ) AS rn
     FROM public.user_books
     WHERE status = 'reading'

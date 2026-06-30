@@ -128,7 +128,7 @@ function statusAlertContent(
   isReverseFromCompleted: boolean,
 ): { title: string; message: string } {
   // 정책 5.5 (reading 단일): reading 전환 시 DB 가 기존 reading 책을 자동 shelved 로 전환한다.
-  const singleReadingNotice = ' 지금 읽는중인 책이 있다면 보관함으로 이동해요.';
+  const singleReadingNotice = ' 지금 읽는중인 다른 책이 있으면 보관함으로 이동해요.';
   switch (next) {
     case 'reading':
       return {
