@@ -24,6 +24,12 @@ const DISCOVERY = {
 };
 
 Deno.serve(async (_req: Request) => {
+  if (!NAVER_PROJECT_URL) {
+    return new Response(
+      JSON.stringify({ error: "missing_server_config", detail: "SUPABASE_URL not injected" }),
+      { status: 500, headers: { "content-type": "application/json" } },
+    );
+  }
   return new Response(JSON.stringify(DISCOVERY), {
     headers: { "content-type": "application/json" },
   });
