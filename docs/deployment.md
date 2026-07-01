@@ -441,7 +441,7 @@ ENV=production bash scripts/deploy-edge-functions.sh
    - `process-join-request` (북클럽 가입 처리, SPEC-CLUB-001)
    - `send-notification` (알림 발송, SPEC-NOTIF-001)
    - `naver-userinfo-proxy` (네이버 사용자 정보 프록시, SPEC-DEPLOY-001 REQ-DEPLOY-019 Naver OIDC)
-   - `naver-discovery` (네이버 OIDC discovery 보조, SPEC-DEPLOY-001)
+   - `naver-discovery` (네이버 OIDC discovery 보조 — Manual 모드 미사용 legacy 산물, SPEC-DEPLOY-001)
 4. 각 함수에 대해 `supabase functions deploy <name> --project-ref <ref>` 실행
 5. 배포 완료 메시지 출력: `==> Edge Function deploy complete (<env>)`
 

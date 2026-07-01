@@ -1,7 +1,9 @@
-// @MX:NOTE: [AUTO] 네이버 OIDC 커스텀 discovery — Supabase Custom OIDC 가 네이버를 읽도록 우회하는 discovery 문서.
-// @MX:REASON: 네이버 discovery 의 userinfo_endpoint(/v1/nid/me) 은 response.{} 중첩이라 Supabase 가 sub 를 못 읽음("missing provider id").
-//            따라서 userinfo_endpoint 만 naver-userinfo-proxy(flatten) 로 바꾸고, jwks_uri 는 네이버 실제값(/oauth2/jwks) 을 그대로 둔 커스텀 discovery 를 제공한다.
-//            OIDC provider 의 discovery_url 옵션(Supabase docs OIDC-specific) 으로 이 함수를 지정하면, Supabase 가 이 discovery 를 기준으로 동작한다.
+// @MX:NOTE: [AUTO] 네이버 OIDC 커스텀 discovery 문서 생성기. 현재 미사용 dead code (배포는 유지, v3).
+// @MX:REASON: 네이버 userinfo(/v1/nid/me) response.{} 중첩 → Supabase sub 미인식("missing provider id") 회피 목적의 auto-discovery 설계 산물.
+//            userinfo_endpoint 만 naver-userinfo-proxy(flatten) 로 교체, jwks_uri 는 네이버 실제값(/oauth2/jwks).
+//            custom:naver 는 v1.0.2(2026-06-19) auto-discovery → OAuth2 Manual 모드로 전환. Manual 모드는 Auth/Token/Userinfo URL 을
+//            직접 입력하므로 discovery 문서를 조회하지 않음 → 이 함수 미호출.
+//            (2026-07-01 Dashboard custom:naver = Manual 모드 검증 완료 — SPEC-DEPLOY-001 S1 해소. 재전환 시 git history 복구 가능)
 
 const NAVER_PROJECT_URL = Deno.env.get("SUPABASE_URL") ?? "";
 
