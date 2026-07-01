@@ -81,7 +81,7 @@ issue_number: 0
 | 3  | Fastlane 스토어 메타데이터 자동화               | 미해결      |
 | 4  | Sentry 릴리즈 트래킹 연동 방식                   | 미해결      |
 | 5  | 로컬 빌드 vs 클라우드 빌드 비용 최적화          | 미해결      |
-| 6  | 환경 분리: 별도 프로젝트 vs 단일 프로젝트+RLS  | 부분 해결   |
+| 6  | 환경 분리: 별도 프로젝트 vs 단일 프로젝트+RLS  | 해결됨      |
 
 ---
 
@@ -104,6 +104,8 @@ issue_number: 0
 6. **M6 (Medium)**: Edge Function 배포 + Supabase 프로비저닝 (최종 통합 게이트) — ✅ 완료 (PR #52, 86729fb, 2026-06-24)
 
 > **구현 진행 상태 (2026-06-24)**: 본 SPEC은 **완료(implemented)** 상태이다. 모든 6개 마일스톤(M1~M6) 구현 완료 및 머지됨 (PR #52, 86729fb). M3에서 Sentry SDK 설치(`@sentry/react-native@~7.11.0`) 및 app-entry 연결 완료. §6 #4 (Sentry CLI source-map upload / release tracking)는 여전히 미해결. 상세 진행 로그는 `progress.md` 참조.
+
+> **§6 #6 결정 (2026-07-01)**: 단일 프로젝트(lqltwbpocbgoxvhlmjdo) prod 승격 정책 채택. dev는 로컬 Docker, prod는 단일 클라우드, staging은 prod 동일 클라우드 + ENV flag 구분. 별도 클라우드 프로젝트 생성은 MVP 이후 검토.
 
 ---
 

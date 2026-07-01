@@ -139,6 +139,7 @@
 | 2026-06-24 | #59 (b932de3) | refactor(deploy) Edge Function 목록 JSON SSOT 도입 (TS-Bash 중복 해결) | `src/lib/edge-function-deploy.ts` `EDGE_FUNCTIONS` 레지스트리를 `scripts/deploy-edge-functions.sh`가 소비하도록 단일 진실 소스(SSOT) 도입. macOS bash 호환(mapfile→while-read) 수정. |
 | 2026-06-24 | #60 (1516cf9) | docs(deploy) Edge Function 배포 가이드 + .env.example placeholder | `docs/deployment.md` §7에 Edge Function 배포 절차(dev/staging/prod) 추가. `.env.example`에 `SUPABASE_ACCESS_TOKEN`, `SUPABASE_DEVELOPMENT_PROJECT_REF` 플레이스홀더 추가. |
 | 2026-06-24 | #61 (ddb5c84) | fix(deploy) Edge Function 로컬 import .ts + send-notification deno.json + tsconfig | 배포 호환성 수정: kakao-book-search(8곳) + send-notification/templates.ts 로컬 import `.ts` 확장자 추가(Deno esbuild 요구), `send-notification/deno.json` importMap 추가(`@supabase/supabase-js` 매핑), `tsconfig.json` `allowImportingTsExtensions: true` 설정(tsc 5097 회피). dev 5개 함수 ACTIVE 배포 완료. staging/prod는 GitHub Secrets 확보 시 동일 스크립트로 배포 가능. |
+| 2026-07-01 | (문서 갱신, PR 대기) | §6 #6 결정 반영 | 단일 프로젝트 prod 승격 결정. naver-discovery 하드코딩→환경변수화, edge-function-deploy 주석 갱신(로직 불변), .env.example 메모 보강. SPEC §6 #6 "부분 해결"→"해결됨". |
 
 ---
 

@@ -42,6 +42,10 @@ export type EdgeFunctionName = (typeof EDGE_FUNCTIONS)[number];
 
 /**
  * Build environments that have a dedicated Supabase project (REQ-DEPLOY-023).
+ *
+ * §6 #6 단일 프로젝트 결정으로 amended 2026-07-01: prod는 단일 클라우드 프로젝트,
+ * dev는 로컬 Docker. 환경별 project ref는 런타임 환경변수로 주입되므로
+ * 이 타입(3-환경 분기)은 단일 프로젝트 정책에서도 그대로 유효하다.
  */
 export type DeployEnvironment = 'development' | 'staging' | 'production';
 
@@ -79,7 +83,9 @@ export interface DeployTarget {
  * Resolve the Supabase project ref + command builder for an environment.
  *
  * REQ-DEPLOY-013: develop -> staging build, release/hotfix -> production.
- * REQ-DEPLOY-023: three separate Supabase projects, one per environment.
+ * REQ-DEPLOY-023 (amended 2026-07-01, §6 #6): 단일 클라우드 프로젝트를 prod로 사용하고
+ * dev는 로컬 Docker. 환경별 project ref는 환경변수(SUPABASE_DEV/STAGING/PROD_PROJECT_REF)로
+ * 주입되므로 3-환경 분기 로직은 그대로 유효하다.
  *
  * @param env Runtime environment. Unknown values throw (fail-fast).
  * @param envSource Optional override for unit tests (defaults to process.env).
