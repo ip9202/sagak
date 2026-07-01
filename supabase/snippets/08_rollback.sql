@@ -37,6 +37,20 @@ ALTER TABLE public.user_books
 -- 주의: 반드시 위 (1)~(4) 롤백 완료 후 실행할 것.
 --       부분 UNIQUE 인덱스가 살아있으면 다중 reading 복원 시 23505 발생.
 -- ============================================================
+-- W4 런타임 가드 (주석 해제 시 활성화): 부분 UNIQUE 인덱스가 살아있으면 다중 reading 복원이 23505로 폭발·부분 복원된다.
+-- 반드시 위 (1)~(4) 롤백(인덱스 제거) 완료 후에만 실행할 것.
+/*
+DO $$
+BEGIN
+    IF EXISTS (
+        SELECT 1 FROM pg_class c
+        WHERE c.relname = 'user_books_one_reading_per_user'
+    ) THEN
+        RAISE EXCEPTION '부분 UNIQUE 인덱스 user_books_one_reading_per_user 가 아직 존재합니다. 08 (1)~(4) 롤백을 먼저 실행하세요.';
+    END IF;
+END $$;
+*/
+
 /*
 UPDATE public.user_books ub
 SET status = b.original_status

@@ -8,16 +8,20 @@
 -- MUTATING 여부: MUTATING (테스트 UPDATE + cleanup)
 -- 시나리오: C (no-op)
 -- ============================================================
--- 준비: :test_user_id, :test_book_id_a, :test_book_id_b 를 실제 uuid 리터럴로 치환.
---       (book_a 는 기존 reading, book_b 는 두 번째 reading 후보 — no-op 검증용)
+-- ⚠️ 준비 (W1 안전 가드): 본 스크립트는 더미 UUID(00000000-...)를 기본값으로 사용한다.
+--   SQL Editor는 psql 변수 바인딩(:var)을 지원하지 않으므로 구문 오류를 유발한다.
+--   실행 전 더미 UUID를 '실제 테스트 전용 계정/도서 UUID'로 치환하라.
+--   - 운용 계정(본인/동료) UUID를 절대 사용하지 말 것 (BYPASSRLS → 실데이터 파괴).
+--   - 각 MUTATING 문 실행 전 반드시 SELECT로 대상 행을 먼저 확인할 것.
+--   - 치환 누락 시 더미 UUID로 실행되어(안전), 실패를 알린다.
 
 -- ====================================================================
 -- STEP C-1: 기준 상태 만들기 — test_user 의 reading 행을 book_a 로 하나 둔다.
 -- ====================================================================
 INSERT INTO public.user_books (user_id, book_id, status, current_page)
 VALUES (
-    :'test_user_id'::uuid,
-    :'test_book_id_a'::uuid,
+    '00000000-0000-0000-0000-000000000001'::uuid,
+    '00000000-0000-0000-0000-0000000000a1'::uuid,
     'reading',
     7
 )
@@ -27,7 +31,7 @@ SET status = 'reading', current_page = 7;
 -- 현재 reading 행 id 기록 (이 행이 no-op UPDATE 후에도 변경 없어야 함)
 SELECT id AS prior_reading_id, book_id, status
 FROM public.user_books
-WHERE user_id = :'test_user_id'::uuid
+WHERE user_id = '00000000-0000-0000-0000-000000000001'::uuid
   AND status = 'reading';
 
 -- ====================================================================
@@ -37,8 +41,8 @@ WHERE user_id = :'test_user_id'::uuid
 UPDATE public.user_books
 SET status = 'reading',
     current_page = 8
-WHERE user_id = :'test_user_id'::uuid
-  AND book_id = :'test_book_id_a'::uuid;
+WHERE user_id = '00000000-0000-0000-0000-000000000001'::uuid
+  AND book_id = '00000000-0000-0000-0000-0000000000a1'::uuid;
 
 -- ====================================================================
 -- STEP C-3: 검증 — reading 행이 여전히 정확히 1개이고,
@@ -47,13 +51,13 @@ WHERE user_id = :'test_user_id'::uuid
 -- ====================================================================
 SELECT id, book_id, status, current_page
 FROM public.user_books
-WHERE user_id = :'test_user_id'::uuid
-  AND book_id = :'test_book_id_a'::uuid;
+WHERE user_id = '00000000-0000-0000-0000-000000000001'::uuid
+  AND book_id = '00000000-0000-0000-0000-0000000000a1'::uuid;
 -- 기대: status = 'reading', current_page = 8 (의도한 갱신만)
 
 SELECT count(*) AS reading_count_for_test_user
 FROM public.user_books
-WHERE user_id = :'test_user_id'::uuid
+WHERE user_id = '00000000-0000-0000-0000-000000000001'::uuid
   AND status = 'reading';
 -- 기대: 1 (spurious cascade 없음)
 
@@ -68,5 +72,5 @@ WHERE user_id = :'test_user_id'::uuid
 -- STEP C-5: cleanup — 테스트 행 삭제.
 -- ====================================================================
 DELETE FROM public.user_books
-WHERE user_id = :'test_user_id'::uuid
-  AND book_id = :'test_book_id_a'::uuid;
+WHERE user_id = '00000000-0000-0000-0000-000000000001'::uuid
+  AND book_id = '00000000-0000-0000-0000-0000000000a1'::uuid;

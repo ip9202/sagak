@@ -17,6 +17,13 @@ CREATE TABLE IF NOT EXISTS public.backup_enforce_single_reading (
     updated_at timestamptz
 );
 
+-- C1 보안: 백업 테이블은 user_books 본체와 동일 민감도 PII를 보관하므로
+-- RLS를 강제 적용하고 authenticated/anon 접근을 차단한다 (bypass via side table 방지).
+-- SQL Editor(service_role/postgres) 문맥에서는 BYPASSRLS로 정상 동작한다.
+ALTER TABLE public.backup_enforce_single_reading ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.backup_enforce_single_reading FORCE ROW LEVEL SECURITY;
+REVOKE ALL ON public.backup_enforce_single_reading FROM authenticated, anon;
+
 -- 정리 대상(rn>1) 행만 백업에 적재.
 -- 이미 백업이 존재할 경우 중복 적재를 방지하기 위해 NOT EXISTS 가드 사용.
 INSERT INTO public.backup_enforce_single_reading (
@@ -47,3 +54,8 @@ WHERE r.rn > 1
 SELECT count(*) AS backup_row_count,
        count(DISTINCT user_id) AS affected_user_count
 FROM public.backup_enforce_single_reading;
+
+COMMENT ON TABLE public.backup_enforce_single_reading IS
+    'SPEC-LIBRARY-001 마이그레이션 백업 — PII(user_id+book_id+reading 상태) 포함. '
+    '운용자(service_role/postgres) 전용, RLS FORCE 적용. '
+    '보존 기간: 마이그레이션 안정화 30일 후 DROP (PR #104, runbook disposal step 참조).';

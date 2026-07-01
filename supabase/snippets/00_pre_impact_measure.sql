@@ -38,7 +38,14 @@ WHERE rn > 1;
 
 -- (3) 사용자별 현재 reading 행 분해 (어떤 행이 보존/전환될지 사전 점검)
 --     kept_expected = true 인 행이 마이그레이션 후에도 reading 으로 잔류해야 한다.
-WITH ranked AS (
+WITH multi_reading_users AS (
+    SELECT user_id
+    FROM public.user_books
+    WHERE status = 'reading'
+    GROUP BY user_id
+    HAVING count(*) > 1
+),
+ranked AS (
     SELECT id,
            user_id,
            book_id,
@@ -60,8 +67,5 @@ SELECT
     rn,
     CASE WHEN rn = 1 THEN true ELSE false END AS kept_expected
 FROM ranked
-WHERE EXISTS (
-    SELECT 1 FROM ranked r2
-    WHERE r2.user_id = ranked.user_id AND r2.rn > 1
-)
+WHERE user_id IN (SELECT user_id FROM multi_reading_users)
 ORDER BY user_id, rn;
