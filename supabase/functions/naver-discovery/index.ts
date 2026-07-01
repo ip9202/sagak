@@ -3,7 +3,7 @@
 //            따라서 userinfo_endpoint 만 naver-userinfo-proxy(flatten) 로 바꾸고, jwks_uri 는 네이버 실제값(/oauth2/jwks) 을 그대로 둔 커스텀 discovery 를 제공한다.
 //            OIDC provider 의 discovery_url 옵션(Supabase docs OIDC-specific) 으로 이 함수를 지정하면, Supabase 가 이 discovery 를 기준으로 동작한다.
 
-const NAVER_PROJECT_URL = "https://lqltwbpocbgoxvhlmjdo.supabase.co";
+const NAVER_PROJECT_URL = Deno.env.get("SUPABASE_URL") ?? "";
 
 // 네이버 OIDC discovery 의 모든 실제 필드 + userinfo_endpoint 만 proxy 로 교체.
 const DISCOVERY = {
@@ -24,6 +24,12 @@ const DISCOVERY = {
 };
 
 Deno.serve(async (_req: Request) => {
+  if (!NAVER_PROJECT_URL) {
+    return new Response(
+      JSON.stringify({ error: "missing_server_config", detail: "SUPABASE_URL not injected" }),
+      { status: 500, headers: { "content-type": "application/json" } },
+    );
+  }
   return new Response(JSON.stringify(DISCOVERY), {
     headers: { "content-type": "application/json" },
   });
