@@ -134,6 +134,26 @@ describe('SPEC-CLUB-001 T-009: useActiveReaders', () => {
     expect(client.getQueryData(['club', 'readers', 'b-9'])).toEqual([]);
     spy.mockRestore();
   });
+
+  // @MX:NOTE: [AUTO] 본인(현재 로그인 사용자)은 독자 목록에서 제외되어야 한다. 자기 자신에게 합류 요청을 보낼 수 없기 때문.
+  it('currentUserId 를 전달하면 fetchActiveReaders(bookId, currentUserId) 로 전파한다', async () => {
+    fetchReadersMock.mockResolvedValue([]);
+    const client = createTestQueryClient();
+    renderHook(() => useActiveReaders('b-1', 'u-me'), {
+      wrapper: createWrapper(client),
+    });
+    await waitFor(() => expect(fetchReadersMock).toHaveBeenCalledWith('b-1', 'u-me'));
+  });
+
+  it('currentUserId 미제공 시 fetchActiveReaders(bookId, undefined) 로 호출한다 (하위 호환)', async () => {
+    fetchReadersMock.mockResolvedValue([]);
+    const client = createTestQueryClient();
+    renderHook(() => useActiveReaders('b-1'), {
+      wrapper: createWrapper(client),
+    });
+    await waitFor(() => expect(fetchReadersMock).toHaveBeenCalled());
+    expect(fetchReadersMock).toHaveBeenCalledWith('b-1', undefined);
+  });
 });
 
 describe('SPEC-CLUB-001 T-009: useCreateJoinRequest', () => {

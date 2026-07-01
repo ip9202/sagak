@@ -685,6 +685,32 @@ export const BookDetailScreen: React.FC<BookDetailScreenProps> = ({
             </View>
           </View>
 
+          {/* SPEC-CLUB-001: 같이 읽는 독자 보기 — /readers 라우트 진입 CTA.
+              @MX:NOTE: [AUTO] readers.tsx 라우트는 useLocalSearchParams<{ bookId: string }>() 로
+                        param key 'bookId' 를 읽으므로, push 시 동일한 key 로 전달한다. */}
+          <Pressable
+            testID="readers-entry-button"
+            onPress={() =>
+              router.push({
+                pathname: '/readers',
+                params: { bookId },
+              })
+            }
+            style={[
+              styles.completeButton,
+              {
+                backgroundColor: tc.brand[500],
+                borderRadius: theme.radius.md,
+              },
+            ]}
+            accessibilityRole="button"
+            accessibilityLabel="같이 읽는 독자 보기"
+          >
+            <Text style={[styles.completeButtonText, { color: tc.text.inverse }]}>
+              같이 읽는 독자 보기
+            </Text>
+          </Pressable>
+
           {/* 삭제 */}
           <Pressable
             testID="delete-button"

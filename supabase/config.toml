@@ -411,3 +411,8 @@ verify_jwt = false
 
 [functions.naver-discovery]
 verify_jwt = false
+
+# @MX:NOTE: [AUTO] 가입 처리 Edge Function — 인증된 사용자만 호출해야 하므로 JWT 검증 필수.
+#           @MX:REASON: idempotent 보장 — CLI 재배포 시 기본값(true)이 다른 값으로 덮이는 것을 방지 + naver-*(verify_jwt=false)와의 혼동 차단 (보안 리뷰 W1).
+[functions.process-join-request]
+verify_jwt = true

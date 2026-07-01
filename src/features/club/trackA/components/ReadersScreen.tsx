@@ -56,7 +56,7 @@ export const ReadersScreen: React.FC<ReadersScreenProps> = ({
   const router = useRouter();
   const session = useSession();
   const userId = session?.user?.id ?? '';
-  const { data, isLoading, isError, error } = useActiveReaders(bookId);
+  const { data, isLoading, isError, error } = useActiveReaders(bookId, userId);
 
   const readers = data ?? [];
   const isEmpty = !isLoading && !isError && readers.length === 0;

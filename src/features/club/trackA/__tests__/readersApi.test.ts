@@ -131,6 +131,53 @@ describe('SPEC-CLUB-001 T-002: fetchActiveReaders', () => {
       category: 'NETWORK',
     });
   });
+
+  // @MX:NOTE: [AUTO] 본인(현재 로그인 사용자)은 독자 목록에서 제외되어야 한다. 자기 자신에게 합류 요청을 보낼 수 없기 때문.
+  describe('SPEC-CLUB-001 fix: 본인 user_id 제외 (REQ-CLUBA-001 보강)', () => {
+    /** neq 지원 체인: from().select().eq(book_id).neq(user_id).order() -> {data,error} */
+    function buildNeqChain(currentUserId: string | undefined) {
+      const final = { data: [] as unknown[], error: null };
+      const neqMock = jest.fn();
+      const orderMockLocal = jest.fn().mockResolvedValue(final);
+      // neq 호출 시 order 단계로 연결
+      neqMock.mockReturnValue({ order: orderMockLocal });
+      // eq 호출 시: currentUserId 있으면 {neq} 반환, 없으면 {order} 반환
+      const eqMockLocal = jest.fn();
+      if (currentUserId && currentUserId.length > 0) {
+        eqMockLocal.mockReturnValue({ neq: neqMock });
+      } else {
+        eqMockLocal.mockReturnValue({ order: orderMockLocal });
+      }
+      const selectMockLocal = jest.fn().mockReturnValue({ eq: eqMockLocal });
+      const fromMockLocal = jest.fn().mockReturnValue({ select: selectMockLocal });
+      (getSupabaseClient as jest.Mock).mockReturnValue({ from: fromMockLocal });
+      return { neqMock, eqMockLocal, orderMockLocal };
+    }
+
+    it('currentUserId 제공 시 .neq("user_id", currentUserId) 로 본인을 제외한다', async () => {
+      const { neqMock } = buildNeqChain('u-me');
+
+      await fetchActiveReaders('b1', 'u-me');
+
+      expect(neqMock).toHaveBeenCalledWith('user_id', 'u-me');
+    });
+
+    it('currentUserId 미제공 시 .neq 를 적용하지 않는다 (미인증 가드)', async () => {
+      const { neqMock } = buildNeqChain(undefined);
+
+      await fetchActiveReaders('b1');
+
+      expect(neqMock).not.toHaveBeenCalled();
+    });
+
+    it('currentUserId 빈 문자열 시 .neq 를 적용하지 않는다 (미인증 가드)', async () => {
+      const { neqMock } = buildNeqChain('');
+
+      await fetchActiveReaders('b1', '');
+
+      expect(neqMock).not.toHaveBeenCalled();
+    });
+  });
 });
 
 describe('SPEC-CLUB-001 T-003: resolveClubIdsForUsers', () => {

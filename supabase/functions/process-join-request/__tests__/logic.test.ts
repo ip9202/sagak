@@ -6,6 +6,11 @@
  * - parseRequestBody: JSON 파싱 + 필수 필드 검증
  * - validateMessage: E4 500자 이중 방어 (Edge Function 측)
  * - errorResponse / successResponse: 표준 응답 빌더
+ * - resolveAllowedOrigin: CORS Origin 화이트리스트 검증 (운영 배포 보안 요구사항)
+ * - buildSendNotificationPayload: SPEC-NOTIF-001 연동 바디 빌더 (join_request_received)
+ * - isUniqueViolation: 23505 UNIQUE 위반 감지 (join_requests 멱등성)
+ * - buildLazyClubName: lazy group 클럽 name 생성
+ * - buildCorsPreflightHeaders / buildJsonHeaders: CORS 헤더 빌더
  */
 import {
   parseRequestBody,
@@ -13,6 +18,12 @@ import {
   buildErrorResponse,
   buildSuccessResponse,
   MESSAGE_MAX_LENGTH,
+  resolveAllowedOrigin,
+  buildSendNotificationPayload,
+  isUniqueViolation,
+  buildLazyClubName,
+  buildCorsPreflightHeaders,
+  buildJsonHeaders,
 } from '../logic';
 
 describe('SPEC-CLUB-001 T-008: process-join-request logic', () => {
@@ -129,6 +140,123 @@ describe('SPEC-CLUB-001 T-008: process-join-request logic', () => {
         request_id: 'jr-1',
       });
       expect(resp.status).toBe(200);
+    });
+  });
+
+  // --- 운영 배포 보안 요구사항 (SPEC-CLUB-001 progress.md) ---
+
+  describe('resolveAllowedOrigin (CORS Origin 화이트리스트)', () => {
+    it('허용 목록에 포함된 origin 은 그대로 반환', () => {
+      const allow = ['https://sagak.app', 'https://dev.sagak.app'];
+      expect(resolveAllowedOrigin('https://sagak.app', allow)).toBe(
+        'https://sagak.app',
+      );
+    });
+
+    it('허용 목록에 없는 origin 은 null 반환 (preflight 거부용)', () => {
+      const allow = ['https://sagak.app'];
+      expect(resolveAllowedOrigin('https://evil.example', allow)).toBeNull();
+    });
+
+    it('origin 헤더가 null 이면 null 반환', () => {
+      expect(resolveAllowedOrigin(null, ['https://sagak.app'])).toBeNull();
+    });
+
+    it('빈 문자열 origin 은 null 반환', () => {
+      expect(resolveAllowedOrigin('', ['https://sagak.app'])).toBeNull();
+    });
+
+    it('허용 목록이 비어 있으면 항상 null 반환 (폐쇄 정책)', () => {
+      expect(
+        resolveAllowedOrigin('https://sagak.app', []),
+      ).toBeNull();
+    });
+  });
+
+  describe('buildCorsPreflightHeaders / buildJsonHeaders (Origin 반영)', () => {
+    it('preflight 헤더는 허용된 origin 을 Access-Control-Allow-Origin 에 반영', () => {
+      const h = buildCorsPreflightHeaders('https://sagak.app');
+      expect(h['Access-Control-Allow-Origin']).toBe('https://sagak.app');
+      expect(h['Access-Control-Allow-Methods']).toContain('POST');
+      expect(h['Access-Control-Allow-Headers']).toContain('authorization');
+    });
+
+    it('JSON 헤더도 허용된 origin 을 반영한다', () => {
+      const h = buildJsonHeaders('https://sagak.app');
+      expect(h['Access-Control-Allow-Origin']).toBe('https://sagak.app');
+      expect(h['Content-Type']).toBe('application/json');
+    });
+  });
+
+  describe('isUniqueViolation (23505 감지, join_requests 멱등성)', () => {
+    it('code 23505 + message 에 unique 포함 시 true', () => {
+      const err = {
+        code: '23505',
+        message: 'duplicate key value violates unique constraint',
+      };
+      expect(isUniqueViolation(err)).toBe(true);
+    });
+
+    it('code 23505 만으로도 true (메시지 폼 무관)', () => {
+      expect(isUniqueViolation({ code: '23505' })).toBe(true);
+    });
+
+    it('다른 code 는 false', () => {
+      expect(isUniqueViolation({ code: '42501', message: 'rls denied' })).toBe(
+        false,
+      );
+    });
+
+    it('code 필드가 없으면 false', () => {
+      expect(isUniqueViolation({ message: 'some error' })).toBe(false);
+    });
+
+    it('null/undefined 입력 시 false', () => {
+      expect(isUniqueViolation(null)).toBe(false);
+      expect(isUniqueViolation(undefined)).toBe(false);
+    });
+  });
+
+  describe('buildLazyClubName (lazy group 클럽 name 생성)', () => {
+    it('형식: "group-{bookId 앞 8자}" — clubs.name NOT NULL 대응', () => {
+      const name = buildLazyClubName('12345678-90ab-cdef-1234-567890abcdef');
+      expect(name).toBe('group-12345678');
+      // clubs.name NOT NULL 제약 만족
+      expect(name.length).toBeGreaterThan(0);
+    });
+
+    it('bookId 가 짧아도 접두사는 유지', () => {
+      const name = buildLazyClubName('abc');
+      expect(name).toBe('group-abc');
+    });
+  });
+
+  describe('buildSendNotificationPayload (SPEC-NOTIF-001 연동)', () => {
+    it('join_request_received 타입 + host_id + data{requester_nickname, club_title} + ref_id=request_id', () => {
+      const payload = buildSendNotificationPayload({
+        hostUserId: 'host-uuid',
+        requestId: 'jr-uuid',
+        requesterNickname: '독자함께',
+        clubTitle: 'group-12345678',
+      });
+
+      expect(payload.user_id).toBe('host-uuid');
+      expect(payload.type).toBe('join_request_received');
+      expect(payload.ref_id).toBe('jr-uuid');
+      expect(payload.data).toEqual({
+        requester_nickname: '독자함께',
+        club_title: 'group-12345678',
+      });
+    });
+
+    it('requesterNickname 이 null 이면 빈 문자열로 graceful degradation (acceptance N33)', () => {
+      const payload = buildSendNotificationPayload({
+        hostUserId: 'host-uuid',
+        requestId: 'jr-uuid',
+        requesterNickname: null,
+        clubTitle: 'group-12345678',
+      });
+      expect(payload.data?.requester_nickname).toBe('');
     });
   });
 });
