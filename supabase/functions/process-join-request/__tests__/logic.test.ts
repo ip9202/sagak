@@ -11,6 +11,7 @@
  * - isUniqueViolation: 23505 UNIQUE 위반 감지 (join_requests 멱등성)
  * - buildLazyClubName: lazy group 클럽 name 생성
  * - buildCorsPreflightHeaders / buildJsonHeaders: CORS 헤더 빌더
+ * - extractJwtSub: JWT sub(user_id) 추출 — M-1 보안 검증 (requester_id == JWT sub)
  */
 import {
   parseRequestBody,
@@ -24,6 +25,7 @@ import {
   buildLazyClubName,
   buildCorsPreflightHeaders,
   buildJsonHeaders,
+  extractJwtSub,
 } from '../logic';
 
 describe('SPEC-CLUB-001 T-008: process-join-request logic', () => {
@@ -257,6 +259,88 @@ describe('SPEC-CLUB-001 T-008: process-join-request logic', () => {
         clubTitle: 'group-12345678',
       });
       expect(payload.data?.requester_nickname).toBe('');
+    });
+  });
+
+  describe('extractJwtSub (JWT sub 추출 — M-1 보안 검증)', () => {
+    // 테스트용 JWT payload 를 base64url 로 인코딩한다.
+    // 실제 디코딩 경로(payload.replace(/-/g,'+').replace(/_/g,'/') + pad + atob)를
+    // 정확히 거치도록 표준 base64 → base64url 변환(-/_ 패딩 제거)을 적용한다.
+    function b64urlPayload(obj: unknown): string {
+      const json = JSON.stringify(obj);
+      // UTF-8 안전 base64 인코딩 (unescape/encodeURIComponent 레거시 대신 Node Buffer 사용)
+      const b64 = Buffer.from(json, 'utf-8').toString('base64');
+      return b64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+    }
+    function makeJwt(payload: unknown): string {
+      return `${b64urlPayload({ alg: 'none' })}.${b64urlPayload(payload)}.dummy-signature`;
+    }
+
+    it('정상 Bearer JWT 의 sub 를 반환한다 (happy path)', () => {
+      const token = makeJwt({ sub: 'user-uuid-123' });
+      expect(extractJwtSub(`Bearer ${token}`)).toBe('user-uuid-123');
+    });
+
+    it('payload 에 추가 필드가 있어도 sub 만 반환한다', () => {
+      const token = makeJwt({ sub: 'user-uuid-123', iat: 1700000000, exp: 1800000000 });
+      expect(extractJwtSub(`Bearer ${token}`)).toBe('user-uuid-123');
+    });
+
+    it('Authorization 헤더가 null 이면 null 반환', () => {
+      expect(extractJwtSub(null)).toBeNull();
+    });
+
+    it('Authorization 헤더가 빈 문자열이면 null 반환 (falsy)', () => {
+      expect(extractJwtSub('')).toBeNull();
+    });
+
+    it('스킴이 Bearer 가 아니면 null 반환 (예: Token)', () => {
+      const token = makeJwt({ sub: 'user-uuid-123' });
+      expect(extractJwtSub(`Token ${token}`)).toBeNull();
+    });
+
+    it('스킴이 소문자 bearer 이면 null 반환 (대소문자 구분)', () => {
+      const token = makeJwt({ sub: 'user-uuid-123' });
+      expect(extractJwtSub(`bearer ${token}`)).toBeNull();
+    });
+
+    it('공백이 없는 단일 토큰이면 null 반환 (parts.length !== 2)', () => {
+      expect(extractJwtSub('Bearer')).toBeNull();
+      expect(extractJwtSub('abc.def.ghi')).toBeNull();
+    });
+
+    it('공백이 2개 이상이면 null 반환 (parts.length === 3)', () => {
+      expect(extractJwtSub('Bearer a b')).toBeNull();
+    });
+
+    it('토큰이 점 2개(3파트 아님)면 null 반환', () => {
+      expect(extractJwtSub('Bearer abc.def')).toBeNull();
+    });
+
+    it('토큰은 3파트지만 payload 가 base64 디코딩 불가능하면 null 반환 (catch)', () => {
+      // base64url 이 아닌 잘못된 문자열이 들어가도 atob 실패 → catch
+      expect(extractJwtSub('Bearer !!!!!!.@@@@@@.######')).toBeNull();
+    });
+
+    it('payload 가 유효 base64 이지만 JSON 객체가 아니면 null 반환 (배열)', () => {
+      // JSON 배열 → typeof object 이지만 'sub' in [] 은 false
+      const token = makeJwt([1, 2, 3]);
+      expect(extractJwtSub(`Bearer ${token}`)).toBeNull();
+    });
+
+    it('payload 가 JSON 문자열 리터럴이면 null 반환 (typeof !== object)', () => {
+      const token = makeJwt('plain-string');
+      expect(extractJwtSub(`Bearer ${token}`)).toBeNull();
+    });
+
+    it('payload 객체에 sub 가 없으면 null 반환', () => {
+      const token = makeJwt({ foo: 'bar', iat: 123 });
+      expect(extractJwtSub(`Bearer ${token}`)).toBeNull();
+    });
+
+    it('sub 가 문자열이 아니면 null 반환 (숫자 타입)', () => {
+      const token = makeJwt({ sub: 12345 });
+      expect(extractJwtSub(`Bearer ${token}`)).toBeNull();
     });
   });
 });
