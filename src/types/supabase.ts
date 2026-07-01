@@ -646,18 +646,21 @@ export type Database = {
           book_id: string | null
           current_page: number | null
           started_reading_at: string | null
+          status: string | null
           user_id: string | null
         }
         Insert: {
           book_id?: string | null
           current_page?: number | null
           started_reading_at?: string | null
+          status?: string | null
           user_id?: string | null
         }
         Update: {
           book_id?: string | null
           current_page?: number | null
           started_reading_at?: string | null
+          status?: string | null
           user_id?: string | null
         }
         Relationships: [

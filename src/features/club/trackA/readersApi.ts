@@ -35,11 +35,13 @@ export async function fetchActiveReaders(
 
   let result: { data: UserBooksPublicRow[] | null; error: unknown };
   try {
-    // @MX:NOTE: [AUTO] PostgREST 쿼리 빌더 체인 — 타입 추론이 복잡하여 unknown 단언 사용. 체인은 eq → neq(옵션) → order 순.
+    // @MX:NOTE: [AUTO] PostgREST 쿼리 빌더 체인 — unknown 단언 사용. 체인은 eq(book_id) → eq(status=reading) → neq(옵션) → order 순.
+    //            status='reading' 필터로 읽는중 독자만 — user_books_public 뷰가 status 노출(migration 20240701000001). completed/shelved 제외(부작용 수정).
     let query: unknown = client
       .from('user_books_public')
       .select(READERS_SELECT)
-      .eq('book_id', bookId);
+      .eq('book_id', bookId)
+      .eq('status', 'reading');
     if (currentUserId && currentUserId.length > 0) {
       query = (query as { neq: (col: string, val: string) => unknown }).neq(
         'user_id',

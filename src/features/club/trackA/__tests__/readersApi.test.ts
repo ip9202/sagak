@@ -55,6 +55,7 @@ describe('SPEC-CLUB-001 T-002: fetchActiveReaders', () => {
 
     // 체인: from(view).select().eq(book_id).order(started_reading_at,desc) → {data,error}
     eqMock.mockReturnValue({
+      eq: eqMock,
       order: orderMock,
     });
     selectMock.mockReturnValue({
@@ -81,6 +82,16 @@ describe('SPEC-CLUB-001 T-002: fetchActiveReaders', () => {
       'user_id, book_id, current_page, started_reading_at',
     );
     expect(eqMock).toHaveBeenCalledWith('book_id', 'b1');
+  });
+
+  // @MX:NOTE: [AUTO] 부작용 수정 — fetchActiveReaders 는 "읽는중 독자"(status='reading')만 반환해야 함.
+  //            뷰가 status 미노출이었던 gap(user_books_public → status 노출 migration 20240701000001 로 해소).
+  it('status=reading 필터로 읽는중 독자만 반환한다 (부작용 수정, REQ-CLUBA-001)', async () => {
+    orderMock.mockResolvedValue({ data: [], error: null });
+
+    await fetchActiveReaders('b1');
+
+    expect(eqMock).toHaveBeenCalledWith('status', 'reading');
   });
 
   it('started_reading_at DESC 정렬을 적용한다 (REQ-CLUBA-002, 결정 5.3)', async () => {
@@ -134,20 +145,22 @@ describe('SPEC-CLUB-001 T-002: fetchActiveReaders', () => {
 
   // @MX:NOTE: [AUTO] 본인(현재 로그인 사용자)은 독자 목록에서 제외되어야 한다. 자기 자신에게 합류 요청을 보낼 수 없기 때문.
   describe('SPEC-CLUB-001 fix: 본인 user_id 제외 (REQ-CLUBA-001 보강)', () => {
-    /** neq 지원 체인: from().select().eq(book_id).neq(user_id).order() -> {data,error} */
+    /** neq 지원 체인: from().select().eq(book_id).eq(status).neq(user_id).order() -> {data,error} */
     function buildNeqChain(currentUserId: string | undefined) {
       const final = { data: [] as unknown[], error: null };
       const neqMock = jest.fn();
       const orderMockLocal = jest.fn().mockResolvedValue(final);
       // neq 호출 시 order 단계로 연결
       neqMock.mockReturnValue({ order: orderMockLocal });
-      // eq 호출 시: currentUserId 있으면 {neq} 반환, 없으면 {order} 반환
-      const eqMockLocal = jest.fn();
+      // eq(status) 호출 시: currentUserId 있으면 {neq} 반환, 없으면 {order} 반환
+      const eqStatus = jest.fn();
       if (currentUserId && currentUserId.length > 0) {
-        eqMockLocal.mockReturnValue({ neq: neqMock });
+        eqStatus.mockReturnValue({ neq: neqMock });
       } else {
-        eqMockLocal.mockReturnValue({ order: orderMockLocal });
+        eqStatus.mockReturnValue({ order: orderMockLocal });
       }
+      // eq(book_id) 호출 시 {eq: eqStatus} 반환 (status 필터 단계로 연결)
+      const eqMockLocal = jest.fn().mockReturnValue({ eq: eqStatus });
       const selectMockLocal = jest.fn().mockReturnValue({ eq: eqMockLocal });
       const fromMockLocal = jest.fn().mockReturnValue({ select: selectMockLocal });
       (getSupabaseClient as jest.Mock).mockReturnValue({ from: fromMockLocal });
