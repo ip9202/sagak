@@ -95,8 +95,8 @@ describe('SPEC-CLUB-001 T-009: useActiveReaders', () => {
 
   it('fetchActiveReaders + resolveClubIdsForUsers 를 조합해 ActiveReader[] 를 반환한다', async () => {
     fetchReadersMock.mockResolvedValue([
-      { user_id: 'u-1', book_id: 'b-1', current_page: 30, started_reading_at: '2026-06-01T00:00:00Z' },
-      { user_id: 'u-2', book_id: 'b-1', current_page: null, started_reading_at: null },
+      { user_id: 'u-1', book_id: 'b-1', current_page: 30, started_reading_at: '2026-06-01T00:00:00Z', status: 'reading' },
+      { user_id: 'u-2', book_id: 'b-1', current_page: null, started_reading_at: null, status: 'reading' },
     ]);
     resolveClubsMock.mockResolvedValue({ 'u-1': 'club-1' }); // u-2 는 그룹 없음 → null
 

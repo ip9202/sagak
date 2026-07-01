@@ -116,8 +116,8 @@ SELECT results_eq(
 );
 SELECT is(
     (SELECT count(*)::int FROM information_schema.columns WHERE table_name = 'user_books_public'),
-    4,
-    'user_books_public has 4 columns (book_id, current_page, started_reading_at, user_id)'
+    5,
+    'user_books_public has 5 columns (book_id, current_page, started_reading_at, user_id, status)'
 );
 
 -- --- Scenario 4: emotion_records visibility + fn_user_in_club (REQ-DB-016, 013d) ---
