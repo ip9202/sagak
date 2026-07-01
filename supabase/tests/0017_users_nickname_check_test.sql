@@ -18,24 +18,21 @@ SELECT col_has_check('public', 'users', 'nickname', 'users.nickname should have 
 SELECT throws_ok(
     $sql$INSERT INTO public.users (id, email, nickname, provider)
         VALUES (gen_random_uuid(), 'test21@x.com', '123456789012345678901', 'google')$sql$,
-    '23514',
-    '21자 닉네임은 users_nickname_format CHECK 위반으로 거부되어야 함'
+    '23514'
 );
 
 -- Test 3: 빈 닉네임은 거부되어야 함 (NOT NULL은 통과하지만 CHECK 위반, char_length=0)
 SELECT throws_ok(
     $sql$INSERT INTO public.users (id, email, nickname, provider)
         VALUES (gen_random_uuid(), 'testempty@x.com', '', 'google')$sql$,
-    '23514',
-    '빈 닉네임은 char_length(nickname) BETWEEN 1 AND 20 위반으로 거부되어야 함'
+    '23514'
 );
 
 -- Test 4: newline(chr(10)) 포함 닉네임은 거부되어야 함 (C0 제어문자)
 SELECT throws_ok(
     $sql$INSERT INTO public.users (id, email, nickname, provider)
         VALUES (gen_random_uuid(), 'testnl@x.com', 'nick' || chr(10) || 'name', 'google')$sql$,
-    '23514',
-    'newline(chr(10)) 포함 닉네임은 C0 제어문자 CHECK 위반으로 거부되어야 함'
+    '23514'
 );
 
 -- Test 5: 유효한 1-20자 닉네임은 성공해야 함

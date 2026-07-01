@@ -180,8 +180,8 @@ SELECT results_eq(
 );
 SELECT is(
     (SELECT count(*)::int FROM information_schema.columns WHERE table_name = 'user_profiles'),
-    3,
-    'user_profiles view has 3 columns (id, nickname, avatar_url)'
+    4,
+    'user_profiles view has 4 columns (id, nickname, avatar_url, bio)'
 );
 
 -- --- Scenario 18: sticker_reactions public read (REQ-DB-017) ---
