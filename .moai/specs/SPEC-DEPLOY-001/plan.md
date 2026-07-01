@@ -233,7 +233,7 @@ issue_number: 0
 | EAS Build 무료 quota 소진                             | 중     | 중     | 로컬 빌드(`--local`) 전환 검토(미결정 §6-5), 빌드 캐시 적극 활용           |
 | 환경 변수 실수로 인한 dev→prod 데이터 침범            | 낮     | 치명   | fail-fast 검증(REQ-DEPLOY-018), 빌드 프로필별 환경 변수 하드 매핑         |
 | 서밋 크리덴셜(Google Play JSON 등) 저장소 노출        | 낮     | 치명   | 절대 커밋 금지(REQ-DEPLOY-008), pre-commit secret 스캐닝 도구 도입        |
-| Supabase 프로젝트 3개 비용 증가                       | 중     | 중     | 단일 프로젝트+RLS 격리로 전환 검토(미결정 §6-6), 무료 tier 내 운영 최적화 |
+| Supabase 프로젝트 3개 비용 증가                       | 중     | 중     | 결정됨(§6-6, 2026-07-01, PR #105) — 단일 클라우드(lqltwbpocbgoxvhlmjdo) prod 승격으로 3프로젝트 비용 회피. dev=로컬 Docker. |
 | Edge Function Deno 런타임 버전 불일치                 | 낮     | 중     | 배포 전 로컬 `supabase functions serve`로 사전 검증                        |
 | hotfix 듀얼 머지 누락으로 인한 develop 불일치         | 중     | 높음   | deploy.yml 자동 검증(REQ-DEPLOY-011), PR 템플릿에 체크리스트 포함         |
 | iOS/Android 네이티브 크래시 Sentry 미포착             | 중     | 중     | 네이티브 계층 Sentry 심볼릭케이션(symbols) 업로드 검증                     |
