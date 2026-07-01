@@ -24,7 +24,11 @@ SELECT col_type_is('public', 'users', 'updated_at', 'timestamptz', 'users.update
 -- Test 2: Constraints
 SELECT col_not_null('public', 'users', 'id', 'users.id should be NOT NULL');
 SELECT col_not_null('public', 'users', 'email', 'users.email should be NOT NULL');
-SELECT col_not_null('public', 'users', 'nickname', 'users.nickname should be NOT NULL');
+SELECT is(
+    (SELECT is_nullable FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'users' AND column_name = 'nickname'),
+    'YES',
+    'users.nickname is nullable (OAuth 온보딩 — 미설정 허용; users_nickname_format CHECK는 NULL 통과)'
+);
 
 -- Test 3: UNIQUE constraint on email
 SELECT col_is_unique('public', 'users', 'email', 'users.email should have UNIQUE constraint');
