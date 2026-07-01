@@ -110,7 +110,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
   }
 
   // @MX:NOTE: [AUTO] M-2: 입력 검증 — target_user_id가 public reader인지 확인 (PR #21 리뷰)
-  //   @MX:REASON: target_user_id가 존재하고 공개 프로필인지 검증 필요
+  //   @MX:REASON: user_books_public 뷰가 WHERE is_public=true 로 필터링하므로, 행 존재 자체가 public reader 임을 보장한다. 뷰는 is_public 컬럼을 노출하지 않으므로(보안 리뷰 W2) 행 존재 여부로만 판정한다.
   const adminClient = createClient(supabaseUrl, serviceRoleKey, {
     auth: { persistSession: false },
   });
@@ -118,7 +118,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
   // user_books_public 뷰 조회로 target_user_id가 public reader인지 검증
   const { data: targetUser, error: targetUserError } = await adminClient
     .from('user_books_public')
-    .select('user_id, is_public')
+    .select('user_id')
     .eq('user_id', parsed.value.target_user_id)
     .eq('book_id', parsed.value.book_id)
     .maybeSingle();
@@ -128,7 +128,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
     return buildErrorResponse(500, 'database_error', '대상 사용자 조회 실패', allowedOrigin ?? undefined);
   }
 
-  if (!targetUser || !targetUser.is_public) {
+  if (!targetUser) {
     return buildErrorResponse(
       400,
       'invalid_target',
