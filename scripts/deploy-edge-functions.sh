@@ -69,6 +69,53 @@ if [[ ${#FUNCTIONS[@]} -eq 0 ]]; then
   exit 1
 fi
 
+# @MX:NOTE: [AUTO] 양방향 registry↔디렉토리 드리프트 가드 (LOW-1).
+# @MX:SPEC: SPEC-DEPLOY-001 REQ-DEPLOY-022
+# 방향 A: registry에 있으나 디렉토리 없음 → 배포 루프에서 skip(기존 단방향 가드와 동일 메시지로 사전 명시).
+# 방향 B: 디렉토리 있으나 registry에 없음 → 미등록 함수, 배포 누락 발생.
+# 정책: soft fail (WARN만, exit 안 함). 개발자가 registry.json만 고치면 되므로 배포 자체 중단은 과잉.
+# 단, CI에서 실패를 강제하려면 DRIFT_HARD_FAIL=1 환경변수로 ERROR 처리(아래참조).
+FUNCTIONS_DIR="${SCRIPT_DIR}/../supabase/functions"
+REGISTRY_NAMES_TMP="$(mktemp -t deploy_reg.XXXXXX)"
+DIR_NAMES_TMP="$(mktemp -t deploy_dir.XXXXXX)"
+DRIFT_TMP="$(mktemp -t deploy_drift.XXXXXX)"
+trap 'rm -f "$REGISTRY_NAMES_TMP" "$DIR_NAMES_TMP" "$DRIFT_TMP"' EXIT
+
+# @MX:NOTE: [AUTO] bash 3.2(macOS 기본 /bin/bash) 호환 —
+# mapfile/연관배열(bash 4.0+) 금지. 정렬된 임시 파일 2개 + comm(POSIX)로 차집합 계산.
+# comm -23 = 첫번째 파일에만 있는 줄(registry에만), -13 = 두번째에만(디렉토리에만).
+printf '%s\n' "${FUNCTIONS[@]}" | sort > "$REGISTRY_NAMES_TMP"
+# 디렉토리 목록에서 *.json(SSOT 파일)과 숨김 파일 제외한 하위 디렉토리만 수집.
+find "$FUNCTIONS_DIR" -mindepth 1 -maxdepth 1 -type d ! -name '.*' \
+  -exec basename {} \; | sort > "$DIR_NAMES_TMP"
+
+# 방향 A: registry에 있으나 디렉토리 누락.
+if comm -23 "$REGISTRY_NAMES_TMP" "$DIR_NAMES_TMP" > "$DRIFT_TMP"; then
+  if [[ -s "$DRIFT_TMP" ]]; then
+    while IFS= read -r missing; do
+      echo "WARN: registry lists '$missing' but directory supabase/functions/$missing/ missing (will skip at deploy)" >&2
+    done < "$DRIFT_TMP"
+  fi
+fi
+
+# 방향 B: 디렉토리 존재하나 registry 미등록.
+if comm -13 "$REGISTRY_NAMES_TMP" "$DIR_NAMES_TMP" > "$DRIFT_TMP"; then
+  if [[ -s "$DRIFT_TMP" ]]; then
+    DRIFT_HARD_FAIL="${DRIFT_HARD_FAIL:-0}"
+    while IFS= read -r unregistered; do
+      if [[ "$DRIFT_HARD_FAIL" == "1" ]]; then
+        echo "ERROR: directory supabase/functions/$unregistered/ exists but not in registry.json (DRIFT_HARD_FAIL=1)" >&2
+      else
+        echo "WARN: directory supabase/functions/$unregistered/ exists but not in registry.json — will NOT be deployed (add to registry.json or remove directory)" >&2
+      fi
+    done < "$DRIFT_TMP"
+    if [[ "$DRIFT_HARD_FAIL" == "1" ]]; then
+      echo "ERROR: registry↔directory drift detected, aborting (DRIFT_HARD_FAIL=1). Fix registry.json or unset to allow deploy." >&2
+      exit 1
+    fi
+  fi
+fi
+
 echo "==> Deploying ${#FUNCTIONS[@]} functions to $ENV (project: $PROJECT_REF)"
 
 for fn in "${FUNCTIONS[@]}"; do
