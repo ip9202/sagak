@@ -116,6 +116,9 @@ if comm -13 "$REGISTRY_NAMES_TMP" "$DIR_NAMES_TMP" > "$DRIFT_TMP"; then
   fi
 fi
 
+# @MX:NOTE: [AUTO] 본 드리프트 가드는 이 스크립트 경유 배포에서만 작동한다.
+# `supabase functions deploy <fn>` 를 직접 실행하면 registry.json 검사를 우회해 미등록 함수도
+# 배포될 수 있으므로, 프로덕션 배포는 반드시 본 스크립트를 거칠 것(SSOT 단일 진입점).
 echo "==> Deploying ${#FUNCTIONS[@]} functions to $ENV (project: $PROJECT_REF)"
 
 for fn in "${FUNCTIONS[@]}"; do
