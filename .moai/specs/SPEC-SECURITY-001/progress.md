@@ -16,7 +16,7 @@
 ## 마일스톤 진척
 
 - **M0 (A1 CI 가드)**: ✅ 완료 (PR #121) — `scripts/verify-jwt-policy.sh` 정방향+역방향 가드, `verify_jwt policy guard (A1)` CI job. 단, develop 룰셋 필수 상태 체크로는 미등록(ops 후속).
-- **M1 (jose 도입 — logic.ts)**: ✅ 완료 (PR #121) — `verifyAndExtractJwtSub` (RS256/JWKS) + `deno.json` jose import map (esm.sh).
+- **M1 (jose 도입 — logic.ts)**: ✅ 완료 (PR #121/#123) — `verifyAndExtractJwtSub` (ES256/JWKS, #121 RS256 → #123 정정) + `deno.json` jose import map (esm.sh).
 - **M2 (index.ts 게이트 교체)**: ✅ 완료 (PR #121) — M-1 게이트가 `verifyAndExtractJwtSub` 사용.
 - **M3 (extractJwtSub 폐지)**: ✅ 완료 (PR #121) — `@deprecated` 표시. 단, REQ-SEC-021(CI 가드로 미검증 경로 잔존 금지)는 후속 이슈로 추적 중.
 - **M4 (단위 테스트)**: ✅ 완료 (PR #121) — `verify.test.ts` 7개 케이스 (유효 서명/변조/HS256혼동/만료/JWKS fetch 모킹).
