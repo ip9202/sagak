@@ -65,6 +65,12 @@
 - T-008: 820af35 — Edge Function Deno skeleton + 커버리지 보강
 - barrel: a69dab8 — trackA index.ts barrel export
 
+### 누락 PR 이력 (M1 COMPLETE 이후)
+- **#108 (a3189a0, 2026-07-01)**: T-008 lazy-join skeleton 진입점 + 가입 처리. BookDetailScreen `/readers` CTA, ReadersScreen, readersApi(fetchActiveReaders), process-join-request skeleton 구현. W2 블로커(user_books_public is_public 미노출→가입 400) 수정 포함.
+- **#109 (e50b553, 2026-07-01)**: user_books_public status 노출 migration + readersApi `.eq('status','reading')` 서버 필터 (W2 후속, lessons #22 대칭 gap 해소).
+- **#111 (1d1eb79, 2026-07-01)**: W3 extractJwtSub 단위 테스트 14케이스 보강 (PR #108 리뷰 적발 gap, 6종 분기 완전 커버).
+- **#115 (0a969a2, 2026-07-02)**: 하드닝 A — extractJwtSub `@MX:NOTE`→`WARN`(서명 미검증 명시), 프로토타입 오염 회귀테스트 2건, "M-1 보안 검증" 주석 정정. + 하드닝 B — deploy 스크립트 registry↔디렉토리 양방향 드리프트 감지 가드 (PR #113 LOW-1 해소).
+
 ### Decision Points 반영 확인
 1. 알림 발송: Edge Function skeleton 에 TODO(SPEC-NOTIF-001) 훅 표기 ✅
 2. 거절 재요청: UNIQUE 영구 차단 — 클라이언트 재요청 로직 미구현 (23505 VALIDATION 매핑만) ✅
@@ -186,10 +192,24 @@
 - 트리거 예외: terminal 상태 재설정 시나리오 R12 검증
 - SPEC-UI-002: 3계층 레이아웃, 타이틀 균일성(fontSize 22/weight 700), 카드 밀도(cornerRadius 16/padding 16-20), 빈/로딩/에러 상태 패턴 준수
 
-## 운영 배포 전 필수 보안 요구사항 (Edge Function T-008 완성 시 — PR #21 expert-security 리뷰)
+## 운영 배포 전 필수 보안 요구사항 (M-1/M-2 — ✅ 완료, PR #108-#115)
 
-> 현 PR(#21)은 skeleton — lazy 그룹 생성 + INSERT 로직이 TODO. 아래는 skeleton 이 실제 INSERT 를 수행하기 전에 반드시 구현되어야 함 (M-1/M-2). 현 PR scope 에서는 발화하지 않는 잠재 결함.
+> M-1/M-2는 PR #108(T-008 lazy-join skeleton)에서 완전 구현됨. PR #115에서 보안 하드닝(서명 미검증 명시) 완료. 아래는 구현 현황 요약.
 
-- **M-1 (blocker)**: `process-join-request` Edge Function 이 `Authorization` 헤더의 JWT 를 검증해 `sub` 를 추출하고, client-supplied `requester_id` 를 검증된 값으로 **덮어쓸** 것. `verify_jwt=true` 는 인증(유효 JWT 보유)만 보장 — 인가(본인 확인)는 애플리케이션 단 필수.
-- **M-2 (blocker)**: `target_user_id` 가 실제 `user_books_public` 에 노출된 공개 독자인지, 이미 활성 group 클럽이 있는지 조회 후 처리. 위조 시 임의 독자를 host 로 강제 가입시키는 부작용 방지.
-- 부수: UNIQUE(23505) → 409 매핑, lazy 생성 race condition 방어(DB UNIQUE/idempotency key), skeleton `'TODO'` 응답 → 실제 id 교체, CORS Origin 화이트리스트화.
+- **M-1 (✅ 완료, PR #108 + PR #115)**: JWT sub 추출 + requester_id 일치 검증 구현.
+  - **구현 위치**: 
+    - `logic.ts:135-180` `extractJwtSub()` — JWT payload에서 sub 추출 (서명 미검증, PR #115 @MX:WARN 명시)
+    - `index.ts:89-110` — `extractJwtSub(authHeader)` → `jwtSub !== parsed.value.requester_id` 일치 검증 (403 forbidden)
+  - **보안 설계**: Supabase 게이트웨이 `verify_jwt=true`가 JWT 서명을 선검증 → 앱 단 extractJwtSub은 payload 디코딩만 담당 (PR #115 @MX:WARN 명시). 단독 인가 의사결정 사용 금지.
+  - **PR #115 하드닝**: "M-1 보안 검증" 주석 정정 → "sub 추출 전용 (서명 검증은 게이트웨이 범위)"으로 거짓 안감 제거.
+
+- **M-2 (✅ 완료, PR #108)**: target_user_id가 공개 독자인지 검증 + 활성 group 클럽 조회 구현.
+  - **구현 위치**:
+    - `index.ts:118-138` — `user_books_public` 뷰 조회로 target_user_id가 public reader인지 검증 (400 'invalid_target' if not found)
+    - `index.ts:149-161` — target_user_id의 활성 group 클럽 조회 (`clubs.host_id = target_user_id`, `type='group'`, `status='active'`)
+  - **보안 설계**: `user_books_public` 뷰가 `WHERE is_public=true`로 필터링하므로 행 존재 자체가 public reader 임을 보장 (lessons #22 W2 대칭 gap 해소).
+  - **위조 방지**: target_user_id가 뷰에 없을 경우 400 반환 → 임의 독자를 host로 강제 가입시키는 부작용 차단.
+
+- **부수 (✅ 완료)**: UNIQUE(23505) → 409 매핑 (`isUniqueViolation`), lazy 생성 race condition 방어(DB UNIQUE 제약조건), CORS Origin 화이트리스트(`ALLOWED_ORIGINS`), 알림 발송(send-notification 연동, best-effort 정책).
+
+- **Blocker 상태**: ✅ **해소됨** — M-1/M-2 모두 PR #108에서 완전 구현됨. PR #111(테스트 보강), PR #115(하드닝)로 안전성 강화.
