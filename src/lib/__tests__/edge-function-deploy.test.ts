@@ -28,16 +28,12 @@ describe('Edge Function deploy resolution (SPEC-DEPLOY-001 M6, REQ-DEPLOY-022)',
 
   describe('EDGE_FUNCTIONS registry — SSOT 무결성 (registry.json 파생)', () => {
     // @MX:NOTE: [AUTO] JSON SSOT 도입 후 드리프트 감지용. registry.json ↔ TS literal 단언 불일치 시 실패.
-    it('정확히 5개 함수가 등록되어 있다 (위임 3종 + Naver OIDC 보조 2종)', () => {
-      expect(EDGE_FUNCTIONS).toHaveLength(5);
+    it('정확히 4개 함수가 등록되어 있다 (위임 3종 + Naver OIDC 보조 1종)', () => {
+      expect(EDGE_FUNCTIONS).toHaveLength(4);
     });
 
     it('naver-userinfo-proxy (SPEC-DEPLOY-001 REQ-DEPLOY-019) 함수가 등록되어 있다', () => {
       expect(EDGE_FUNCTIONS).toContain('naver-userinfo-proxy');
-    });
-
-    it('naver-discovery (SPEC-DEPLOY-001 Naver OIDC discovery 보조) 함수가 등록되어 있다', () => {
-      expect(EDGE_FUNCTIONS).toContain('naver-discovery');
     });
   });
 
