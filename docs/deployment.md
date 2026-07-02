@@ -436,12 +436,11 @@ ENV=production bash scripts/deploy-edge-functions.sh
 **스크립트 동작**:
 1. `ENV` 환경변수를 읽어 `SUPABASE_<ENV>_PROJECT_REF` 값을 결정 (fail-fast: 미설정/잘못된 값 시 exit 1)
 2. `SUPABASE_ACCESS_TOKEN` 은 스크립트가 직접 읽거나 검증하지 않는다. `supabase functions deploy` CLI 가 런타임에 환경변수에서 인증하며, 형식 오류 시 CLI 단에서 `Invalid access token format` 에러를 낸다 (스크립트 exit 1 아님)
-3. `supabase/functions/registry.json`(SSOT)에서 5개 함수명 읽기:
+3. `supabase/functions/registry.json`(SSOT)에서 4개 함수명 읽기:
    - `kakao-book-search` (카카오 책 검색 위임, SPEC-BOOK-001)
    - `process-join-request` (북클럽 가입 처리, SPEC-CLUB-001)
    - `send-notification` (알림 발송, SPEC-NOTIF-001)
    - `naver-userinfo-proxy` (네이버 사용자 정보 프록시, SPEC-DEPLOY-001 REQ-DEPLOY-019 Naver OIDC)
-   - `naver-discovery` (네이버 OIDC discovery 보조 — Manual 모드 미사용 legacy 산물, SPEC-DEPLOY-001)
 4. 각 함수에 대해 `supabase functions deploy <name> --project-ref <ref>` 실행
 5. 배포 완료 메시지 출력: `==> Edge Function deploy complete (<env>)`
 
@@ -457,12 +456,11 @@ brew install supabase/tap/supabase
 
 **Dashboard 확인**:
 1. Supabase Dashboard > **Edge Functions** 페이지로 이동
-2. 5개 함수가 모두 배포되었는지 확인:
+2. 4개 함수가 모두 배포되었는지 확인:
    - `kakao-book-search`
    - `process-join-request`
    - `send-notification`
    - `naver-userinfo-proxy`
-   - `naver-discovery`
 
 **런타임 동작 검증** (staging/production):
 
@@ -484,7 +482,7 @@ brew install supabase/tap/supabase
    ```
 3. 배포 로그 확인 (스크립트 표준 출력 형식):
    ```
-   ==> Deploying 5 functions to development (project: <ref>)
+   ==> Deploying 4 functions to development (project: <ref>)
        deploying kakao-book-search ...
        ...
    ==> Edge Function deploy complete (development)
@@ -494,7 +492,7 @@ brew install supabase/tap/supabase
 
 다음 항목은 본 가이드 범위 밖이다:
 
-- **Edge Function 내부 로직 구현**: `kakao-book-search`, `process-join-request`, `send-notification`, `naver-userinfo-proxy`, `naver-discovery` 의 실제 코드는 각 SPEC(SPEC-BOOK-001, SPEC-CLUB-001, SPEC-NOTIF-001, SPEC-DEPLOY-001) 에서 다룬다. 본 절은 배포 인프라만 다룬다.
+- **Edge Function 내부 로직 구현**: `kakao-book-search`, `process-join-request`, `send-notification`, `naver-userinfo-proxy` 의 실제 코드는 각 SPEC(SPEC-BOOK-001, SPEC-CLUB-001, SPEC-NOTIF-001, SPEC-DEPLOY-001) 에서 다룬다. 본 절은 배포 인프라만 다룬다.
 - **실제 크리덴셜 값**: `SUPABASE_ACCESS_TOKEN`, `SUPABASE_*_PROJECT_REF` 의 실제 값은 사용자가 Supabase Dashboard 에서 직접 확보해야 한다.
 - **Supabase 프로젝트 생성**: 개발용/스테이징/프로덕션 프로젝트 생성은 Supabase Dashboard 에서 수동으로 수행한다.
 

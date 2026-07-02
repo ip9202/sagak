@@ -35,7 +35,6 @@ export const EDGE_FUNCTIONS = FUNCTION_NAMES_FROM_REGISTRY as unknown as readonl
   'process-join-request',
   'send-notification',
   'naver-userinfo-proxy',
-  'naver-discovery',
 ];
 
 export type EdgeFunctionName = (typeof EDGE_FUNCTIONS)[number];

@@ -83,19 +83,19 @@
 
 ### M6 — Edge Function 배포 + Supabase 프로비저닝 ✅ 완료
 
-- **범위**: REQ-DEPLOY-022 (Edge Function 5종 배포 — 위임 3종 + Naver OIDC 보조 2종), REQ-DEPLOY-023 (Supabase 프로젝트 프로비저닝)
+- **범위**: REQ-DEPLOY-022 (Edge Function 4종 배포 — 위임 3종 + Naver OIDC 보조 1종), REQ-DEPLOY-023 (Supabase 프로젝트 프로비저닝)
 - **블로킹 해소**: SPEC-CLUB-001 / SPEC-NOTIF-001 Edge Function(`process-join-request`, `send-notification`)이 이제 `supabase/functions/` 에 존재하여 배포 가능
 - **TDD 구현 (2026-06-23, PR #52, commit 86729fb)**:
   - `src/lib/edge-function-deploy.ts`: `EDGE_FUNCTIONS` 레지스트리(단일 진실 소스) + `resolveDeployTarget` (환경→project ref 매핑, fail-fast) — REQ-DEPLOY-013(트리거 분리), REQ-DEPLOY-023(3환경 분리)
   - `src/lib/__tests__/edge-function-deploy.test.ts`: 9 테스트 (RED→GREEN)
   - `scripts/deploy-edge-functions.sh`: TS 레지스트리를 소비하는 배포 래퍼 (fail-fast 가드 검증: ENV 미설정/잘못된 값/PROJECT_REF 누락 시 exit 1)
 - **실제 배포 완료 (2026-06-24)**:
-  - dev Supabase project `lqltwbpocbgoxvhlmjdo` 에 5개 Edge Function 전부 **ACTIVE** 배포 완료
+  - dev Supabase project `lqltwbpocbgoxvhlmjdo` 에 4개 Edge Function 전부 **ACTIVE** 배포 완료
     - `kakao-book-search` v1 (신규, SPEC-BOOK-001)
     - `process-join-request` v1 (신규, SPEC-CLUB-001)
     - `send-notification` v1 (신규, SPEC-NOTIF-001)
     - `naver-userinfo-proxy` v4 (재배포, SPEC-DEPLOY-001)
-    - `naver-discovery` v2 (재배포, SPEC-DEPLOY-001)
+    - `naver-discovery` v2 (재배포, SPEC-DEPLOY-001) — **2026-07-02 완전 삭제** (Manual 모드 미사용 legacy, 클라우드 undeploy 포함)
   - **ACCESS_TOKEN 생성 불필요**: 기존 `supabase login` 토큰이 유효하여 CLI가 `~/.supabase` 로컬 토큰 사용. `EXPO_PUBLIC_SUPABASE_URL`에서 PROJECT_REF 도출
   - **배포 호환성 결함 3종 발견/수정** (사전 검증이 아닌 실배포 시도에서 드러남, PR #61 수정):
     1. 로컬 import `.ts` 확장자 누락 (kakao-book-search 8곳 + send-notification/templates.ts) → Deno esbuild 요구
@@ -140,6 +140,7 @@
 | 2026-06-24 | #60 (1516cf9) | docs(deploy) Edge Function 배포 가이드 + .env.example placeholder | `docs/deployment.md` §7에 Edge Function 배포 절차(dev/staging/prod) 추가. `.env.example`에 `SUPABASE_ACCESS_TOKEN`, `SUPABASE_DEVELOPMENT_PROJECT_REF` 플레이스홀더 추가. |
 | 2026-06-24 | #61 (ddb5c84) | fix(deploy) Edge Function 로컬 import .ts + send-notification deno.json + tsconfig | 배포 호환성 수정: kakao-book-search(8곳) + send-notification/templates.ts 로컬 import `.ts` 확장자 추가(Deno esbuild 요구), `send-notification/deno.json` importMap 추가(`@supabase/supabase-js` 매핑), `tsconfig.json` `allowImportingTsExtensions: true` 설정(tsc 5097 회피). dev 5개 함수 ACTIVE 배포 완료. staging/prod는 GitHub Secrets 확보 시 동일 스크립트로 배포 가능. |
 | 2026-07-01 | (문서 갱신, PR 대기) | §6 #6 결정 반영 | 단일 프로젝트 prod 승격 결정. naver-discovery 하드코딩→환경변수화, edge-function-deploy 주석 갱신(로직 불변), .env.example 메모 보강. SPEC §6 #6 "부분 해결"→"해결됨". |
+| 2026-07-02 | feature/cleanup-naver-discovery | naver-discovery 완전 삭제 | REQ-DEPLOY-022 5종→4종. 리포지토리 8곳 정리(registry.json SSOT + edge-function-deploy tuple 단언 + test 개수검증 + config.toml 섹션 + structure/deployment/progress docs) + 함수 디렉토리 삭제. 클라우드 undeploy 포함(완전 삭제). |
 
 ---
 
