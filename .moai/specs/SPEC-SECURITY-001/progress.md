@@ -8,6 +8,7 @@
 ## Phase 기록
 
 - **Phase 1 (Plan) complete**: manager-spec가 expert-security 평가 보고서(2026-07-02) 기반으로 SPEC 작성. 핵심 사실 정정(DRIFT_HARD_FAIL은 verify_jwt 미검사) 위협 모델에 반영. A1 + jose 동시 도입 확정. (2026-07-02)
+- **A1 역방향 가드 추가 (evaluator-active Medium 결함 해소)**: `scripts/verify-jwt-policy.sh` 에 역방향 검사 추가 — false 정책 함수(`naver-userinfo-proxy`)는 반드시 명시적 `[functions.<name>]` 블록을 가져야 함. 블록 삭제 시 CLI 기본값(true) 적용으로 naver 401 장애 유발 시나리오를 CI 단계에서 차단. true 정책 함수는 블록 누락 허용(CLI 기본값=true와 일치). TDD: RED(블록 삭제 fixture → 기대 비-제로, 구현은 0으로 통과=결함) → GREEN(for 루프 + grep 블록 헤더 검사) → 전체 게이트 green. (2026-07-02)
 
 ## 마일스톤 진척
 

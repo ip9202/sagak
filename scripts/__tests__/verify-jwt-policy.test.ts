@@ -46,6 +46,19 @@ verify_jwt = true
 verify_jwt = true
 `;
 
+/**
+ * 역방향 가드 결함 재현 — naver-userinfo-proxy 블록이 config.toml 에서 삭제됨.
+ * CLI 기본값(true) 가 적용되어 의도값(false) 와 충돌 → naver 401 장애 유발.
+ * process-join-request 블록만 존재 (true 블록 — 정상).
+ * 스크립트는 비-제로 종료로 블록 삭제를 감지해야 한다 (REQ-SEC-002 역방향).
+ */
+const NAVER_BLOCK_DELETED_CONFIG = `# config.toml — naver-userinfo-proxy 블록 삭제 (장애 시나리오)
+project_id = "test"
+
+[functions.process-join-request]
+verify_jwt = true
+`;
+
 async function runScript(
   configPath: string,
 ): Promise<{ code: number; stdout: string; stderr: string }> {
@@ -99,6 +112,17 @@ describe('SPEC-SECURITY-001 A1: verify_jwt per-function CI 가드', () => {
     expect(result.code).not.toBe(0);
     const combined = result.stdout + result.stderr;
     expect(combined).toContain('brand-new-fn');
+  });
+
+  it('false 정책 함수(naver-userinfo-proxy) 블록이 config.toml 에 없으면 비-제로 종료 (역방향 가드 — 블록 삭제로 인한 CLI 기본값(true) 적용 방어)', async () => {
+    const path = writeFixture(NAVER_BLOCK_DELETED_CONFIG);
+    const result = await runScript(path);
+    expect(result.code).not.toBe(0);
+    const combined = result.stdout + result.stderr;
+    // 누락된 함수명이 메시지에 포함되어야 한다.
+    expect(combined).toContain('naver-userinfo-proxy');
+    // 사용자에게 장애 맥락(블록 필수/삭제 금지)을 전달하는 안내 문구가 있어야 한다.
+    expect(combined.toLowerCase()).toMatch(/delet|missing|explicit|requires|필수|삭제/);
   });
 
   it('스크립트 파일이 존재한다 (실수 방지)', () => {

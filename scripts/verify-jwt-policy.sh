@@ -84,6 +84,18 @@ while read -r fn actual; do
   fi
 done < <(extract_function_verify_jwt)
 
+# 역방향 가드 — false 정책 함수는 반드시 명시적 블록을 가져야 한다 (REQ-SEC-002).
+# 이유: false 는 CLI 기본값이 아니므로, 블록이 삭제되면 CLI 가 true 를 적용해
+# 외부 토큰(naver 등)을 받는 함수가 401 로 거절되는 운영 장애가 발생한다.
+# true 정책 함수는 블록 누락 시 CLI 기본값(true) 과 일치하므로 블록 필수가 아니다.
+for fn in naver-userinfo-proxy; do
+  if ! grep -Eq "^\[functions\.${fn}\]" "$CONFIG_TOML"; then
+    echo "ERROR: '$fn' requires an explicit [functions.${fn}] block with verify_jwt=false in $CONFIG_TOML." >&2
+    echo "       Deleting the block makes the Supabase CLI apply its default verify_jwt=true and breaks naver login (401)." >&2
+    errors=$((errors + 1))
+  fi
+done
+
 if [[ $errors -gt 0 ]]; then
   echo "FAIL: $errors verify_jwt policy violation(s) detected in $CONFIG_TOML" >&2
   exit 1
