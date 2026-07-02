@@ -488,6 +488,27 @@ brew install supabase/tap/supabase
    ==> Edge Function deploy complete (development)
    ```
 
+### 7.5.1 process-join-request 보안 게이트 (SPEC-SECURITY-001, PR #121)
+
+> process-join-request 는 가입 요청 처리 권한이 민감하므로 **이중 방어선** + **배포 전 smoke test** 가 필요.
+
+**이중 방어선 (defense-in-depth)**:
+1. **게이트웨이 `verify_jwt=true`** (Supabase CLI 기본값) — config.toml 의 `[functions.process-join-request]` 블록으로 고정. `verify_jwt policy guard (A1)` CI job 이 정방향(true 단정) + 역방향(false 정책 함수 블록 누락 감지) 으로 드리프트를 차단.
+2. **jose 서명 검증 (앱 단)** — `verifyAndExtractJwtSub`(RS256/JWKS) 가 게이트웨이와 무관하게 JWT 서명을 독립 검증. 게이트웨이 verify_jwt 가 우회되어도 서명 위조 시 401.
+
+> A1 CI job 은 현재 develop 룰셋의 **필수 상태 체크가 아님** (ops 후속 — 룰셋 등록 필요). PR 머지 자체는 A1 통과를 요구하지 않으므로 수동 확인 권장.
+
+**배포 게이트 (프로덕션 배포 전 필수)**:
+
+process-join-request 를 프로덕션에 배포하기 전, **로컬 smoke test** 로 서명 검증 동작을 확인한다. iss/aud/JWKS-URL 의 정확성은 런타임에만 검증 가능하기 때문.
+
+```
+# 1) 유효한 Supabase 사용자 JWT → 200 기대
+# 2) 서명 변조 JWT (마지막 바이트 1자 flip) → 401 기대
+```
+
+실패 시 **첫 번째 의심 지점**: `logic.ts` 의 `issuer` 클레임 고정값. 실제 Supabase JWT 의 `iss` 클레임 값을 디코딩해(`jwt.io` 등) logic.ts 고정값과 일치하는지 확인한다. 일반적 값은 `https://<project-ref>.supabase.co/auth/v1` 이나 프로젝트 설정에 따라 다를 수 있다.
+
 ### 7.6 OUT OF SCOPE
 
 다음 항목은 본 가이드 범위 밖이다:

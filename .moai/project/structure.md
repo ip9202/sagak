@@ -181,7 +181,7 @@ iOS/Android 모바일 앱 (React Native + Expo SDK 55 + React 19.2)
 **Edge Functions (카카오 연동, 네이버 Custom OIDC, 가입 요청 처리, 완독 보고서)**
 - `POST /functions/kakao-book-search` - 카카오 도서 검색 프록시 (M1 구현 완료, 2026-06-16)
 - `GET /functions/v1/naver-userinfo-proxy` - 네이버 비표준 userinfo(`/v1/nid/me`의 `response.{}` 중첩)를 표준 OIDC userinfo(`sub/email/email_verified/name/picture`)로 평탄화. Supabase Custom OIDC의 userinfo URL로 지정. `verify_jwt=false` (호출자가 Supabase JWT가 아닌 네이버 Bearer 토큰). account linking의 핵심 — `email_verified:true` 반환으로 같은 email provider 자동 연동. (2026-06-19, SPEC-AUTH-001/DEPLOY-001)
-- `POST /functions/process-join-request` - 가입 요청 처리
+- `POST /functions/process-join-request` - 가입 요청 처리 (이중 방어선: 게이트웨이 `verify_jwt=true` + 앱 단 `verifyAndExtractJwtSub` jose RS256/JWKS 서명 검증, SPEC-SECURITY-001 PR #121)
 - `POST /functions/generate-completion-report` - 완독 다이어리 생성
 - `POST /functions/send-notification` - 푸시 알림 발송
 
