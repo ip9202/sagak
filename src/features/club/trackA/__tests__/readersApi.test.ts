@@ -27,20 +27,6 @@ jest.mock('@react-native-async-storage/async-storage', () => ({
   removeItem: jest.fn(),
 }));
 
-type Chain = Record<string, jest.Mock>;
-
-/** 쿼리 빌더 체인을 생성하는 헬퍼. 최종 resolve 값(또는 throw)을 인자로 받는다. */
-function buildChain(final: { data: unknown; error: unknown }): Chain {
-  const chain: Chain = {};
-  const mock = jest.fn().mockReturnValue(final);
-  chain.order = jest.fn().mockReturnValue({ then: mock as never } as never);
-  chain.eq = jest.fn().mockReturnValue(chain);
-  chain.select = jest.fn().mockReturnValue(chain);
-  chain.from = jest.fn().mockReturnValue(chain);
-  // order 가 반환하는 thenable 객체
-  return chain;
-}
-
 describe('SPEC-CLUB-001 T-002: fetchActiveReaders', () => {
   let fromMock: jest.Mock;
   let selectMock: jest.Mock;
