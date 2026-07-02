@@ -13,7 +13,7 @@ import { promisify } from 'node:util';
 
 const execFileP = promisify(execFile);
 
-const SCRIPT_PATH = resolve(__dirname, '..', '..', 'verify-jwt-policy.sh');
+const SCRIPT_PATH = resolve(__dirname, '..', 'verify-jwt-policy.sh');
 
 /**
  * 유효한 config.toml — 모든 함수가 의도값 매트릭스와 일치.
@@ -106,7 +106,7 @@ describe('SPEC-SECURITY-001 A1: verify_jwt per-function CI 가드', () => {
 
   it('스크립트 파일이 존재한다 (실수 방지)', () => {
     // 스크립트 경로 오타 방지용 가드 — readdirSync 로 디렉토리 확인.
-    const dir = resolve(__dirname, '..', '..');
+    const dir = resolve(__dirname, '..'); // scripts/
     const files = readdirSync(dir);
     expect(files).toContain('verify-jwt-policy.sh');
   });
