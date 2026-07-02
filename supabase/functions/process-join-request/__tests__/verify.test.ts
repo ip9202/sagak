@@ -1,21 +1,23 @@
 /**
  * SPEC-SECURITY-001 REQ-SEC-060~064: verifyAndExtractJwtSub 단위 테스트
  *
- * jose 기반 RS256 서명 검증 헬퍼의 보안 속성을 증명한다:
+ * jose 기반 ES256 서명 검증 헬퍼의 보안 속성을 증명한다:
  * - REQ-SEC-060: 유효 서명 토큰 통과 ({ sub } 반환)
  * - REQ-SEC-061: 서명 변조 토큰 실패 (null)
- * - REQ-SEC-062: HS256 알고리즘 혼동 토큰 실패 (null) — RS256 고정 방어
+ * - REQ-SEC-062: HS256 알고리즘 혼동 토큰 실패 (null) — ES256 고정 방어
  * - REQ-SEC-063: 만료 토큰 실패 (null)
  * - REQ-SEC-064: JWKS fetch 인터셉트 (실제 네트워크 미사용)
  *
- * 테스트는 RS256 키페어를 생성해 직접 서명하고, node:https 모듈을 가로채어
- * JWKS 엔드포인트 요청에 대해 테스트 키페어의 공개 JWK 를 반환한다.
+ * 테스트는 ES256(EC P-256) 키페어를 생성해 직접 서명하고, node:https 모듈을
+ * 가로채어 JWKS 엔드포인트 요청에 대해 테스트 키페어의 공개 JWK 를 반환한다.
  * (jose Node 빌드는 node:https.get 을 사용. jest.mock 은 파일 최상단에서
  * hoist 되어 jose 로드 시점에 mock 이 주입된다.)
+ *
+ * 실제 Supabase 프로덕션 토큰은 ES256으로 서명되며, JWKS 는 단일 EC 키를
+ * 반환한다 (REQ-SEC-050 런타임 smoke 로 확정 — 2026-07-03).
  */
 import {
   generateKeyPairSync,
-  createSign,
   randomBytes,
   type KeyObject,
 } from 'node:crypto';
@@ -56,17 +58,26 @@ jest.mock('node:https', () => {
 import { SignJWT, exportJWK } from 'jose';
 
 const SUPABASE_URL = 'https://test-supabase.supabase.co';
-const ISSUER = SUPABASE_URL;
+// 실제 Supabase JWT 의 iss 클레임 = "${SUPABASE_URL}/auth/v1" (REQ-SEC-050 smoke 확정)
+const ISSUER = `${SUPABASE_URL}/auth/v1`;
 const AUDIENCE = 'authenticated';
 
 interface TestKeypair {
   privateKey: KeyObject;
   kid: string;
-  publicJwk: { kty: 'RSA'; kid: string; n: string; e: string; alg: 'RS256' };
+  publicJwk: {
+    kty: 'EC';
+    kid: string;
+    crv: 'P-256';
+    x: string;
+    y: string;
+    alg: 'ES256';
+  };
 }
 
 function makeKeypair(): TestKeypair {
-  const { privateKey } = generateKeyPairSync('rsa', { modulusLength: 2048 });
+  // ES256 = ECDSA P-256. Supabase 프로덕션 JWKS 의 단일 키와 동일 알고리즘/커브.
+  const { privateKey } = generateKeyPairSync('ec', { namedCurve: 'P-256' });
   return {
     privateKey,
     kid: randomBytes(8).toString('hex'),
@@ -82,7 +93,7 @@ function b64url(buf: Buffer): string {
     .replace(/\//g, '_');
 }
 
-describe('SPEC-SECURITY-001 verifyAndExtractJwtSub (jose RS256 서명 검증)', () => {
+describe('SPEC-SECURITY-001 verifyAndExtractJwtSub (jose ES256 서명 검증)', () => {
   let keypair: TestKeypair;
   // eslint-disable-next-line @typescript-eslint/no-var-requires
   const { verifyAndExtractJwtSub: verify } = require('../logic');
@@ -91,11 +102,12 @@ describe('SPEC-SECURITY-001 verifyAndExtractJwtSub (jose RS256 서명 검증)', 
     keypair = makeKeypair();
     const jwk = await exportJWK(keypair.privateKey);
     keypair.publicJwk = {
-      kty: 'RSA',
+      kty: 'EC',
       kid: keypair.kid,
-      n: jwk.n as string,
-      e: jwk.e as string,
-      alg: 'RS256',
+      crv: 'P-256',
+      x: jwk.x as string,
+      y: jwk.y as string,
+      alg: 'ES256',
     };
     state.publicJwk = keypair.publicJwk;
     // logic.ts 가 Deno.env.get('SUPABASE_URL') 호출 — Node 런타임 스텁.
@@ -116,9 +128,9 @@ describe('SPEC-SECURITY-001 verifyAndExtractJwtSub (jose RS256 서명 검증)', 
     delete process.env.SUPABASE_URL;
   });
 
-  it('REQ-SEC-060: 유효한 RS256 서명 토큰은 { sub } 를 반환한다', async () => {
+  it('REQ-SEC-060: 유효한 ES256 서명 토큰은 { sub } 를 반환한다', async () => {
     const token = await new SignJWT({ sub: 'user-uuid-1234' })
-      .setProtectedHeader({ alg: 'RS256', kid: keypair.kid, typ: 'JWT' })
+      .setProtectedHeader({ alg: 'ES256', kid: keypair.kid, typ: 'JWT' })
       .setIssuer(ISSUER)
       .setAudience(AUDIENCE)
       .setIssuedAt()
@@ -131,23 +143,29 @@ describe('SPEC-SECURITY-001 verifyAndExtractJwtSub (jose RS256 서명 검증)', 
 
   it('REQ-SEC-061: 서명 변조 토큰은 null 을 반환한다', async () => {
     const token = await new SignJWT({ sub: 'user-uuid-1234' })
-      .setProtectedHeader({ alg: 'RS256', kid: keypair.kid, typ: 'JWT' })
+      .setProtectedHeader({ alg: 'ES256', kid: keypair.kid, typ: 'JWT' })
       .setIssuer(ISSUER)
       .setAudience(AUDIENCE)
       .setIssuedAt()
       .setExpirationTime('1h')
       .sign(keypair.privateKey);
 
+    // ECDSA 시그니처의 첫 바이트를 flip — DER 인코딩이라 1바이트만 바워도
+    // 서명 검증이 결정적으로 실패한다 (RS256 base64url 마지막 바이트 flip과 달리
+    // 우연히 통과할 여지가 없음).
     const parts = token.split('.');
-    const sig = parts[2];
-    const flipped = sig.endsWith('A') ? sig.slice(0, -1) + 'B' : sig.slice(0, -1) + 'A';
-    const tampered = `${parts[0]}.${parts[1]}.${flipped}`;
+    const sigBytes = Buffer.from(parts[2], 'base64url');
+    sigBytes[0] ^= 0xff;
+    const tampered = `${parts[0]}.${parts[1]}.${sigBytes.toString('base64url')}`;
 
     const result = await verify(`Bearer ${tampered}`);
     expect(result).toBeNull();
   });
 
-  it('REQ-SEC-062: HS256 알고리즘 혼동 토큰은 null 을 반환한다 (RS256 고정)', async () => {
+  it('REQ-SEC-062: HS256 알고리즘 혼동 토큰은 null 을 반환한다 (ES256 고정)', async () => {
+    // 공격자가 ES256 공개 키를 HMAC 비밀키로 오용하려는 시나리오.
+    // jose 가 algorithms:['ES256'] 핀으로 alg:'HS256' 헤더를 즉시 거부하므로
+    // 시그니처 내용 자체는 의미가 없다 — 임의 바이트로 채운다.
     const header = b64url(
       Buffer.from(JSON.stringify({ alg: 'HS256', typ: 'JWT', kid: keypair.kid })),
     );
@@ -161,11 +179,8 @@ describe('SPEC-SECURITY-001 verifyAndExtractJwtSub (jose RS256 서명 검증)', 
         }),
       ),
     );
-    const signingInput = `${header}.${payload}`;
-    const signer = createSign('RSA-SHA256');
-    signer.update(signingInput);
-    const fakeSig = signer.sign(keypair.privateKey);
-    const fakeToken = `${signingInput}.${b64url(fakeSig)}`;
+    const fakeSig = randomBytes(64);
+    const fakeToken = `${header}.${payload}.${b64url(fakeSig)}`;
 
     const result = await verify(`Bearer ${fakeToken}`);
     expect(result).toBeNull();
@@ -173,7 +188,7 @@ describe('SPEC-SECURITY-001 verifyAndExtractJwtSub (jose RS256 서명 검증)', 
 
   it('REQ-SEC-063: 만료된 토큰은 null 을 반환한다', async () => {
     const token = await new SignJWT({ sub: 'user-uuid-1234' })
-      .setProtectedHeader({ alg: 'RS256', kid: keypair.kid, typ: 'JWT' })
+      .setProtectedHeader({ alg: 'ES256', kid: keypair.kid, typ: 'JWT' })
       .setIssuer(ISSUER)
       .setAudience(AUDIENCE)
       .setIssuedAt()
@@ -195,8 +210,8 @@ describe('SPEC-SECURITY-001 verifyAndExtractJwtSub (jose RS256 서명 검증)', 
 
   it('잘못된 발행자(issuer) 토큰은 null 을 반환한다', async () => {
     const token = await new SignJWT({ sub: 'user-uuid-1234' })
-      .setProtectedHeader({ alg: 'RS256', kid: keypair.kid, typ: 'JWT' })
-      .setIssuer('https://evil.example.com')
+      .setProtectedHeader({ alg: 'ES256', kid: keypair.kid, typ: 'JWT' })
+      .setIssuer('https://evil.example.com/auth/v1')
       .setAudience(AUDIENCE)
       .setIssuedAt()
       .setExpirationTime('1h')
@@ -208,7 +223,7 @@ describe('SPEC-SECURITY-001 verifyAndExtractJwtSub (jose RS256 서명 검증)', 
 
   it('잘못된 청중(audience) 토큰은 null 을 반환한다', async () => {
     const token = await new SignJWT({ sub: 'user-uuid-1234' })
-      .setProtectedHeader({ alg: 'RS256', kid: keypair.kid, typ: 'JWT' })
+      .setProtectedHeader({ alg: 'ES256', kid: keypair.kid, typ: 'JWT' })
       .setIssuer(ISSUER)
       .setAudience('service_role')
       .setIssuedAt()
