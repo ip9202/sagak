@@ -8,7 +8,7 @@
  * - 요청 본문 파싱 + 필수 필드 검증 (target_user_id, book_id, requester_id)
  * - E4 message 500자 이중 방어 (client 와 동일 기준)
  * - 표준 JSON 응답 빌더 (CORS preflight 포함)
- * - SPEC-SECURITY-001: verifyAndExtractJwtSub — jose RS256 서명 검증 (Deno.env.get 의존)
+ * - SPEC-SECURITY-001: verifyAndExtractJwtSub — jose ES256 서명 검증 (Deno.env.get 의존)
  *
  * 주의: verifyAndExtractJwtSub 는 Deno.env.get('SUPABASE_URL') 을 읽으므로 순수 함수가
  * 아니지만, index.ts(tsconfig exclude) 대신 logic.ts 에 배치해 단위 테스트 대상으로
@@ -196,17 +196,17 @@ export function extractJwtSub(authHeader: string | null): string | null {
 }
 
 /**
- * SPEC-SECURITY-001: Authorization 헤더에서 JWT 를 추출해 RS256 서명을 검증하고 sub 를 반환한다.
+ * SPEC-SECURITY-001: Authorization 헤더에서 JWT 를 추출해 ES256 서명을 검증하고 sub 를 반환한다.
  *
  * L0 게이트웨이(verify_jwt)와 독립적인 2차 방어선. JWKS 는 Supabase Auth 의
  * 공개 엔드포인트에서 createRemoteJWKSet 내장 TTL 캐시로 fetch 한다.
  *
  * 핀 치 (REQ-SEC-040~042):
- * - algorithms: ['RS256'] — HS256 혼동 공격 차단
- * - issuer: SUPABASE_URL — 발행자 고정
+ * - algorithms: ['ES256'] — HS256 혼동 공격 차단 (실제 Supabase 토큰은 ES256/ECDSA P-256)
+ * - issuer: `${SUPABASE_URL}/auth/v1` — 발행자 고정 (실제 Supabase JWT iss 클레임 형태)
  * - audience: 'authenticated' — Supabase Auth 인증 토큰만 수용
  *
- * @MX:NOTE: [AUTO] jose RS256 서명 검증 — 게이트웨이 verify_jwt 와 독립적 2차 방어선.
+ * @MX:NOTE: [AUTO] jose ES256 서명 검증 — 게이트웨이 verify_jwt 와 독립적 2차 방어선.
  *   @MX:REASON: 단일 방어선(verify_jwt) 드리프트/우회 시 service_role RLS bypass 경로가
  *     노출되므로, 앱 계층에서 독립 검증으로 defense-in-depth 확보.
  *   @MX:SPEC: SPEC-SECURITY-001 (REQ-SEC-010, 040~042)
@@ -236,8 +236,8 @@ export async function verifyAndExtractJwtSub(
       new URL(`${supabaseUrl}/auth/v1/.well-known/jwks.json`),
     );
     const { payload } = await jwtVerify(token, JWKS, {
-      algorithms: ['RS256'],
-      issuer: supabaseUrl,
+      algorithms: ['ES256'],
+      issuer: `${supabaseUrl}/auth/v1`,
       audience: 'authenticated',
     });
     if (typeof payload.sub === 'string' && payload.sub.length > 0) {
