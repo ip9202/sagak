@@ -8,9 +8,14 @@
  * - 요청 본문 파싱 + 필수 필드 검증 (target_user_id, book_id, requester_id)
  * - E4 message 500자 이중 방어 (client 와 동일 기준)
  * - 표준 JSON 응답 빌더 (CORS preflight 포함)
+ * - SPEC-SECURITY-001: verifyAndExtractJwtSub — jose RS256 서명 검증 (Deno.env.get 의존)
  *
- * 주의: 본 모듈은 Supabase 클라이언트/DB 접근을 수행하지 않는다. DB 로직은 index.ts 가 담당.
+ * 주의: verifyAndExtractJwtSub 는 Deno.env.get('SUPABASE_URL') 을 읽으므로 순수 함수가
+ * 아니지만, index.ts(tsconfig exclude) 대신 logic.ts 에 배치해 단위 테스트 대상으로
+ * 유지한다 (SPEC-SECURITY-001 REQ-SEC-030, lessons #22).
  */
+
+import { jwtVerify, createRemoteJWKSet } from 'jose';
 
 /**
  * E4 message 최대 길이 (client 측 src/features/club/trackA/types.ts 와 동일 기준).
@@ -120,19 +125,30 @@ export function buildErrorResponse(
 }
 
 /**
- * JWT에서 sub(user_id)를 추출한다. (sub 추출 전용)
+ * JWT에서 sub(user_id)를 추출한다. (sub 추출 전용, 서명 미검증)
+ *
+ * @deprecated SPEC-SECURITY-001 — 본 함수는 서명을 검증하지 않아 단일 방어선(게이트웨이
+ *   verify_jwt) 우회 시 인가가 붕괴한다. 신규 코드는 {@link verifyAndExtractJwtSub} 를
+ *   사용할 것. 호환성을 위해 정의는 유지하나 호출부는 0건이어야 한다 (REQ-SEC-020~021).
+ *
  * @MX:WARN: [AUTO] 서명 미검증 — payload 디코딩만 수행. Supabase 게이트웨이가 JWT 서명을
  *   선검증하므로 본 함수는 sub 추출만 담당. 게이트웨이 우회 시 인가 붕괴 위험.
  *   requester_id == JWT sub 비교는 index.ts 게이트에서 수행(본 함수 범위 밖).
  *   @MX:REASON: service_role 키로 RLS 우회 시 애플리케이션 단 인가 로직이 필수이나,
  *     본 함수는 서명 검증 없이 payload에서 sub 값을 읽기만 하므로 단독 인가 의사결정에
  *     사용되어서는 안 됨. 반드시 게이트웨이 선검증이 전제된 컨텍스트에서만 호출.
- *   @MX:SPEC: SPEC-CLUB-001
+ *     SPEC-SECURITY-001 이후 deprecated — verifyAndExtractJwtSub 사용 권장.
+ *   @MX:SPEC: SPEC-CLUB-001, SPEC-SECURITY-001
  *
  * @param authHeader — Authorization 헤더 값 (Bearer {token})
  * @returns user_id (JWT sub) 또는 null (파싱 실패)
  */
 export function extractJwtSub(authHeader: string | null): string | null {
+  // @MX:WARN: [AUTO] deprecated 호출 — SPEC-SECURITY-001. 신규 코드는 verifyAndExtractJwtSub 사용.
+  //   @MX:REASON: 본 함수는 서명 미검증이므로 게이트웨이 우회 시 무력화된다.
+  console.warn(
+    '[SPEC-SECURITY-001] extractJwtSub is deprecated — use verifyAndExtractJwtSub',
+  );
   if (!authHeader) {
     return null;
   }
@@ -175,6 +191,61 @@ export function extractJwtSub(authHeader: string | null): string | null {
     return null;
   } catch {
     // 디코딩 또는 파싱 실패 시 null 반환
+    return null;
+  }
+}
+
+/**
+ * SPEC-SECURITY-001: Authorization 헤더에서 JWT 를 추출해 RS256 서명을 검증하고 sub 를 반환한다.
+ *
+ * L0 게이트웨이(verify_jwt)와 독립적인 2차 방어선. JWKS 는 Supabase Auth 의
+ * 공개 엔드포인트에서 createRemoteJWKSet 내장 TTL 캐시로 fetch 한다.
+ *
+ * 핀 치 (REQ-SEC-040~042):
+ * - algorithms: ['RS256'] — HS256 혼동 공격 차단
+ * - issuer: SUPABASE_URL — 발행자 고정
+ * - audience: 'authenticated' — Supabase Auth 인증 토큰만 수용
+ *
+ * @MX:NOTE: [AUTO] jose RS256 서명 검증 — 게이트웨이 verify_jwt 와 독립적 2차 방어선.
+ *   @MX:REASON: 단일 방어선(verify_jwt) 드리프트/우회 시 service_role RLS bypass 경로가
+ *     노출되므로, 앱 계층에서 독립 검증으로 defense-in-depth 확보.
+ *   @MX:SPEC: SPEC-SECURITY-001 (REQ-SEC-010, 040~042)
+ *
+ * @param authHeader — Authorization 헤더 값 ("Bearer {token}")
+ * @returns 검증 성공 시 sub(user_id), 실패(서명불일치/만료/HS256/잘못된 issuer·audience/헤더오류) 시 null
+ */
+export async function verifyAndExtractJwtSub(
+  authHeader: string | null,
+): Promise<string | null> {
+  if (!authHeader) return null;
+
+  const parts = authHeader.split(' ');
+  if (parts.length !== 2 || parts[0] !== 'Bearer') return null;
+  const token = parts[1];
+  if (token.length === 0) return null;
+
+  const supabaseUrl = Deno.env.get('SUPABASE_URL');
+  if (!supabaseUrl) {
+    // REQ-SEC-041 선행: SUPABASE_URL 누락 시 검증 불가 — fail-closed (null).
+    console.error('[SPEC-SECURITY-001] SUPABASE_URL env var missing — cannot verify JWT');
+    return null;
+  }
+
+  try {
+    const JWKS = createRemoteJWKSet(
+      new URL(`${supabaseUrl}/auth/v1/.well-known/jwks.json`),
+    );
+    const { payload } = await jwtVerify(token, JWKS, {
+      algorithms: ['RS256'],
+      issuer: supabaseUrl,
+      audience: 'authenticated',
+    });
+    if (typeof payload.sub === 'string' && payload.sub.length > 0) {
+      return payload.sub;
+    }
+    return null;
+  } catch {
+    // 서명 불일치, 만료, 알고리즘 혼동, 잘못된 issuer/audience 등 모두 null 처리.
     return null;
   }
 }

@@ -22,7 +22,7 @@ import {
   parseRequestBody,
   buildErrorResponse,
   buildSuccessResponse,
-  extractJwtSub,
+  verifyAndExtractJwtSub,
   resolveAllowedOrigin,
   buildCorsPreflightHeaders,
   isUniqueViolation,
@@ -87,12 +87,14 @@ Deno.serve(async (req: Request): Promise<Response> => {
     return buildErrorResponse(parsed.status, parsed.error, parsed.detail, allowedOrigin ?? undefined);
   }
 
-  // @MX:NOTE: [AUTO] M-1: JWT sub 추출 + requester_id 일치 비교(인가). "검증"은 서명이 아님 —
-  //   extractJwtSub 는 payload 디코딩만(서명 미검증, logic.ts @MX:WARN). 서명 검증은 게이트웨이
-  //   verify_jwt 범위. 본 게이트는 그 sub 와 requester_id 가 일치하는지만 확인한다. (PR #21 리뷰)
-  //   @MX:REASON: service_role 키로 RLS 우회 시 애플리케이션 단 인가 로직이 필수
+  // @MX:NOTE: [AUTO] M-1: JWT 서명 검증(RS256) + sub 추출 + requester_id 일치 비교(인가).
+  //   SPEC-SECURITY-001: extractJwtSub(payload 디코딩 only) → verifyAndExtractJwtSub(jose 서명 검증) 교체.
+  //   L0 게이트웨이(verify_jwt)와 독립적인 2차 방어선 — 단일 방어선 SPOF 제거.
+  //   @MX:REASON: service_role 키로 RLS 우회 시 애플리케이션 단 인가 로직이 필수이며,
+  //     서명 검증으로 게이트웨이 드리프트/우회 시에도 인가 붕괴를 막는다.
+  //   @MX:SPEC: SPEC-SECURITY-001 (REQ-SEC-011, 012)
   const authHeader = req.headers.get('authorization');
-  const jwtSub = extractJwtSub(authHeader);
+  const jwtSub = await verifyAndExtractJwtSub(authHeader);
 
   if (!jwtSub) {
     return buildErrorResponse(

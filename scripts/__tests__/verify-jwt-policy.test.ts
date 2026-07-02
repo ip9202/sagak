@@ -9,9 +9,6 @@ import { execFile } from 'node:child_process';
 import { mkdtempSync, writeFileSync, readdirSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
-import { promisify } from 'node:util';
-
-const execFileP = promisify(execFile);
 
 const SCRIPT_PATH = resolve(__dirname, '..', 'verify-jwt-policy.sh');
 
@@ -55,14 +52,14 @@ async function runScript(
   // ENV 가 export 되어 있지 않으면 스크립트가 config.toml 위치를 알 수 없다.
   // 스크립트는 CONFIG_TOML 환경변수(기본 supabase/config.toml)를 읽는다.
   return new Promise((resolvePromise) => {
-    execFileP(
+    execFile(
       'bash',
       [SCRIPT_PATH],
       { env: { ...process.env, CONFIG_TOML: configPath } },
       (err, stdout, stderr) => {
-        // err.code 가 0 이 아닌 종료를 의미. err null 시 code 0.
+        const codeErr = err as (Error & { code?: number }) | null;
         resolvePromise({
-          code: err ? (err.code as number) ?? 1 : 0,
+          code: codeErr ? codeErr.code ?? 1 : 0,
           stdout: stdout ?? '',
           stderr: stderr ?? '',
         });
