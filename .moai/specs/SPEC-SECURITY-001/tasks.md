@@ -31,7 +31,7 @@
 ### T-006: verifyAndExtractJwtSub 헬퍼 (logic.ts)
 - **산출물**: `supabase/functions/process-join-request/logic.ts`에 `verifyAndExtractJwtSub(authHeader): Promise<{sub}|null>` 추가
   - `createRemoteJWKSet(new URL("${SUPABASE_URL}/auth/v1/.well-known/jwks.json"))`
-  - `jwtVerify(token, JWKS, { algorithms: ['RS256'], issuer: SUPABASE_URL, audience: 'authenticated' })`
+  - `jwtVerify(token, JWKS, { algorithms: ['ES256'], issuer: `${SUPABASE_URL}/auth/v1`, audience: 'authenticated' })`
 - **TDD RED**: 유효 토큰 통과 / 변조 / HS256 / 만료 케이스 (M4 테스트로 통합)
 - **매핑**: REQ-SEC-010, REQ-SEC-030 (logic.ts 배치), REQ-SEC-040~042 (핀 치)
 
@@ -61,8 +61,8 @@
 
 ## M4 — 단위 테스트 (REQ-SEC-060~064)
 
-### T-012: RS256 키페어 생성 유틸
-- **산출물**: 테스트 헬퍼 — RS256 공개/개인 키페어 생성 + JWT 서명 함수
+### T-012: ES256 키페어 생성 유틸
+- **산출물**: 테스트 헬퍼 — ES256(EC P-256) 공개/개인 키페어 생성 + JWT 서명 함수
 - **매핑**: REQ-SEC-060 선행
 
 ### T-013: 유효 서명 통과 테스트

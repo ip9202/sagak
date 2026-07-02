@@ -201,7 +201,7 @@
     - `logic.ts:135-180` `extractJwtSub()` — JWT payload에서 sub 추출 (서명 미검증, PR #115 @MX:WARN 명시)
     - `index.ts:89-110` — `extractJwtSub(authHeader)` → `jwtSub !== parsed.value.requester_id` 일치 검증 (403 forbidden)
   - **보안 설계**: Supabase 게이트웨이 `verify_jwt=true`가 JWT 서명을 선검증 → 앱 단 extractJwtSub은 payload 디코딩만 담당 (PR #115 @MX:WARN 명시). 단독 인가 의사결정 사용 금지.
-  - **SPEC-SECURITY-001 (PR #121, 2026-07-02) 연동**: `extractJwtSub`은 `@deprecated` 처리되고, M-1 게이트는 `verifyAndExtractJwtSub`(jose RS256/JWKS 서명 검증)로 교체됨. 단일 진실 원천은 SPEC-SECURITY-001/progress.md.
+  - **SPEC-SECURITY-001 (PR #121, 2026-07-02) 연동**: `extractJwtSub`은 `@deprecated` 처리되고, M-1 게이트는 `verifyAndExtractJwtSub`(jose ES256/JWKS 서명 검증)로 교체됨. 단일 진실 원천은 SPEC-SECURITY-001/progress.md.
   - **PR #115 하드닝**: "M-1 보안 검증" 주석 정정 → "sub 추출 전용 (서명 검증은 게이트웨이 범위)"으로 거짓 안감 제거.
 
 - **M-2 (✅ 완료, PR #108)**: target_user_id가 공개 독자인지 검증 + 활성 group 클럽 조회 구현.

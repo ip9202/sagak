@@ -278,7 +278,7 @@ Phase 5 (배포)
 - **도메인**: SECURITY
 - **우선순위**: high
 - **상태**: 🔄 진행 중 (SPEC 1.0.0 작성, 2026-07-02; A1 + jose 구현 대기 — expert-security 평가 "조건부 도입" 반영)
-- **핵심 범위**: verify_jwt per-function CI 가드(A1, config.toml drift 자동 차단) + process-join-request jose RS256 서명 검증(JWKS 기반), extractJwtSub deprecate → verifyAndExtractJwtSub 통합 헬퍼 교체. 단일 방어선(L0 게이트웨이) → 이중 방어선 전환
+- **핵심 범위**: verify_jwt per-function CI 가드(A1, config.toml drift 자동 차단) + process-join-request jose ES256 서명 검증(JWKS 기반), extractJwtSub deprecate → verifyAndExtractJwtSub 통합 헬퍼 교체. 단일 방어선(L0 게이트웨이) → 이중 방어선 전환
 - **DB 엔터티**: 해당 없음
 - **API/Edge Function**: process-join-request (logic.ts jose 검증 헬퍼, index.ts M-1 게이트 교체)
 - **의존성**: SPEC-CLUB-001 (process-join-request 원본 정의), SPEC-AUTH-001 (JWT 발행 주체), SPEC-DEPLOY-001 (CI/배포 파이프라인)
