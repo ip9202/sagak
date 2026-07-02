@@ -69,9 +69,6 @@ export const spacing = {
 // @MX:NOTE: [AUTO] SPEC-UI-002 P0 — 모든 토큰에 fontFamily(weight-specific Inter) 추가.
 //           ...theme.typography.xxx spread 로 컴포넌트에 자동 전파된다.
 export const typography = {
-  // @MX:NOTE: [AUTO] SPEC-UI-002 trackB — ClubsScreen 헤더 "+" 글리프(26/400/28). 디스플레이 타이틀(28/700)과
-  //           크기/가중치 모두 달라 별도 토큰. token-only FROZEN 규칙 준수를 위해 수치 하드코딩 대신 토큰화.
-  plusGlyph: { fontSize: 26, fontWeight: '400' as const, lineHeight: 28, fontFamily: INTER_REGULAR },
   displayLg: { fontSize: 28, fontWeight: '700' as const, lineHeight: 36, fontFamily: INTER_BOLD },
   displayMd: { fontSize: 24, fontWeight: '700' as const, lineHeight: 32, fontFamily: INTER_BOLD },
   // @MX:NOTE: [AUTO] 화면 타이틀 균일성(SPEC-UI-002 FROZEN: 22/700). 홈 탭 헤더 등.
