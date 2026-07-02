@@ -123,7 +123,7 @@
 
 ### PR #80 (dde48a7) — trackB 토큰화
 - **대상 화면**: ClubsScreen, ClubCreateScreen, ClubDetailScreen, JoinRequestSheet(trackA 잔여) — 약 47개 지점 tokenization.
-- **신규 토큰**: `plusGlyph(26/400/28)`, `displayXs(18/700/24)`, `ctaStrong(15/700/21)`, `actionLabel(14/700/20)`.
+- **신규 토큰**: `plusGlyph(26/400/28)` *(2026-07-02 PR #112 제거 — ClubsScreen 헤더가 lucide Plus 아이콘으로 이관되어 dead code화)*, `displayXs(18/700/24)`, `ctaStrong(15/700/21)`, `actionLabel(14/700/20)`.
 - **패턴**: trackA(ReadersScreen/HostRequestsScreen) 1:1 레퍼런스 — spread + fontWeight const 오버라이드 + 신규 토큰(반복/FROZEN 강제값).
 - **검증**: tsc 0, eslint 0, jest 1225/1225(회귀 없음). manager-quality 리뷰: Critical 0, TRUST 5 4.8/5, 경고 5개(모두 의도된 token-only-FROZEN 트레이드오프).
   - `minHeight.input` 96→100(JoinRequest textarea, 4px 시각적 변경).
@@ -166,7 +166,7 @@
 
 **검증**: 전체 1229/1229, tsc/lint clean, CI green (각 PR). lucide 마이그레이션 회귀 없음.
 
-**잔여**: `profile.bio` 스키마 추가, 독서 통계/완독 다이어리 라우트 구현, 모임 진도(current_page) 집계, `tokens.ts plusGlyph` unused 정리, `borderWidth.hairline` 토큰화 (P3 전역 정정).
+**잔여**: `profile.bio` 스키마 추가, 독서 통계/완독 다이어리 라우트 구현, 모임 진도(current_page) 집계.
 
 ---
 
@@ -208,4 +208,17 @@
 
 **검증**: 전체 1295/1295, tsc/lint clean, CI green.
 
-**잔여**: 모임 진도(current_page) 집계, tokens.ts plusGlyph unused 정리.
+**잔여**: 모임 진도(current_page) 집계.
+
+---
+
+## plusGlyph dead code 제거 (PR #112, 2026-07-02)
+
+**문맥**: SPEC-UI-002 PR-3에서 ClubsScreen 헤더 "+" 글리프가 lucide-react-native `Plus` 아이콘(24×24)으로 이관 완료(PR #84). 이관 후 미사용 dead code가 된 `typography.plusGlyph` 토큰(26/400/28) + @MX:NOTE 주석 제거.
+
+### PR #112 (8db8d1d) — plusGlyph 제거
+- **대상**: `src/theme/tokens.ts` — plusGlyph 토큰 + 연결 @MX:NOTE 주석 (3줄).
+- **검증**: tsc 0 · eslint 0 · jest 48/48 (ClubsScreen+theme+tokens). plusGlyph 전 프로젝트 잔존 참조 0건.
+- **리뷰**: manager-quality TRUST 5 (초기 오판 3줄/4줄 counting 직검 정정), expert-security 무관 → GO.
+
+**잔여**: 모임 진도(current_page) 집계.
