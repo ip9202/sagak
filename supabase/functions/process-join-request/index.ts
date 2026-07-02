@@ -9,8 +9,9 @@
 //
 //   보안:
 //     - service_role 키는 Deno.env 에만 존재 (클라이언트 .env 미포함)
-//     - M-1: Authorization 헤더의 JWT sub 추출(extractJwtSub, 서명 미검증) → requester_id 일치 검증 (인가).
-//            서명 검증은 Supabase 게이트웨이 verify_jwt=true 선검증에 위임(logic.ts extractJwtSub 참조).
+//     - M-1: Authorization 헤더의 JWT 서명 검증 + sub 추출(verifyAndExtractJwtSub, jose RS256) → requester_id 일치 검증 (인가).
+//            이중 방어선(SPEC-SECURITY-001): L0 게이트웨이 verify_jwt=true (빌드타임 A1 CI 가드가 config.toml drift 차단)
+//            + L1 앱 단 jose 서명 검증 (logic.ts verifyAndExtractJwtSub, 게이트와 독립). extractJwtSub는 deprecated.
 //     - M-2: target_user_id 가 user_books_public 공개 독자인지 조회 (위조 방지)
 //     - 부수: CORS Origin 화이트리스트(ALLOWED_ORIGINS), UNIQUE(23505)→409 매핑
 //     - RLS 우회(service_role)지만 입력 계약(logic.ts)으로 필수 필드 강제
@@ -22,7 +23,7 @@ import {
   parseRequestBody,
   buildErrorResponse,
   buildSuccessResponse,
-  extractJwtSub,
+  verifyAndExtractJwtSub,
   resolveAllowedOrigin,
   buildCorsPreflightHeaders,
   isUniqueViolation,
@@ -87,12 +88,14 @@ Deno.serve(async (req: Request): Promise<Response> => {
     return buildErrorResponse(parsed.status, parsed.error, parsed.detail, allowedOrigin ?? undefined);
   }
 
-  // @MX:NOTE: [AUTO] M-1: JWT sub 추출 + requester_id 일치 비교(인가). "검증"은 서명이 아님 —
-  //   extractJwtSub 는 payload 디코딩만(서명 미검증, logic.ts @MX:WARN). 서명 검증은 게이트웨이
-  //   verify_jwt 범위. 본 게이트는 그 sub 와 requester_id 가 일치하는지만 확인한다. (PR #21 리뷰)
-  //   @MX:REASON: service_role 키로 RLS 우회 시 애플리케이션 단 인가 로직이 필수
+  // @MX:NOTE: [AUTO] M-1: JWT 서명 검증(RS256) + sub 추출 + requester_id 일치 비교(인가).
+  //   SPEC-SECURITY-001: extractJwtSub(payload 디코딩 only) → verifyAndExtractJwtSub(jose 서명 검증) 교체.
+  //   L0 게이트웨이(verify_jwt)와 독립적인 2차 방어선 — 단일 방어선 SPOF 제거.
+  //   @MX:REASON: service_role 키로 RLS 우회 시 애플리케이션 단 인가 로직이 필수이며,
+  //     서명 검증으로 게이트웨이 드리프트/우회 시에도 인가 붕괴를 막는다.
+  //   @MX:SPEC: SPEC-SECURITY-001 (REQ-SEC-011, 012)
   const authHeader = req.headers.get('authorization');
-  const jwtSub = extractJwtSub(authHeader);
+  const jwtSub = await verifyAndExtractJwtSub(authHeader);
 
   if (!jwtSub) {
     return buildErrorResponse(
