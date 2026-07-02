@@ -120,9 +120,14 @@ export function buildErrorResponse(
 }
 
 /**
- * JWT에서 sub(user_id)를 추출한다.
- * @MX:NOTE: [AUTO] JWT sub 추출 — M-1 보안 검증을 위해 requester_id와 JWT sub 일치 검증
- *   @MX:REASON: service_role 키로 RLS 우회 시 애플리케이션 단 인가 로직이 필수
+ * JWT에서 sub(user_id)를 추출한다. (sub 추출 전용)
+ * @MX:WARN: [AUTO] 서명 미검증 — payload 디코딩만 수행. Supabase 게이트웨이가 JWT 서명을
+ *   선검증하므로 본 함수는 sub 추출만 담당. 게이트웨이 우회 시 인가 붕괴 위험.
+ *   requester_id == JWT sub 비교는 index.ts 게이트에서 수행(본 함수 범위 밖).
+ *   @MX:REASON: service_role 키로 RLS 우회 시 애플리케이션 단 인가 로직이 필수이나,
+ *     본 함수는 서명 검증 없이 payload에서 sub 값을 읽기만 하므로 단독 인가 의사결정에
+ *     사용되어서는 안 됨. 반드시 게이트웨이 선검증이 전제된 컨텍스트에서만 호출.
+ *   @MX:SPEC: SPEC-CLUB-001
  *
  * @param authHeader — Authorization 헤더 값 (Bearer {token})
  * @returns user_id (JWT sub) 또는 null (파싱 실패)

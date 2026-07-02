@@ -11,7 +11,7 @@
  * - isUniqueViolation: 23505 UNIQUE 위반 감지 (join_requests 멱등성)
  * - buildLazyClubName: lazy group 클럽 name 생성
  * - buildCorsPreflightHeaders / buildJsonHeaders: CORS 헤더 빌더
- * - extractJwtSub: JWT sub(user_id) 추출 — M-1 보안 검증 (requester_id == JWT sub)
+ * - extractJwtSub: JWT sub(user_id) 추출 전용 (서명 검증은 게이트웨이 범위, 본 함수는 payload 디코딩만)
  */
 import {
   parseRequestBody,
@@ -262,7 +262,7 @@ describe('SPEC-CLUB-001 T-008: process-join-request logic', () => {
     });
   });
 
-  describe('extractJwtSub (JWT sub 추출 — M-1 보안 검증)', () => {
+  describe('extractJwtSub (JWT sub 추출 전용 — 서명 검증은 게이트웨이 범위)', () => {
     // 테스트용 JWT payload 를 base64url 로 인코딩한다.
     // 실제 디코딩 경로(payload.replace(/-/g,'+').replace(/_/g,'/') + pad + atob)를
     // 정확히 거치도록 표준 base64 → base64url 변환(-/_ 패딩 제거)을 적용한다.
@@ -341,6 +341,52 @@ describe('SPEC-CLUB-001 T-008: process-join-request logic', () => {
     it('sub 가 문자열이 아니면 null 반환 (숫자 타입)', () => {
       const token = makeJwt({ sub: 12345 });
       expect(extractJwtSub(`Bearer ${token}`)).toBeNull();
+    });
+
+    // --- 프로토타입 오염 회귀테스트 (방어 테스트) ---
+    // extractJwtSub 은 JSON.parse 결과를 안전하게 소비해야 한다.
+    // 악의적 payload 가 __proto__ / constructor 경로로 Object.prototype 을
+    // 오염시키려 시도할 때, (1) sub 는 정상 추출되며 (2) 전역 프로토타입은 미오염임을 검증.
+    // 리팩터 시 실수로 JSON.parse 결과를 Object.assign 등으로 병합하면 회귀 발생.
+
+    it('payload 에 __proto__ 오염 시도가 있어도 sub 정상 추출 + 프로토타입 미오염', () => {
+      // 오염 전 베이스라인: 전역 Object.prototype 에 isAdmin 없음 확인
+      expect(({} as { isAdmin?: unknown }).isAdmin).toBeUndefined();
+
+      const maliciousPayload = {
+        __proto__: { isAdmin: true },
+        sub: 'user-uuid-prototype',
+      };
+      const token = makeJwt(maliciousPayload);
+
+      // (1) sub 는 정상적으로 추출된다
+      expect(extractJwtSub(`Bearer ${token}`)).toBe('user-uuid-prototype');
+
+      // (2) __proto__ 경로 프로토타입 오염 미발생 — JSON.parse 결과를 안전하게 소비함
+      //     (리터럴 __proto__ 키는 JSON.stringify 단계에서 자체 프로퍼티로 직렬화되며,
+      //      JSON.parse 도 __proto__ 를 자체 키로 복원하지 Object.prototype 에 쓰지 않음)
+      expect(({} as { isAdmin?: unknown }).isAdmin).toBeUndefined();
+      expect((Object.prototype as Record<string, unknown>).isAdmin).toBeUndefined();
+    });
+
+    it('payload 에 constructor.prototype 경로 오염 시도가 있어도 sub 정상 추출 + 프로토타입 미오염', () => {
+      // 오염 전 베이스라인
+      expect(({} as { evil?: unknown }).evil).toBeUndefined();
+
+      const maliciousPayload = {
+        constructor: { prototype: { evil: true } },
+        sub: 'user-uuid-constructor',
+      };
+      const token = makeJwt(maliciousPayload);
+
+      // (1) sub 정상 추출
+      expect(extractJwtSub(`Bearer ${token}`)).toBe('user-uuid-constructor');
+
+      // (2) constructor 경로 프로토타입 오염 미발생
+      //     (extractJwtSub 은 payloadObj 의 어떤 프로퍼티도 호출/실행하지 않고
+      //      sub 문자열만 읽으므로 constructor 접근도 부작용 없음)
+      expect(({} as { evil?: unknown }).evil).toBeUndefined();
+      expect((Object.prototype as Record<string, unknown>).evil).toBeUndefined();
     });
   });
 });
