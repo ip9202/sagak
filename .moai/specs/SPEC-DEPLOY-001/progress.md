@@ -142,10 +142,11 @@
 | 2026-07-01 | (문서 갱신, PR 대기) | §6 #6 결정 반영 | 단일 프로젝트 prod 승격 결정. naver-discovery 하드코딩→환경변수화, edge-function-deploy 주석 갱신(로직 불변), .env.example 메모 보강. SPEC §6 #6 "부분 해결"→"해결됨". |
 | 2026-07-02 | feature/cleanup-naver-discovery | naver-discovery 완전 삭제 | REQ-DEPLOY-022 5종→4종. 리포지토리 8곳 정리(registry.json SSOT + edge-function-deploy tuple 단언 + test 개수검증 + config.toml 섹션 + structure/deployment/progress docs) + 함수 디렉토리 삭제. 클라우드 undeploy 포함(완전 삭제). |
 | 2026-07-02 | #115 B (0a969a2) | deploy 스크립트 드리프트 가드 | `scripts/deploy-edge-functions.sh` registry↔디렉토리 양방향 드리프트 감지 가드 (`comm -23`/`comm -13`, soft fail 기본 + `DRIFT_HARD_FAIL=1` 옵션, bash 3.2 호환). LOW-1 (PR #113 리뷰 식별) 해소. |
+| 2026-07-02 | (본 PR) | 핸드오프 "(c) M2b" 라벨 오류 정정 — 작업 종결 | 핸드오프 "(c) **M2b** CI 배포 job 통합"은 라벨 오류. **M2b**(EAS Build/tag-release/Sentry/hotfix 검증, `deploy.yml`)는 PR #52 완료, **M6/REQ-DEPLOY-022**(Edge Function 배포 스크립트 + dev 클라우드 ACTIVE)도 PR #52(+ 드리프트 가드 #115) 완료. AC-DEPLOY-022는 CI 자동화 미명시("supabase functions deploy 실행 → 각 환경 배포"만 요구). `progress.md` 본 절 + `deployment.md` §7 "(수동)" = **의도적 수동 배포 결정**. 단일 클라우드 정책(#105)하 CI 자동배포 = prod 클라우드(lqltwbpocbgoxvhlmjdo) 직격 위험 + 자격증명(`SUPABASE_ACCESS_TOKEN`/`PROJECT_REF`) 미비 → 시기상조. CI 자동배포는 신규 REQ/AC 추가 시에만 재검토(`workflow_dispatch` 수동 트리거 또는 정식 범위 확장). |
 
 ---
 
 버전: 2.1.1 (완료, docs 갱신)
 작성일: 2026-06-17
-최종 수정일: 2026-07-02 (PR #115 B, naver-discovery 삭제 반영)
+최종 수정일: 2026-07-02 (PR #115 B naver-discovery 삭제 + 핸드오프 (c) M2b 라벨 오류 정정 — CI 자동배포 종결)
 작성자: manager-docs (sync phase)
