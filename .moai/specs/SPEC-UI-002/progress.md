@@ -161,12 +161,12 @@
 - **ClubCard Meta**: `formatClubMeta`(duration_days 14일+→N주/미만→N일/null→생략 + daily_pages) = "2주 코스 · 하루 20p".
 - **멤버 수**: `useHostClubs` PostgREST embedded aggregate `club_members(count)` 단일 라운드트립(N+1 제거). `HostClubWithCount` 타입. "멤버 N명"(비과시 원칙 — 운영 컨텍스트 허용).
 - **Empty**: lucide Users(48) — `.pen F11-Clubs-Empty`가 EmptyState 기본 book-open을 users로 오버라이드(`.pen` 직독 정정).
-- **한계(@MX:TODO)**: 진도(p.X/Track/Fill)는 clubs `current_page` 컬럼 부재로 TODO(빈 track 미렌더, 사용자 결정).
+- **한계(@MX:TODO, PR #84 시점 → PR #96 해소)**: 진도(p.X/Track/Fill)는 당시 clubs `current_page` 컬럼 부재로 TODO(빈 track 미렌더). **→ PR #96(cc4c01d, SPEC-CLUB-003)이 `get_host_clubs_progress` RPC(`user_books_public` median 집계)로 우회 해소 — ClubsScreen `<ClubProgress>` Track/Fill/Pct 렌더 구현됨(REQ-CLUBC-010~013).**
 - **Gate**: tsc 0 · eslint . 0 · jest 1229/1229(hooks/ClubsScreen 테스트 4개 확장).
 
 **검증**: 전체 1229/1229, tsc/lint clean, CI green (각 PR). lucide 마이그레이션 회귀 없음.
 
-**잔여**: `profile.bio` 스키마 추가, 독서 통계/완독 다이어리 라우트 구현, 모임 진도(current_page) 집계.
+**잔여(2026-07-02 직검 정정)**: 모임 진도(current_page) 집계 → PR #96(cc4c01d, SPEC-CLUB-003) 해소. 독서 통계 → PR #94 제거, 완독 다이어리 → PR #87 구현(본 행과 line 156이 모순이었음). `profile.bio` 스키마 추가만 진위 미확인(별도 직검 필요).
 
 ---
 
@@ -208,7 +208,7 @@
 
 **검증**: 전체 1295/1295, tsc/lint clean, CI green.
 
-**잔여**: 모임 진도(current_page) 집계.
+**잔여(2026-07-02 직검 정정)**: 모임 진도(current_page) 집계는 PR #96(cc4c01d, SPEC-CLUB-003)으로 해소됨 — 본 마커는 STALE였음.
 
 ---
 
@@ -221,4 +221,4 @@
 - **검증**: tsc 0 · eslint 0 · jest 48/48 (ClubsScreen+theme+tokens). plusGlyph 전 프로젝트 잔존 참조 0건.
 - **리뷰**: manager-quality TRUST 5 (초기 오판 3줄/4줄 counting 직검 정정), expert-security 무관 → GO.
 
-**잔여**: 모임 진도(current_page) 집계.
+**잔여(2026-07-02 직검 정정)**: 모임 진도(current_page) 집계는 PR #96(cc4c01d, SPEC-CLUB-003)으로 해소됨 — 본 마커는 STALE였음. (c) PR #119(SPEC-DEPLOY-001 M2b 라벨 오류)과 동일한 교차-SPEC 미갱신 stale-marker 패턴.
