@@ -141,10 +141,11 @@
 | 2026-06-24 | #61 (ddb5c84) | fix(deploy) Edge Function 로컬 import .ts + send-notification deno.json + tsconfig | 배포 호환성 수정: kakao-book-search(8곳) + send-notification/templates.ts 로컬 import `.ts` 확장자 추가(Deno esbuild 요구), `send-notification/deno.json` importMap 추가(`@supabase/supabase-js` 매핑), `tsconfig.json` `allowImportingTsExtensions: true` 설정(tsc 5097 회피). dev 5개 함수 ACTIVE 배포 완료. staging/prod는 GitHub Secrets 확보 시 동일 스크립트로 배포 가능. |
 | 2026-07-01 | (문서 갱신, PR 대기) | §6 #6 결정 반영 | 단일 프로젝트 prod 승격 결정. naver-discovery 하드코딩→환경변수화, edge-function-deploy 주석 갱신(로직 불변), .env.example 메모 보강. SPEC §6 #6 "부분 해결"→"해결됨". |
 | 2026-07-02 | feature/cleanup-naver-discovery | naver-discovery 완전 삭제 | REQ-DEPLOY-022 5종→4종. 리포지토리 8곳 정리(registry.json SSOT + edge-function-deploy tuple 단언 + test 개수검증 + config.toml 섹션 + structure/deployment/progress docs) + 함수 디렉토리 삭제. 클라우드 undeploy 포함(완전 삭제). |
+| 2026-07-02 | #115 B (0a969a2) | deploy 스크립트 드리프트 가드 | `scripts/deploy-edge-functions.sh` registry↔디렉토리 양방향 드리프트 감지 가드 (`comm -23`/`comm -13`, soft fail 기본 + `DRIFT_HARD_FAIL=1` 옵션, bash 3.2 호환). LOW-1 (PR #113 리뷰 식별) 해소. |
 
 ---
 
-버전: 2.1.0 (완료)
+버전: 2.1.1 (완료, docs 갱신)
 작성일: 2026-06-17
-최종 수정일: 2026-06-24 (PR #57-#61 반영)
+최종 수정일: 2026-07-02 (PR #115 B, naver-discovery 삭제 반영)
 작성자: manager-docs (sync phase)
