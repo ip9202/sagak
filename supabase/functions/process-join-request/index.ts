@@ -9,8 +9,9 @@
 //
 //   보안:
 //     - service_role 키는 Deno.env 에만 존재 (클라이언트 .env 미포함)
-//     - M-1: Authorization 헤더의 JWT sub 추출(extractJwtSub, 서명 미검증) → requester_id 일치 검증 (인가).
-//            서명 검증은 Supabase 게이트웨이 verify_jwt=true 선검증에 위임(logic.ts extractJwtSub 참조).
+//     - M-1: Authorization 헤더의 JWT 서명 검증 + sub 추출(verifyAndExtractJwtSub, jose RS256) → requester_id 일치 검증 (인가).
+//            이중 방어선(SPEC-SECURITY-001): L0 게이트웨이 verify_jwt=true (빌드타임 A1 CI 가드가 config.toml drift 차단)
+//            + L1 앱 단 jose 서명 검증 (logic.ts verifyAndExtractJwtSub, 게이트와 독립). extractJwtSub는 deprecated.
 //     - M-2: target_user_id 가 user_books_public 공개 독자인지 조회 (위조 방지)
 //     - 부수: CORS Origin 화이트리스트(ALLOWED_ORIGINS), UNIQUE(23505)→409 매핑
 //     - RLS 우회(service_role)지만 입력 계약(logic.ts)으로 필수 필드 강제
