@@ -507,6 +507,16 @@ process-join-request 를 프로덕션에 배포하기 전, **로컬 smoke test**
 # 2) 서명 변조 JWT (마지막 바이트 1자 flip) → 401 기대
 ```
 
+**프로덕션 런타임 입증 (Phase E 200, 2026-07-04)**: prod `process-join-request` VERSION 4(ES256/iss 정정) ACTIVE 상태에서 **실기기(Pixel 6) kakao OAuth** 로 확보한 유효 ES256 JWT(kid=`33157f1d-...`)로 엔드포인트 호출 검증 완료 — defense-in-depth 이중 방어선(L0 게이트웨이 `verify_jwt` + L1 jose `verifyAndExtractJwtSub`) prod 동작 최종 입증.
+
+| 케이스 | 결과 | 비고 |
+|--------|------|------|
+| 유효 ES256 JWT + `requester_id`==JWT `sub` + 유효 public target | **HTTP 200** `{ok,club_id,request_id}` | L0 + L1 모두 통과, 인가·M-2 target 검증 통과 |
+| Authorization 헤더 누락 | **HTTP 401** | 대조군 — 검증 수행 확인 |
+| 보호 엔드포인트 최초 호출 (JWKS 콜드스타트) | **transient 401** `UNAUTHORIZED_ASYMMETRIC_JWT` | **재시도 시 소멸** — 런타임 smoke는 단일 401 판정 금지, 반드시 재시도로 확정 (lessons #27) |
+
+> JWT 캡처 절차(실기기): `AuthContext.tsx` `onAuthStateChange` SIGNED_IN 이벤트에서 `nextSession.access_token`을 로그로 출력(TEMP-DEBUG, 검증 후 제거) → Metro 로그에서 ES256 토큰 확보. Android OAuth 콜백은 `openAuthSessionAsync` 결과가 아닌 **`app/(auth)/auth/callback.tsx` 라우트 + `WebBrowser.maybeCompleteAuthSession()`** 경로로 처리됨 (lessons #26).
+
 실패 시 **첫 번째 의심 지점**: `logic.ts` 의 `issuer` 클레임 고정값. 실제 Supabase JWT 의 `iss` 클레임 값을 디코딩해(`jwt.io` 등) logic.ts 고정값과 일치하는지 확인한다. 확인된 값은 `https://<project-ref>.supabase.co/auth/v1` 이다 (REQ-SEC-050 런타임 smoke 로 확정, 2026-07-03). 프로젝트 설정이 바뀌지 않는 한 동일하다.
 
 ### 7.6 OUT OF SCOPE
