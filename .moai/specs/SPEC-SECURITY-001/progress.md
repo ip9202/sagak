@@ -12,6 +12,7 @@
 - **PR #121 merge (d706363, 2026-07-02)**: A1 CI 가드 + jose 서명 검증 구현이 develop에 merge. M0~M4 코드 구현 완료 (REQ-SEC-001~003, 010~012, 020, 030~042, 060~064). M5 smoke test는 배포 게이트로 남음 (REQ-SEC-050~052 미완료 — 런타임 검증이어서 배포 시점 필요).
 - **REQ-SEC-050 runtime smoke 정합성 정정 (2026-07-03)**: 실제 Supabase 액세스 토큰 디코딩 + JWKS 조회로 두 가지 프로덕션 회귀 결함 발견. (1) **알고리즘**: logic.ts는 RS256 핀이나 실제 토큰/JWKS는 ES256(ECDSA P-256, 단일 EC 키). (2) **발행자**: logic.ts는 issuer=SUPABASE_URL 이나 실제 iss=`${SUPABASE_URL}/auth/v1`. RS256 자가 서명 단위 테스트(REQ-SEC-060~064)가 프로덕션 ES256/JWKS 경로를 전혀 exercised 하지 않아 결함 미검출 — lessons #4 case (외부 시스템 정책은 실제 검증 전 미확정). aud=`authenticated` 는 변경 없음. TDD: RED(verify.test.ts ES256 전환 → REQ-SEC-060 실패) → GREEN(logic.ts ES256/issuer 정정 → 7/7 통과) → docs(spec.md/deployment.md/progress.md ES256 반영).
 - **Phase E 200 실기기 prod smoke 완료 (2026-07-04)**: Pixel 6 기기 kakao OAuth → prod ES256 JWT 캡처(kid=`33157f1d-...`, iss=`https://lqltwbpocbgoxvhlmjdo.supabase.co/auth/v1`, aud=`authenticated`) → prod `process-join-request` 검증. (1) **유효 JWT → HTTP 200 OK** `{ok,club_id,request_id}` — L0 게이트웨이 `verify_jwt` + L1 jose ES256 서명 검증(`verifyAndExtractJwtSub`) 모두 통과, `requester_id==JWT sub` 인가 통과, M-2 target public reader 통과. (2) **JWT 누락 → 401** 대조군. defense-in-depth 이중 방어선 prod 동작 완전 입증 (PR #121/#123 ES256/iss 정정 최종 런타임 검증). 관찰: 보호 엔드포인트 최초 호출 시 JWKS 콜드스타트로 transient `UNAUTHORIZED_ASYMMETRIC_JWT` 401 가능 — 재시도 시 소멸 (런타임 smoke는 단일 401 판정 금지, lessons #27). 200 검증 시 생성된 lazy 클럽·멤버십·join_request side-effect 사후 정리 완료 (모두 0건 잔여). 세션 캡처 계정은 `custom:naver`+`kakao` account linking 상태 (provider 무관, 유효 prod ES256 JWT로 AC 충족). lessons #26~#29.
+- **REQ-SEC-021 CI 가드 완료 (2026-07-05)**: `scripts/verify-no-extractjwtsub.sh` + `extractJwtSub remnant guard (021)` CI job 추가. process-join-request 하위 프로덕션 .ts 파일에서 `extractJwtSub(` 호출부를 정적 검사 — 함수 정의 라인/`//` 주석/`__tests__/` 하위는 예외. 현재 프로덕션 호출부 0건, future regression 차단 (가드의 목적은 사후 차단이지 발견이 아님). TDD: RED(6 테스트 전부 실패 — 스크립트 미구현으로 bash exit 127) → GREEN(스크립트 구현, 6/6 통과). macOS bash 3.2 호환 (lesson #15). A1 가드와 직교하는 독립 방어선.
 
 
 ## 마일스톤 진척
@@ -27,7 +28,6 @@
 
 - esm.sh jose 버전 핀 (재현성 확보)
 - HS256 혼동 테스트 정제 (현재 통과하나 시그널 명확화 여지)
-- REQ-SEC-021 CI 가드 (extractJwtSub 호출부 잔존 정적 검사)
 
 ## 수락 기준 완료 카운트
 
@@ -40,7 +40,7 @@
 | REQ-SEC-011 (index.ts 게이트 교체) | 완료 (PR #121, M-1 게이트) |
 | REQ-SEC-012 (서명 실패 401) | 완료 (PR #121, verify.test.ts) |
 | REQ-SEC-020 (extractJwtSub deprecation) | 완료 (PR #121, @deprecated) |
-| REQ-SEC-021 (미검증 경로 잔존 금지) | 미완료 (후속 이슈 — CI 정적 검사) |
+| REQ-SEC-021 (미검증 경로 잔존 금지) | 완료 (PR — feature/SPEC-SECURITY-001-021-ci-guard, scripts/verify-no-extractjwtsub.sh + CI job) |
 | REQ-SEC-030 (logic.ts 배치) | 완료 (PR #121) |
 | REQ-SEC-031 (index.ts 헬퍼 호출만) | 완료 (PR #121) |
 | REQ-SEC-040 (ES256 고정) | 완료 (PR #121 + 2026-07-03 정정 — RS256→ES256, logic.ts) |
@@ -62,6 +62,7 @@
 | PR #121 (2026-07-02) | 001,002,003,010,011,012,020,030,031,040,041,042,060,061,062,063,064 (17건) | 17/21 | 0 | M5(050~052) smoke test는 배포 게이트, 021은 후속 이슈 |
 | ES256 정정 (2026-07-03) | 040,041 정정 (RS256→ES256 / issuer=`${SUPABASE_URL}/auth/v1`) | 17/21 | 0 | REQ-SEC-050 smoke로 프로덕션 회귀 결함 발견·수정. AC 카운트 변동 없음(이미 "완료" 라벨이었으나 실제로는 프로덕션 401 회귀였음). M5 런타임 smoke는 여전히 배포 게이트. |
 | Phase E 200 실기기 prod smoke (2026-07-04) | 050, 051 완료 처리 | 19/21 | 0 | prod 실기기 kakao OAuth → ES256 JWT 캡처 → 200 OK(유효 JWT) + 401(JWT 누락) 대조군 입증. defense-in-depth(L0 게이트웨이 + L1 jose ES256) prod 완전 입증. 잔여 021(CI 정적 가드), 052(타 함수 회귀) — 후속 이슈. |
+| REQ-SEC-021 CI 가드 (2026-07-05) | 021 완료 | 20/21 | 0 | scripts/verify-no-extractjwtsub.sh + `extractJwtSub remnant guard (021)` CI job. 프로덕션 .ts 파일의 extractJwtSub( 호출부를 정적 검사 (함수 정의/주석/__tests__/ 예외). TDD: RED(6 테스트 전부 실패 — 스크립트 미구현) → GREEN(스크립트 구현, 6/6 통과). 현재 호출부 0건, future regression 차단. |
 
 ## 비고
 
