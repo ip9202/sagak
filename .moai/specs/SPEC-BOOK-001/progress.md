@@ -92,14 +92,14 @@
 - **실기기 검증 결함 발견**: 초기 구현에서 자동 검색이 작동하지 않음 → useEffect 의존성 배열 수정. (초기 구현 결함, 회귀 아님)
 
 #### PR #67 (124351f) — S13 initialQuery 지연 갱신 시 자동 검색 (PR #65 후속)
-- **문맥**: PR #65 이후, initialQuery param이 지연 갱신되는 경우(initialQuery가 나중에 설정됨) 자동 검색이 작동하지 않는 회귀.
+- **문맥**: PR #65 이후, initialQuery param이 지연 갱신되는 경우(initialQuery가 나중에 설정됨) 자동 검색이 작동하지 않는 결함(초기 구현 edge case).
 - **해결**: BookSearchScreen의 handleSubmit을 override 인자(`overrideQuery?`)를 받도록 수정. useEffect에서 `handleSubmit(initialQuery, true)` 호출 시 override 전달.
 - **state 동기화**: initialQuery/initialTarget state와 URL query params 간 동기화 강화.
 - **결함 맥락**: PR #65 후속 실기기 검증에서 발견된 edge case 수정.
 
 #### PR #68 (8c9cdc9) — 검색 결과 클릭 시 unmatched route 에러 수정
 - **문맥**: SearchResultCard 클릭 시 `router.push(\`/book/${id}\`)` 호출. 실제 라우트는 `app/(tabs)/[bookId].tsx` → `/1234` 형식.
-- **회귀**: 실기기에서 "unmatched route" 에러 발견. path가 `/book/1234`로 잘못 구성됨.
+- **결함**: 실기기에서 "unmatched route" 에러 발견. path가 `/book/1234`로 잘못 구성됨.
 - **해결**: `router.push(\`/\${id}\`)`로 수정. `app/(tabs)/[bookId].tsx` 라우트와 일치.
 - **실기기 검증 결함**: 라우팅 path 불일치로 인한 실기기 전용 버그.
 
