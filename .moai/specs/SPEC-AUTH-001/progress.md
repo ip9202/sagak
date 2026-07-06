@@ -67,12 +67,12 @@
 - feature/SPEC-AUTH-001-naver-custom-oidc deleted (local + remote)
 - **네이버 실기기 e2e 보류**: 네이버 콜백 URL 오타(`o` 누락) 수정 + C1(email NOT NULL) 검증 + M2(provider guard) 차후 진행
 
-### PR #19 merged (로그아웃 UI + 네이버 linking 회귀 검증)
+### PR #19 merged (로그아웃 UI + 네이버 linking 실기기 검증)
 - Squash merge: e456fa6 (2026-06-19)
-- **카카오/네이버/구글 account-linking 실기기 회귀 PASS**: Pixel 6 end-to-end 검증 — 모든 provider linking 정상 동작
+- **카카오/네이버/구글 account-linking 실기기 검증 PASS**: Pixel 6 end-to-end 검증 — 모든 provider linking 정상 동작
 - **근본 원인 발견**: 네이버 Custom OIDC scope에 `account_email` 누락 → email 미제공 → noemail 폴백 → linking 실패. 해결: 대시보드 scope 추가 (코드 변경 무)
 - **로그아웃 UI 추가**: 마이 탭 placeholder → 최소 마이페이지 (사용자 정보 카드: 닉네임/프로바이더/이메일 + 로그아웃 버튼 호출 useSession().signOut()), loading/signed-out 상태 분기, token-only 스타일링, SPEC-UI-002 준수
-- **회귀 검증**: 이전 "네이버 linking 검증 완료" 판정이 noemail 폴백으로 틀렸음을 회귀가 포착 — scope 수정 후 실기기 재검증 PASS
+- **실기기 재검증**: 이전 "네이버 linking 검증 완료" 판정이 noemail 폴백으로 틀렸음을 실기기 검증이 포착 — scope 수정 후 재검증 PASS (linking은 최초 시도이므로 회귀 아님 — lessons #7/#19)
 - feature/SPEC-AUTH-001-logout-ui deleted (local + remote)
 
 ### PR #99 merged (연결계정 다중 표시)

@@ -389,7 +389,7 @@ product.md "비목표" + SPEC-DB-001 "제외 범위" 기반:
 
 ## 10. PR Merge History (2026-06-25 기준)
 
-### PR #63-71 — 실기기 회귀 수정 + SPEC-UI-002 패턴 준수 (2026-06-25 머지)
+### PR #63-71 — 실기기 검증 결함 수정 + SPEC-UI-002 패턴 준수 (2026-06-25 머지)
 
 **머지 기록**: develop 브랜치 dac4ba7 (2026-06-25)
 
@@ -397,17 +397,17 @@ product.md "비목표" + SPEC-DB-001 "제외 범위" 기반:
 
 #### SPEC-BOOK-001 (5개 PR)
 
-| PR | 커밋 | 내용 | 회귀 유형 |
+| PR | 커밋 | 내용 | 결함 유형 |
 |----|------|------|----------|
-| #64 | c379885 | kakao-book-search service_role 클라이언트 실구현 (async 동적 import, dev 배포 + Deno 500→200 해결) | dev 환경 블로커 (Edge Function 500) |
-| #65 | 31427af | S13 바코드 스캔 후 ISBN 자동 검색 (useEffect + useRef) | 실기기 회귀 (자동 검색 불작동) |
-| #67 | 124351f | S13 initialQuery 지연 갱신 시 자동 검색 (PR #65 후속 — handleSubmit override 인자, state 동기화) | 실기기 회귀 (지연 갱신 시 자동 검색 실패) |
-| #68 | 8c9cdc9 | 검색 결과 클릭 시 unmatched route 수정 (router.push(`/book/${id}`) → `/${id}`) | 실기기 회귀 (라우트 path 불일치) |
-| #71 | dac4ba7 | 두 번째 바코드 스캔 하얀 화면 수정 (issue #66 closed — useFocusEffect + key 재마운트) | 실기기 회귀 (카메라 수명 주기 관리) |
+| #64 | c379885 | kakao-book-search service_role 클라이언트 실구현 (async 동적 import, dev 배포 + Deno 500→200 해결) | dev 환경 블로커 (Edge Function 500, stub 실구현) |
+| #65 | 31427af | S13 바코드 스캔 후 ISBN 자동 검색 (useEffect + useRef) | 실기기 검증 결함 (자동 검색 불작동, 초기 구현) |
+| #67 | 124351f | S13 initialQuery 지연 갱신 시 자동 검색 (PR #65 후속 — handleSubmit override 인자, state 동기화) | 실기기 검증 결함 (지연 갱신 시 자동 검색 실패, edge case) |
+| #68 | 8c9cdc9 | 검색 결과 클릭 시 unmatched route 수정 (router.push(`/book/${id}`) → `/${id}`) | 실기기 검증 결함 (라우트 path 불일치) |
+| #71 | dac4ba7 | 두 번째 바코드 스캔 하얀 화면 수정 (issue #66 closed — useFocusEffect + key 재마운트) | 실기기 검증 결함 (카메라 수명 주기, 두 번째 스캔) |
 
-**문맥**: PR #8/#9(M1~M4) 이후 실기기 테스트에서 발견된 5건의 회귀 수정.
+**문맥**: PR #8/#9(M1~M4) 이후 최초 실기기 검증에서 발견된 5건의 결함 수정. (lessons #19 — 1차 구현 후 첫 실기기 검증에서 발견된 결함은 '회귀'가 아님: 이전에 정상 동작한 전제 불충분.)
 - **PR #64**: M1 Edge Function이 stub(mock) 상태로 머지되었으나, dev 환경에서 500 에러 발생 → service_role 클라이언트 실구현.
-- **PR #65/#67**: 바코드 스캔 후 자동 검색 flow의 실기기 회귀 2건 수정.
+- **PR #65/#67**: 바코드 스캔 후 자동 검색 flow의 실기기 검증 결함 2건 수정.
 - **PR #68**: 라우팅 path 불일치(``/book/${id}``` → ```/${id}```) 수정.
 - **PR #71**: 두 번째 스캔 시 하얀 화면 버그(issue #66)를 useFocusEffect로 해결.
 
@@ -426,7 +426,7 @@ product.md "비목표" + SPEC-DB-001 "제외 범위" 기반:
 | #63 | 3eefe24 | completion/emotion 하위 라우트 href:null 회귀 수정 (캡슐형 4탭 유지) | REQ-SCREEN-042/043 |
 | #70 | 502f997 | 상단 노치/상태바 SafeArea 처리 (SafeAreaProvider + StatusBar 컴포넌트, REQ-SCREEN-001 3계층) | REQ-SCREEN-001 |
 
-**문맥**: 화면 패턴 디자인 시스템(SPEC-UI-002)의 실기기 회귀 2건 수정.
+**문맥**: 화면 패턴 디자인 시스템(SPEC-UI-002)의 실기기 검증 결함 2건 수정. (PR #63 href:null 누락은 EMOTION/COMPLETION 추가 후 캡슐형 4탭 규격이 깨진 진짜 회귀; PR #70 SafeArea는 Dynamic Island 최초 대응 결함.)
 - **PR #63**: SPEC-EMOTION-001/COMPLETION-001 구현 후 탭바 href:null 누락 → 캡슐형 4탭 규격 유지.
 - **PR #70**: Dynamic Island 디바이스에서 상단 SafeArea 미적용 → SafeAreaProvider + StatusBar 컴포넌트로 3계층 레이아웃 강화.
 
