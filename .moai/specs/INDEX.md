@@ -178,7 +178,7 @@ Phase 5 (배포)
 - **API/Edge Function**: `/clubs/{id}/join`, `process-join-request` Edge Function
 - **의존성**: SPEC-LIBRARY-001(독자 목록), SPEC-AUTH-001(사용자 식별)
 - **구현 산출물**: `src/features/club/trackA/*.ts`, 독자 목록 화면, 요청/응답 화면, `supabase/functions/process-join-request/`
-- **알려진 제한사항**: Edge Function `process-join-request`는 M-1/M-2 pre-prod 보안 요구사항(RLS 정책, 요청 검증)에 대한 완전한 구현이 아닌 skeleton 상태. 실제 프로덕션 배포 전에 보안 강화 필요. (progress.md M1-M5 섹션 참조)
+- **알려진 제한사항**: ~~Edge Function skeleton 상태~~ → **해소 (2026-07-06 직검, lessons #23)**. `process-join-request/index.ts`는 lazy 클럽 생성 INSERT + join_requests INSERT + notifications/Expo Push 전부 실구현(318 LOC, skeleton 'TODO' 제거). PR #108(T-008 lazy-join 진입점) + #115(보안 하드닝, 서명 미검증 명시) + SPEC-SECURITY-001 PR #121/#123/#126(jose ES256 defense-in-depth, verify_jwt CI 가드)로 **완전 구현 + 보안 강화 완료**. (이전 "skeleton 상태, 보안 강화 필요" 마커는 STALE이었음)
 - **제외**: Track B 모임 생성(SPEC-CLUB-002), 실시간 피드(SPEC-FEED-001)
 
 #### SPEC-CLUB-002: Track B 개설형 모임 관리
@@ -264,7 +264,7 @@ Phase 5 (배포)
 #### SPEC-DEPLOY-001: 빌드, 배포 및 CI/CD
 - **도메인**: DEPLOY / DEVOPS
 - **우선순위**: medium
-- **상태**: 🔄 진행 중 (M1+M5 머지됨, PR #15 2514263, 2026-06-17; M2 CI / M3 Sentry SDK / M4 Submit / M6 Edge Function 미완료 — M6은 SPEC-CLUB-001 / SPEC-NOTIF-001 의존으로 블로킹)
+- **상태**: ✅ 구현 완료 (24/24 REQ, PR #52 86729fb 머지 2026-06-24, 커버리지 Stmts 90.48%. M2/M3/M4/M6 전부 완료. PR #119로 M2b 라벨 오류 정정 + CI 자동배포 종결 명시. **후속(코드 아닌 외부 인프라 대기)**: §6 #4 Sentry source-map upload/release tracking(OPEN — SENTRY_AUTH_TOKEN/ORG/PROJECT 크리덴셜 필요) · Sentry Expo plugin 등록(연기 — PR #56서 `disableAutoUpload` NO-OP 적발, 크리덴셜 + §6 #4 후) · REQ-DEPLOY-006/007 TestFlight/Play 자동 submit(Apple/Google 크리덴셜 대기) · REQ-DEPLOY-021 Storage 버킷 정책(콘솔 수동) · staging/prod 자동 배포(의도적 수동 결정, 단일 prod 클라우드 직격 위험 회피))
 - **핵심 범위**: EAS Build(iOS/Android 크로스 플랫폼 빌드), EAS Submit(TestFlight/Play Console), GitHub Actions CI/CD 파이프라인(코드 푸시 시 빌드·테스트·배포), Sentry 에러 추적 통합, 환경 분리(dev/staging/prod), 버전 관리·태깅 자동화, OAuth 앱 등록·콜백 URL 인프라 설정, Supabase Storage 버킷 정책
 - **DB 엔터티**: 해당 없음 (인프라)
 - **API/Edge Function**: 해당 없음 (인프라 구성)
@@ -338,7 +338,7 @@ product.md "비목표" + SPEC-DB-001 "제외 범위" 기반:
 | 4 | SPEC-ROUTINE-001 | ✅ | ✅ | ✅ | 구현 완료 (10/10 REQ, PR #31 9ddd1a4, 2026-06-20, 2881 LOC 추가) |
 | 4 | SPEC-NOTIF-001 | ✅ | ✅ | ✅ | 구현 완료 (13/13 REQ — PR #34 5db38e7 + PR #38 8f532d6 + PR #41 cc87323. N3 Android FCM 해결, REQ-003 WHERE 절 수정. N7 Service Account Key 필요) |
 | 4 | SPEC-PROFILE-001 | ✅ | ✅ | ✅ | 구현 완료 (8/8 REQ, PR #36 e616614 + PR #93 187d956, 2026-06-27) |
-| 5 | SPEC-DEPLOY-001 | ✅ | ✅ | ✅ | 진행 중 (M1+M5 머지, PR #15 2514263, 2026-06-17; M2/M3/M4/M6 미완료 — M6 블로킹: CLUB/NOTIF 의존) |
+| 5 | SPEC-DEPLOY-001 | ✅ | ✅ | ✅ | 구현 완료 (24/24 REQ, PR #52 86729fb, 2026-06-24; 외부 크리덴셜 대기: Sentry source-map §6#4 / TestFlight-Play submit / Storage 정책 REQ-021) |
 | 0 | SPEC-UI-002 | ✅ | ✅ | ✅ | 구현 PR 누적 완료 (PR #63, #70, 2026-06-25 + PR #76-#84, 2026-06-26: Pencil↔앱 디자인 차이 수정 — 폰트/서재/토큰/SafeArea + PR #92/#94, 2026-06-27: borderWidth.hairline P3 정정 + 독서 통계 메뉴 제거) — 화면 패턴, 14개 도메인 SPEC 선행 의존성 |
 
 **총 REQ 수: 236개 (219 + SPEC-CLUB-003 17개) / 16개 SPEC 전체 작성 완료 (2026-06-27 갱신)**
