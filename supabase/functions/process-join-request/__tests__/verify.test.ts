@@ -19,6 +19,7 @@
 import {
   generateKeyPairSync,
   randomBytes,
+  createHmac,
   type KeyObject,
 } from 'node:crypto';
 import { Readable } from 'node:stream';
@@ -64,6 +65,7 @@ const AUDIENCE = 'authenticated';
 
 interface TestKeypair {
   privateKey: KeyObject;
+  publicKey: KeyObject;
   kid: string;
   publicJwk: {
     kty: 'EC';
@@ -77,9 +79,10 @@ interface TestKeypair {
 
 function makeKeypair(): TestKeypair {
   // ES256 = ECDSA P-256. Supabase 프로덕션 JWKS 의 단일 키와 동일 알고리즘/커브.
-  const { privateKey } = generateKeyPairSync('ec', { namedCurve: 'P-256' });
+  const { privateKey, publicKey } = generateKeyPairSync('ec', { namedCurve: 'P-256' });
   return {
     privateKey,
+    publicKey,
     kid: randomBytes(8).toString('hex'),
     publicJwk: undefined as unknown as TestKeypair['publicJwk'],
   };
@@ -163,9 +166,18 @@ describe('SPEC-SECURITY-001 verifyAndExtractJwtSub (jose ES256 서명 검증)', 
   });
 
   it('REQ-SEC-062: HS256 알고리즘 혼동 토큰은 null 을 반환한다 (ES256 고정)', async () => {
-    // 공격자가 ES256 공개 키를 HMAC 비밀키로 오용하려는 시나리오.
-    // jose 가 algorithms:['ES256'] 핀으로 alg:'HS256' 헤더를 즉시 거부하므로
-    // 시그니처 내용 자체는 의미가 없다 — 임의 바이트로 채운다.
+    // 공격 시나리오: ES256 공개 키(JWK)를 HMAC-SHA256 비밀키로 오용해
+    // "유효한" HS256 서명을 생성. ES256 핀(algorithms:['ES256'])이 alg:'HS256'
+    // 헤더를 거부하지 않으면, 이 서명은 공개 키 기반 검증을 통과해 sub 가
+    // 노출된다 (취약).
+    //
+    // 정제 목적 (2026-07-06): 기존 randomBytes 무효 서명은 핀 동작과 무관하게
+    // 서명 불일치로 null 이 되어 ES256 핀 회귀를 감지하지 못했다. 유효 HS256
+    // 서명으로 핀의 실제 방어를 서명 불일치 경로와 격리해 검증한다.
+
+    // 1) ES256 공개 키를 HMAC-SHA256 비밀키로 변환 (공격자 시나리오)
+    const publicKeyDer = keypair.publicKey.export({ type: 'spki', format: 'der' });
+    // 2) HS256 헤더 + 유효 payload (iss/aud/exp 정상)
     const header = b64url(
       Buffer.from(JSON.stringify({ alg: 'HS256', typ: 'JWT', kid: keypair.kid })),
     );
@@ -179,10 +191,14 @@ describe('SPEC-SECURITY-001 verifyAndExtractJwtSub (jose ES256 서명 검증)', 
         }),
       ),
     );
-    const fakeSig = randomBytes(64);
-    const fakeToken = `${header}.${payload}.${b64url(fakeSig)}`;
+    // 3) 유효한 HS256 서명 (공개 키를 HMAC 키로 사용)
+    const signingInput = `${header}.${payload}`;
+    const sig = createHmac('sha256', publicKeyDer).update(signingInput).digest();
+    const hs256Token = `${signingInput}.${b64url(sig)}`;
 
-    const result = await verify(`Bearer ${fakeToken}`);
+    const result = await verify(`Bearer ${hs256Token}`);
+    // ES256 핀이 alg:'HS256' 을 거부하므로 null 이어야 한다.
+    // 핀이 제거/완화되면 HS256 서명이 통과해 sub 가 반환된다 — 취약점 회귀 즉시 감지.
     expect(result).toBeNull();
   });
 

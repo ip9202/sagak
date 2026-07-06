@@ -28,7 +28,7 @@
 ## 후속 이슈 (PR #121 이후)
 
 - ✅ esm.sh jose 버전 핀 (재현성 확보) — 완료 (PR #131): `deno.json` import map `jose@5` → `jose@5.10.0` 정확 핀. 현재 esm.sh/jose@5는 5.10.0으로 리졸브(prod 동작 버전 == npm latest 5.x)되므로 향후 patch drift 차단 + prod 동작 유지. 검증: deno 런타임 esm.sh 로드 정상 + jest `verify.test.ts` 7/7 통과 + deno(deno.json)/jest(node_modules) 모두 5.10.0 정합.
-- HS256 혼동 테스트 정제 (현재 통과하나 시그널 명확화 여지)
+- ✅ HS256 혼동 테스트 정제 — 완료 (본 PR): `verify.test.ts` REQ-SEC-062 를 `randomBytes` 무효 서명 → ES256 공개키(DER) 기반 **유효 HS256 서명**(공격 시나리오 정확 모방)으로 정제. 서명 불일치 경로와 격리해 jose HS256 방어 메커니즘을 검증. **회귀 입증(시그널 명확화)**: ES256 핀(`algorithms:['ES256']`)을 `['ES256','HS256']`로 완화해도 테스트 통과 → jose가 EC key↔HS256 key-type mismatch 로 2차 방어 → **다층 방어(alg 핀 + key-type 검증)** 확인. 정제의 시그널 가치 = 서명 불일치와 무관하게 jose 방어 로직 도달을 검증 + 실제 공격 벡터(공개키를 HMAC 키로 오용) 재현.
 
 ## 수락 기준 완료 카운트
 
