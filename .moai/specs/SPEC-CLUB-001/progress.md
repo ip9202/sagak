@@ -88,7 +88,7 @@
   - VALIDATION + MESSAGE_TOO_LONG (500자 초과) → "메시지는 500자 이하여야 합니다"
   - RLS_DENIED → "접근 권한이 없습니다"
 - **respondToJoinRequest**: void 반환. 성공 후 useIncomingJoinRequests 캐시 invalidate + (선택) confirmMembership으로 멤버십 관측.
-- **Edge Function skeleton 한계**: index.ts는 lazy 그룹 생성/INSERT가 TODO 상태. 위임 2 UI 개발 중에도 실제 DB 연동 전이므로, 통합 플로우 테스트는 Edge Function 완성 후 별도 진행 권장.
+- **Edge Function skeleton 한계**: ~~index.ts는 lazy 그룹 생성/INSERT가 TODO 상태~~ → **해소 (2026-07-06 직검, lessons #23)**. `index.ts`(318 LOC)는 lazy 클럽 생성 INSERT(L172) + join_requests INSERT(L196) + notifications/Expo Push(L254) 전부 실구현, skeleton 'TODO' 제거(L240). PR #108(T-008) + #115(보안 하드닝) + SPEC-SECURITY-001 PR #121/#123(jose ES256 defense-in-depth)로 완전 구현 + 보안 강화 완료. (이전 마커는 STALE이었음 — 통합 플로우 테스트는 이미 가능)
 
 
 ## M2-M5 결과 (위임 2 — T-009~T-012, UI 계층)
@@ -146,7 +146,7 @@
 모든 FROZEN 규칙 준수 — 3계층 레이아웃, 헤더 타이틀 균일성, 카드 밀도, 상태 패턴, 토큰 전용 스타일링, 비과시 원칙. Pencil .pen 검사는 미수행 (화면 구현은 SPEC-UI-002 spec + 기존 library.tsx 시각 참조로 준수).
 
 ### 블로커
-없음. 단 Edge Function skeleton 한계(위임 1 전달사항)로 인해 통합 플로우(실제 DB 연동) 테스트는 Edge Function 완성 후 별도 진행 권장.
+없음. (~~Edge Function skeleton 한계~~ → 해소: `index.ts` lazy 클럽 생성/INSERT + 알림 전부 실구현 + SPEC-SECURITY-001 jose ES256 보안 강화 완료. 통합 플로우 테스트 가능. 2026-07-06 직검 — lessons #23 STALE 정정)
 
 
 ## Phase 1 전략 요약
