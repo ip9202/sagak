@@ -74,10 +74,10 @@ Phase 5 (배포)
 #### SPEC-API-001: Supabase 클라이언트 통합 및 API 레이어
 - **도메인**: INFRA
 - **우선순위**: high
-- **상태**: ✅ 구현 완료 (16/19 REQ, 84% — 2026-06-15 PR #3 머지)
+- **상태**: ✅ 구현 완료 (19/19 REQ, 100% — 2026-06-15 PR #3 머지. REQ-008~010은 DB-001 완료 후 gen-types 자동생성 `src/types/supabase.ts`(877줄)로 충족 — 2026-07-06 재검증, lessons #23 STALE 정정)
 - **핵심 범위**: `@supabase/supabase-js` 클라이언트 싱글톤, 환경 변수 관리(dev/prod 분리), 타입 안전 쿼리 래퍼, 공통 에러 처리·재시도, 인증 헤더 자동 주입
 - **완료 REQ**: REQ-API-001~007 (클라이언트 싱글톤, 설정, gen-types 기반, 세션 저장소), REQ-API-011~018 (에러 계층 구조, 재시도, Edge Function 래퍼, 공개 API, 단위 테스트, 환경 변수 분리, EAS Build 통합, 디버깅)
-- **연기 REQ**: REQ-API-008~010 (12엔터티/ENUM/뷰 타입 — SPEC-DB-001 스키마 배포 후 gen-types 실행 필요)
+- **연기 해제 (2026-07-06 재검증)**: REQ-API-008~010 — `src/types/supabase.ts`(gen-types 자동생성, `npm run gen-types`)에 12 엔터티 + `sticker_type` ENUM + `user_profiles`/`user_books_public` 보안 뷰 전부 도출됨. DB-001 완료 후 이미 실행되었으나 라벨 미갱신이었음 (lessons #23).
 - **DB 엔터티**: 해당 없음 (클라이언트 인프라)
 - **API/Edge Function**: 모든 PostgREST 엔드포인트 기반
 - **의존성**: SPEC-DB-001(스키마), SPEC-UI-001(프로젝트 구조)
@@ -324,7 +324,7 @@ product.md "비목표" + SPEC-DB-001 "제외 범위" 기반:
 
 | Phase | SPEC | spec.md | plan.md | acceptance.md | 상태 |
 |-------|------|---------|---------|---------------|------|
-| 1 | SPEC-API-001 | ✅ | ✅ | ✅ | 구현 완료 (16/19 REQ, 84% — REQ-008~010 스키마 의존으로 SPEC-DB-001 배포 후 연기) |
+| 1 | SPEC-API-001 | ✅ | ✅ | ✅ | 구현 완료 (19/19 REQ, 100% — REQ-008~010 gen-types `src/types/supabase.ts`로 충족, 2026-07-06 재검증) |
 | 1 | SPEC-AUTH-001 | ✅ | ✅ | ✅ | 구현 완료 (18/18 REQ, PR #11 머지 c6630ae, 2026-06-17, OAuth 제공자: kakao/naver/google) |
 | 1 | SPEC-NAV-001 | ✅ | ✅ | ✅ | 구현 완료 (13/13 REQ, PR #7 머지 8fa545b, 317 테스트, 커버리지 82.5%) |
 | 2 | SPEC-BOOK-001 | ✅ | ✅ | ✅ | 구현 완료 (M1~M4 전부, PR #8 852f0ac M1+M2 + PR #9 a293e8d M3+M4, 후속 PR #64/#65/#67/#68/#71 2026-06-25) |
@@ -355,7 +355,7 @@ product.md "비목표" + SPEC-DB-001 "제외 범위" 기반:
 |-------|---------------|----------|----|----|-----------|--------|---------|
 | 1 | SPEC-UI-001 | 2026-06-14 | #1 | 92c100f | 25/25 (100%) | 72/72 | 93.68% |
 | 1 | SPEC-DB-001 | 2026-06-14 | - | - | 15/15 (100%) | 272/272 | 88%+ |
-| 1 | SPEC-API-001 | 2026-06-15 | #3 | e5d01d9 | 16/19 (84%) | 198/198 | 96%+ |
+| 1 | SPEC-API-001 | 2026-06-15 | #3 | e5d01d9 | 19/19 (100%) | 198/198 | 96%+ |
 | 1 | SPEC-AUTH-001 | 2026-06-17 | #11 | c6630ae | 18/18 (100%) | 317/317 | 85%+ |
 | 1 | SPEC-NAV-001 | 2026-06-16 | #7 | 8fa545b | 13/13 (100%) | 317/317 | 82.5% |
 
@@ -439,8 +439,8 @@ product.md "비목표" + SPEC-DB-001 "제외 범위" 기반:
 ### SPEC-API-001: Supabase 클라이언트 통합 및 API 레이어
 - **구현 완료일**: 2026-06-15
 - **머지**: PR #3 (commit e5d01d9, develop 브랜치)
-- **구현 범위**: 16/19 REQ (84%) — REQ-API-001~007, REQ-API-011~018 완료
-- **연기 REQ**: REQ-API-008~010 (gen-types entity 타입 — SPEC-DB-001 스키마 배포 후 Supabase CLI gen-types 실행 필요)
+- **구현 범위**: 19/19 REQ (100%) — REQ-API-001~018 + REQ-008~010(gen-types 충족, 2026-07-06 재검증) 전부 완료
+- **연기 해제 (2026-07-06 재검증)**: REQ-API-008~010 — `src/types/supabase.ts`(gen-types 자동생성, 877줄)에 12 엔터티 + `sticker_type` ENUM + 보안 뷰 도출 완료. DB-001 완료 후 이미 실행되었으나 라벨 미갱신이었음 (lessons #23).
 - **테스트**: 198개 통과, 커버리지 96%+
 - **새로운 의존성**: `@react-native-async-storage/async-storage` 2.2.0
 - **공개 API**:
