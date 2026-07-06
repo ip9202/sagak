@@ -27,7 +27,7 @@
 
 ## 후속 이슈 (PR #121 이후)
 
-- esm.sh jose 버전 핀 (재현성 확보)
+- ✅ esm.sh jose 버전 핀 (재현성 확보) — 완료 (본 PR): `deno.json` import map `jose@5` → `jose@5.10.0` 정확 핀. 현재 esm.sh/jose@5는 5.10.0으로 리졸브(prod 동작 버전 == npm latest 5.x)되므로 향후 patch drift 차단 + prod 동작 유지. 검증: deno 런타임 esm.sh 로드 정상 + jest `verify.test.ts` 7/7 통과 + deno(deno.json)/jest(node_modules) 모두 5.10.0 정합.
 - HS256 혼동 테스트 정제 (현재 통과하나 시그널 명확화 여지)
 
 ## 수락 기준 완료 카운트
