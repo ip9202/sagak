@@ -84,3 +84,15 @@
 - **데이터 소스 전환**: users.provider(가입 시 단일 provider) → auth.identities(Supabase 진실 원천, 모든 연결 identity)
 - **실기기 검증**: 강력쓰주먹 계정(custom:naver + kakao 연결)에서 "네이버, 카카오" 표시 확인 완료
 - feature/SPEC-AUTH-001-linked-providers deleted (local + remote)
+
+### 후속 정정 (2026-07-06) — 네이버 실기기 e2e "보류" 항목 해결 확인
+
+**배경**: PR #17(799c919)이 "네이버 실기기 e2e 보류: 네이버 콜백 URL 오타(`o` 누락) 수정 + C1(email NOT NULL) 검증 + M2(provider guard) 차후 진행"이라고 남긴 3개 항목이 핸드오프까지 미갱신 STALE 마커로 잔존 (lessons #23 적중). 코드 직검 결과 **3항목 전부 이미 충족** 확인:
+
+1. **네이버 콜백 URL 오타(`o` 누락)** — 코드 레벨 정상. `src/auth/oauth.ts:23` `getOAuthRedirectUri()` 반환값 `"sagak://auth/callback"` (오타 無, `oauth.test.ts:14-15` 고정 URI 계약 검증). "오타"는 네이버 개발자 콘솔 콜백 URL 설정(외부 프로비저닝 영역)으로, 본 repo 코드가 아님 → 코드 수정 대상 아님.
+2. **C1(email NOT NULL)** — DB 제약 충족. `supabase/migrations/20240614000001_create_users.sql:12` `email text UNIQUE NOT NULL`. 추가로 `20240618000005_handle_new_user_email_fallback.sql`가 `noemail.local` 폴백으로 INSERT 위반 방어 (provider+id 가짜 이메일). C1 AC 충족.
+3. **provider guard** — 코드 충족. `src/auth/AuthContext.tsx:156` `const supabaseProvider = provider === 'naver' ? 'custom:naver' : provider;` 매핑 + `@MX:REASON` 가드 주석 (fan_in >= 3). `src/auth/types.ts` `AuthProvider = 'kakao' | 'naver' | 'google'` 유니온 타입 화이트리스트 + `normalizeIdentityProvider('custom:naver') → 'naver'` 역정규화 (`types.test.ts:94`).
+
+**실기기 검증 상태**: PR #19(e456fa6)에서 카카오/네이버/구글 account-linking 실기기 검증 PASS (네이버 scope `account_email` 추가 후 noemail 폴백 해결). 네이버 로그인 → 온보딩 → 홈 → linking 전 파이프라인 정상 동작 확인.
+
+**결론**: SPEC-AUTH-001 코드 레벨 잔여 작업 없음. 남은 네이버 항목은 외부 프로비저닝(네이버 개발자 콘솔 콜백 URL)만. 핸드오프 "네이버 실기기 e2e (콜백 URL + C1 + provider guard)" 마커는 PR #17 시점 것으로, 코드 관점에서 STALE.
