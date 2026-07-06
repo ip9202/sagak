@@ -277,7 +277,7 @@ Phase 5 (배포)
 #### SPEC-SECURITY-001: Edge Function JWT defense-in-depth (verify_jwt CI guard + jose)
 - **도메인**: SECURITY
 - **우선순위**: high
-- **상태**: 🔄 진행 중 (SPEC 1.0.0 작성, 2026-07-02; A1 + jose 구현 대기 — expert-security 평가 "조건부 도입" 반영)
+- **상태**: ✅ 구현 완료 (AC 21/21, 2026-07-06; jose ES256 defense-in-depth prod 입증 완료: L0 gateway `verify_jwt` + L1 jose ES256/JWKS; A1+021 CI guards 완료; runtime smoke 050/051/052 완료; PR #121/#123/#126/#128)
 - **핵심 범위**: verify_jwt per-function CI 가드(A1, config.toml drift 자동 차단) + process-join-request jose ES256 서명 검증(JWKS 기반), extractJwtSub deprecate → verifyAndExtractJwtSub 통합 헬퍼 교체. 단일 방어선(L0 게이트웨이) → 이중 방어선 전환
 - **DB 엔터티**: 해당 없음
 - **API/Edge Function**: process-join-request (logic.ts jose 검증 헬퍼, index.ts M-1 게이트 교체)
