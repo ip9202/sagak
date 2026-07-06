@@ -24,9 +24,10 @@ import {
 import { useRouter } from 'expo-router';
 // @MX:NOTE: [AUTO] SPEC-UI-002 — 아이콘 라이브러리를 Feather(@expo/vector-icons)에서
 //           lucide-react-native 로 이관 (.pen library: "lucide" 준거). search/plus/book-open 3종.
-import { Search, Plus, BookOpen } from 'lucide-react-native';
+// @MX:NOTE: [AUTO] SPEC-COMPLETION-002 REQ-COMP2-013 — completed 항목 우측 다이어리 진입 아이콘 BookMarked 추가.
+import { Search, Plus, BookOpen, BookMarked } from 'lucide-react-native';
 import { useTheme } from '../../src/theme/theme';
-import { typography } from '../../src/theme/tokens';
+import { typography, iconSizes } from '../../src/theme/tokens';
 import { useSession } from '../../src/auth/useSession';
 import { useLibrary } from '../../src/features/library/useLibrary';
 import { BookCard } from '../../src/components/BookCard';
@@ -214,6 +215,10 @@ export default function LibraryTab() {
         >
           {items.map((item) => {
             const book = item.books;
+            // @MX:NOTE: [AUTO] SPEC-COMPLETION-002 REQ-COMP2-013 — completed 항목에만
+            //           완독 다이어리 진입 아이콘 버튼(rightAccessory) 노출. reading/shelved 는 미노출.
+            //           행 탭(onPress)은 상태 무관 항상 BookDetail(/{book_id}) — 상태별 행 동작 일관성 보존.
+            const isCompleted = item.status === 'completed';
             return (
               <BookCard
                 key={item.id}
@@ -226,6 +231,24 @@ export default function LibraryTab() {
                 // @MX:NOTE: [AUTO] 책 탭 → 도서 상세([bookId]) 이동. (tabs) 그룹 라우트는
                 //           URL 에서 생략되므로 /<UUID> 로 push (PR #68 route fix 와 동일 패턴).
                 onPress={() => router.push(`/${item.book_id}`)}
+                rightAccessory={
+                  isCompleted ? (
+                    <Pressable
+                      testID={`library-item-${item.id}-diary-entry`}
+                      // @MX:NOTE: [AUTO] (tabs) 그룹 생략 → /completion/<bookId> (completion/[bookId] 라우트).
+                      onPress={() => router.push(`/completion/${item.book_id}`)}
+                      accessibilityRole="button"
+                      accessibilityLabel="완독 다이어리"
+                      accessibilityHint="이 책의 완독 다이어리로 이동합니다."
+                      hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                    >
+                      <BookMarked
+                        size={iconSizes.md}
+                        color={theme.colors.brand[500]}
+                      />
+                    </Pressable>
+                  ) : null
+                }
               />
             );
           })}
