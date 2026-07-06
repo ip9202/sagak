@@ -208,4 +208,4 @@
 - [ ] `@MX:TODO` at ClubsScreen.tsx:309 제거
 - [ ] SPEC-UI-002 토큰만 사용
 - [ ] 비과시 원칙 준수 (median 전용)
-- [ ] 실기기 회귀 (기존 ClubsScreen 동작 유지)
+- [ ] 회귀 검증(실기기 — 기존 ClubsScreen 동작 유지)

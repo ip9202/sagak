@@ -129,7 +129,7 @@
 - `npm test` 전체 통과
 - `npx tsc --noEmit` 통과
 - ESLint 통과
-- 실기기 회귀: ClubsScreen 목록 렌더링, ClubCard 레이아웃, closed 모임 표시 유지
+- 회귀 검증(실기기): ClubsScreen 목록 렌더링, ClubCard 레이아웃, closed 모임 표시 유지
 
 ---
 
@@ -143,4 +143,4 @@
 - [ ] SPEC-UI-002 토큰만 사용 (하드코딩 금지)
 - [ ] 비과시 원칙 준수 (median 전용, 랭킹/비교 없음)
 - [ ] 커버리지 85%+ (RPC pgTAP + hook Vitest + UI Testing Library)
-- [ ] 실기기 회귀 통과 (기존 ClubsScreen 동작 유지)
+- [ ] 회귀 검증 통과(실기기 — 기존 ClubsScreen 동작 유지)
