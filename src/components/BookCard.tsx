@@ -27,6 +27,14 @@ export interface BookCardProps {
   testID?: string;
   /** 탭 시 호출 — 서재에서 책 상세로 이동 등. 전달 시 Pressable(Card) 로 렌더. */
   onPress?: () => void;
+  /**
+   * 우측 accessory 슬롯 (OPTIONAL).
+   * 미전달 시 렌더링되지 않아 기존 레이아웃(cover + info) 이 100% 보존된다.
+   * 전달 시 content row 의 세 번째 자식으로 info(flex:1) 뒤에 배치되어
+   * 카드 우측 엣지에 자연스럽게 위치한다.
+   * 사용 예: 서재 completed 항목의 완독 다이어리 진입 아이콘 (SPEC-COMPLETION-002 REQ-COMP2-013).
+   */
+  rightAccessory?: React.ReactNode;
 }
 
 /**
@@ -44,6 +52,7 @@ export const BookCard: React.FC<BookCardProps> = ({
   style,
   testID = 'book-card',
   onPress,
+  rightAccessory,
 }) => {
   const theme = useTheme();
 
@@ -127,6 +136,12 @@ export const BookCard: React.FC<BookCardProps> = ({
             )}
           </View>
         </View>
+
+        {/* 우측 accessory (OPTIONAL) — info(flex:1) 뒤 배치되어 카드 우측 엣지에 정렬.
+            미전달 시 렌더링되지 않아 기존 cover+info 이원 레이아웃이 100% 보존된다. */}
+        {rightAccessory ? (
+          <View style={styles.accessory}>{rightAccessory}</View>
+        ) : null}
       </View>
     </Card>
   );
@@ -151,6 +166,11 @@ const styles = StyleSheet.create({
   info: {
     flex: 1,
     gap: spacing[1] + 2, // .pen Info gap 6
+  },
+  // @MX:NOTE: [AUTO] rightAccessory 컨테이너 — info(flex:1) 뒤 배치되어 우측 엣지 정렬.
+  //           alignSelf center 로 cover(110px) 높이의 수직 중앙에 아이콘을 둔다 (SPEC-COMPLETION-002 REQ-COMP2-013).
+  accessory: {
+    alignSelf: 'center',
   },
   title: {},
   author: {},
