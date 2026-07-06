@@ -390,9 +390,9 @@ React Query(v5, `@tanstack/react-query`), SWR, 순수 React 훅(`useEffect` + `u
 
 ### 구현 완료: 2026-06-15
 
-**구현 범위**: 16/19 REQ (84%)
-- 완료: REQ-API-001~007, REQ-API-011~018
-- 연기: REQ-API-008~010 (12엔터티/ENUM/뷰 타입 — SPEC-DB-001 스키마 배포 후 gen-types 실행 필요)
+**구현 범위**: 19/19 REQ (100%) — REQ-008~010 gen-types 충족 (2026-07-06 재검증, `src/types/supabase.ts`)
+- 완료: REQ-API-001~018 (전부)
+- 연기 해제 (2026-07-06 재검증): REQ-API-008~010 — `src/types/supabase.ts`(gen-types 자동생성, `npm run gen-types`, 877줄)에 12 엔터티(books/club_members/clubs/completion_records/emotion_records/join_requests/notifications/point_logs/reading_sessions/sticker_reactions/user_books/users) + `sticker_type` ENUM(empathy/touching/comforted) + `user_profiles`/`user_books_public` 보안 뷰 전부 도출됨. DB-001 완료 후 이미 실행, 라벨 미갱신이었음 (lessons #23).
 
 **머지 정보**:
 - PR: #3
@@ -440,4 +440,4 @@ React Query(v5, `@tanstack/react-query`), SWR, 순수 React 훅(`useEffect` + `u
 
 **후속 의존성**:
 - 모든 도메인 SPEC(SPEC-AUTH-001, SPEC-NAV-001, SPEC-BOOK-001, SPEC-LIBRARY-001 등)이 본 API 레이어 파운데이션 위에 구현됨
-- SPEC-DB-001 스키마 배포 후 gen-types 실행으로 REQ-API-008~010 완료 예정
+- REQ-API-008~010 완료 (2026-07-06 재검증): `src/types/supabase.ts`(gen-types 자동생성)로 12 엔터티 + ENUM + 보안 뷰 타입 도출됨. DB-001 완료 후 이미 실행되었음.
