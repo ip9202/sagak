@@ -68,3 +68,5 @@ coverage/
 # MoAI logs
 .moai/logs/
 .moai/reports/
+*.bak
+*.bak[0-9]

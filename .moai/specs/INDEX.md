@@ -264,12 +264,12 @@ Phase 5 (배포)
 #### SPEC-DEPLOY-001: 빌드, 배포 및 CI/CD
 - **도메인**: DEPLOY / DEVOPS
 - **우선순위**: medium
-- **상태**: ✅ 구현 완료 (24/24 REQ, PR #52 86729fb 머지 2026-06-24, 커버리지 Stmts 90.48%. M2/M3/M4/M6 전부 완료. PR #119로 M2b 라벨 오류 정정 + CI 자동배포 종결 명시. **후속(코드 아닌 외부 인프라 대기)**: §6 #4 Sentry source-map upload/release tracking(OPEN — SENTRY_AUTH_TOKEN/ORG/PROJECT 크리덴셜 필요) · Sentry Expo plugin 등록(연기 — PR #56서 `disableAutoUpload` NO-OP 적발, 크리덴셜 + §6 #4 후) · REQ-DEPLOY-006/007 TestFlight/Play 자동 submit(Apple/Google 크리덴셜 대기) · REQ-DEPLOY-021 Storage 버킷 정책(콘솔 수동) · staging/prod 자동 배포(의도적 수동 결정, 단일 prod 클라우드 직격 위험 회피))
-- **핵심 범위**: EAS Build(iOS/Android 크로스 플랫폼 빌드), EAS Submit(TestFlight/Play Console), GitHub Actions CI/CD 파이프라인(코드 푸시 시 빌드·테스트·배포), Sentry 에러 추적 통합, 환경 분리(dev/staging/prod), 버전 관리·태깅 자동화, OAuth 앱 등록·콜백 URL 인프라 설정, Supabase Storage 버킷 정책
+- **상태**: ✅ 구현 완료 (24/24 REQ, PR #52 86729fb 머지 2026-06-24, 커버리지 Stmts 90.48%. M2/M4/M6 전부 완료. PR #119로 M2b 라벨 오류 정정 + CI 자동배포 종결 명시. **후속(코드 아닌 외부 인프라 대기)**: REQ-DEPLOY-006/007 TestFlight/Play 자동 submit(Apple/Google 크리덴셜 대기) · REQ-DEPLOY-021 Storage 버킷 정책(콘솔 수동) · staging/prod 자동 배포(의도적 수동 결정, 단일 prod 클라우드 직격 위험 회피). **철회 (2026-07-07, PR #140)**: 사용자 결정으로 Sentry 통합 제거. REQ-DEPLOY-014~017 무효.
+- **핵심 범위**: EAS Build(iOS/Android 크로스 플랫폼 빌드), EAS Submit(TestFlight/Play Console), GitHub Actions CI/CD 파이프라인(코드 푸시 시 빌드·테스트·배포), 환경 분리(dev/staging/prod), 버전 관리·태깅 자동화, OAuth 앱 등록·콜백 URL 인프라 설정, Supabase Storage 버킷 정책
 - **DB 엔터티**: 해당 없음 (인프라)
 - **API/Edge Function**: 해당 없음 (인프라 구성)
 - **의존성**: 모든 도메인 SPEC(최종 통합 후 배포)
-- **구현 산출물**: `eas.json`, `.github/workflows/*.yml`, `sentry.properties` / Sentry CLI 통합, 환경 변수 문서, 배포 매뉴얼
+- **구현 산출물**: `eas.json`, `.github/workflows/*.yml`, 환경 변수 문서, 배포 매뉴얼
 - **제외**: 데스크톱 웹 버전(비목표), A/B 테스트 인프라(확장)
 
 ---

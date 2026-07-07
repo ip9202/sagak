@@ -8,6 +8,9 @@ updated: 2026-06-24
 author: "강력쇠주먹"
 priority: medium
 issue_number: 0
+
+> **철회 공지 (2026-07-07, PR #140)**: 사용자 결정으로 Sentry 통합 제거. REQ-DEPLOY-014~017 무효. logToSentry(구조화 에러 로거)는 console.error 기반으로 보존됨.
+
 ---
 
 # SPEC-DEPLOY-001: 빌드, 배포 및 CI/CD 인프라
@@ -25,6 +28,7 @@ issue_number: 0
 | 2026-06-17 | 1.0.1  | OAuth 제공자 변경: apple → naver (REQ-DEPLOY-019, REQ-DEPLOY-020), 네이버 Custom OIDC 설정 추가, Apple 제외 사유 기술 | 강력쇠주먹 |
 | 2026-06-19 | 1.0.2  | 네이버 Custom OIDC: auto-discovery → Manual (OAuth2) 모드 + userinfo proxy 전환. "missing provider id" 해결, email_verified 매핑으로 account linking 지원 (REQ-DEPLOY-019/020) | 강력쇠주먹 |
 | 2026-06-24 | 1.0.3  | 최종 완료 — M2b/M3/M4/M6 구현 완료 및 머지 (PR #52, commit 86729fb). 모든 24개 REQ 완료. 상태를 in-progress → implemented로 변경 | 강력쇠주먹 |
+| 2026-07-07 | 1.0.4  | **철회**: 사용자 결정으로 Sentry 통합 제거 (PR #140). REQ-DEPLOY-014~017 무효. logToSentry(구조화 에러 로거)는 console.error 기반으로 보존. | 강력쇠주먹 |
 
 ---
 

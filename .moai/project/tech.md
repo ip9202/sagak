@@ -6,7 +6,7 @@
 
 ## 프론트엔드
 
-React Native + Expo SDK 55를 주요 프레임워크로 사용하며 React 19.2와 함께 개발되며 TypeScript strict 모드로 타입 안정성을 확보한다. 네이티브 모듈 의존성을 최소화하고 크로스 플랫폼 호환성을 극대화하기 위해 Expo의 빌드 시스템을 활용하며, 네비게이션은 Expo Router(~5)를 사용하여 파일 시스템 기반 라우팅을 구현한다. UI 컴포넌트는 React Native 기본 컴포넌트와 6가지 커스텀 컴포넌트(Button/Card/ProgressBar/BookCard/EmotionRecordCard/StickerReaction)로 구성되어 로딩 성능과 초기화 속도를 최적화하며, 클라이언트 상태 관리는 React Context API와 ThemeProvider, useTheme, useManualMode(dark 토글) 패턴을 조합한다. 서버 상태(데이터 페칭·캐싱·동기화)는 TanStack React Query(@tanstack/react-query)로 관리하며 DevTools를 통해 쿼리 디버깅을 지원하고, 감정 곡선 등 커스텀 데이터 시각화는 react-native-svg 기반으로 자체 구현하여 번들 크기를 최적화한다. 성능 모니터링과 에러 추적을 위해 Sentry를 통합하여 배포 후 운영 품질을 관리한다.
+React Native + Expo SDK 55를 주요 프레임워크로 사용하며 React 19.2와 함께 개발되며 TypeScript strict 모드로 타입 안정성을 확보한다. 네이티브 모듈 의존성을 최소화하고 크로스 플랫폼 호환성을 극대화하기 위해 Expo의 빌드 시스템을 활용하며, 네비게이션은 Expo Router(~5)를 사용하여 파일 시스템 기반 라우팅을 구현한다. UI 컴포넌트는 React Native 기본 컴포넌트와 6가지 커스텀 컴포넌트(Button/Card/ProgressBar/BookCard/EmotionRecordCard/StickerReaction)로 구성되어 로딩 성능과 초기화 속도를 최적화하며, 클라이언트 상태 관리는 React Context API와 ThemeProvider, useTheme, useManualMode(dark 토글) 패턴을 조합한다. 서버 상태(데이터 페칭·캐싱·동기화)는 TanStack React Query(@tanstack/react-query)로 관리하며 DevTools를 통해 쿼리 디버깅을 지원하고, 감정 곡선 등 커스텀 데이터 시각화는 react-native-svg 기반으로 자체 구현하여 번들 크기를 최적화한다.
 
 ### 네비게이션 구조 (SPEC-NAV-001)
 
@@ -47,7 +47,7 @@ TanStack React Query v5를 서버 상태 관리 라이브러리로 채택했다.
 3. classifyError → NetworkError/AuthError/ValidationError 등 카테고리 분류
 4. retryWithBackoff → 일시적 오류 시 지수 백오프로 재시도 (최대 3회)
 5. getUserFriendlyMessage → 사용자 표시용 메시지 생성
-6. logToSentry → 프로덕션 에러 Sentry 전송 (사용자 PII 제거)
+6. logToSentry → 프로덕션 에러 로깅 (구조화된 에러 기록, 사용자 PII 제거)
 
 ## 백엔드 / 데이터베이스
 
@@ -91,13 +91,12 @@ Expo EAS Build를 통한 크로스 플랫폼 빌드와 EAS Submit을 통한 앱 
 
 SPEC-DEPLOY-001 M1(PR #15, 2514263)에서 EAS Build 인프라 파운데이션이 추가되었다:
 - **EAS Build (Expo Application Services)**: `eas.json`에 3개 빌드 프로필 정의 — `development`(Expo Go 기반 개발), `preview`(스테이징/internal 테스트), `production`(앱 스토어 배포용)
-- **빌드 시점 환경 변수 주입**: `EXPO_PUBLIC_*` 접두사 환경 변수가 EAS Build 시점에 빌드 결과물에 인라인된다. 현재 `EXPO_PUBLIC_SENTRY_DSN`이 `app.config.ts`의 `extra`에 노출됨
+- **빌드 시점 환경 변수 주입**: `EXPO_PUBLIC_*` 접두사 환경 변수가 EAS Build 시점에 빌드 결과물에 인라인된다.
 - **빌드 시점 fail-fast 환경 변수 검증 (REQ-DEPLOY-018)**: `app.config.ts`가 빌드 시작 시 `validateEnv(process.env, ENV)`를 호출하여 필수 환경 변수 누락 시 빌드를 즉시 중단(`MissingEnvError`). 프로덕션 프로필은 `REQUIRED_PROD` 키 집합에 대해 추가 검증
-- **Sentry SDK (M3 완료)**: `@sentry/react-native@~7.11.0` 설치 완료 (PR #53, PR #54). `app/_layout.tsx`에서 `useEffect` 통해 `initSentry(getSentryConfigInput())` 호출 (REQ-DEPLOY-014 "항상 초기화" 런타임 실행). `getSentryConfigInput()` 헬퍼로 dsn/env/release 단일 조립. 방어 깊이: init 프로미스 `.catch()`, DSN trim(). **남은 작업**: Sentry CLI source-map upload / release tracking (§6 #4 미해결).
 
 ## 개발 환경 요구사항
 
-Node.js LTS 버전(20.x 이상)을 필수로 하며 npm을 통해 패키지를 관리한다. Expo CLI는 전역 설치되어 있어야 하며, Supabase CLI는 로컬 개발 환경 설정에 필요하다. iOS 개발을 위해서는 Xcode와 iOS SDK가 macOS 환경에서 필수이며, Android 개발을 위해서는 Android Studio와 SDK가 필요하다. 코드 품질 관리를 위해 ESLint 9 flat config, Prettier, TypeScript 설정을 통합하며, 테스트 프레임워크는 Jest와 @testing-library/react-native를 사용한다. 디버깅은 Expo 개발자 메뉴와 React DevTools를 통해 지원되며, 에러 추적을 위해 Sentry를 통합한다. iOS 개발을 위해서는 Xcode와 iOS SDK가 macOS 환경에서 필수이며, Android 개발을 위해서는 Android Studio와 SDK가 필요하다. 코드 품질 관리를 위해 ESLint, Prettier, TypeScript 설정을 통합하며, 테스트 프레임워크는 Jest와 React Native Testing Library(`@testing-library/react-native`)를 사용한다. 디버깅은 Expo 개발자 메뉴와 React DevTools를 통해 지원되며, 에러 추적을 위해 Sentry를 통합한다.
+Node.js LTS 버전(20.x 이상)을 필수로 하며 npm을 통해 패키지를 관리한다. Expo CLI는 전역 설치되어 있어야 하며, Supabase CLI는 로컬 개발 환경 설정에 필요하다. iOS 개발을 위해서는 Xcode와 iOS SDK가 macOS 환경에서 필수이며, Android 개발을 위해서는 Android Studio와 SDK가 필요하다. 코드 품질 관리를 위해 ESLint 9 flat config, Prettier, TypeScript 설정을 통합하며, 테스트 프레임워크는 Jest와 @testing-library/react-native를 사용한다. 디버깅은 Expo 개발자 메뉴와 React DevTools를 통해 지원된다.
 
 ## 디자인 시스템 토큰
 

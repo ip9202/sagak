@@ -81,7 +81,6 @@ iOS/Android 모바일 앱 (React Native + Expo SDK 55 + React 19.2)
 - **`src/lib/query/`** (React Query v5 인프라): `queryClient.ts` (QueryClient 싱글톤 — defaultOptions 3분간 staleTime, retry 1회, mutations retry 없음)
 - **`src/lib/supabase/`** (Supabase 클라이언트): `client.ts` (getSupabiceClient 싱글톤), `storageAdapter.ts` (SecureStore/AsyncStorage 폴백 세션 저장소 어댑터)
 - **`src/lib/api/`** (API 레이어): `errors.ts` (AppError 계층 구조 + normalizeError/classifyError), `retry.ts` (retryWithBackoff), `edgeFunctions.ts` (invokeEdgeFunction), `index.ts` (통합 진입점)
-- **`src/lib/sentry.ts`** (Sentry 통합, SPEC-DEPLOY-001 M3 — 2026-06-24): `buildSentryConfig` (순수 함수 — env 태그 분리, PII 보호, tracesSampleRate), `initSentry` (SDK 초기화 — 정적 import, 직접 `Sentry.init` 호출, 통합 테스트 5개), `getSentryConfigInput` (app-entry config assembly — dsn/env/release 단일 조립, `getOptionalEnvVar` + `Constants.expoConfig.version`, 테스트 3개). app/_layout.tsx에서 `useEffect` 통해 호출 (REQ-DEPLOY-014 런타임 실행). 방어 깊이: init 프로미스 `.catch()`, DSN trim(). §6 #4 (source-map/upload) 미해결.
 - **`src/errors/`** (공통 에러 처리): `AppError.ts` (AppError 기본 클래스 + 7개 서브클래스 + ErrorCategory 타입)
 
 ### 아키텍특 특징
@@ -203,10 +202,10 @@ iOS/Android 모바일 앱 (React Native + Expo SDK 55 + React 19.2)
 
 **빌드/배포 설정**:
 - `app.config.ts` — Expo 앱 설정. SPEC-DEPLOY-001 M1에서 빌드 시점 `validateEnv(process.env, ENV)` 호출(환경 변수 fail-fast 게이트)을 추가하고 `EXPO_PUBLIC_SENTRY_DSN`을 `extra`에 노출
-- `eas.json` — EAS Build 설정. 3개 빌드 프로필: `development`(개발), `preview`(스테이징), `production`(프로덕션)
+- `app.config.ts` — Expo 앱 설정. SPEC-DEPLOY-001 M1에서 빌드 시점 `validateEnv(process.env, ENV)` 호출(환경 변수 fail-fast 게이트)을 추가
 - `.env.example` / `.env.staging` / `.env.production` — 환경 변수 템플릿. `SENTRY_DSN` 플레이스홀더 포함 (M3 Sentry SDK 통합 대비)
-
+- `.env.example` / `.env.staging` / `.env.production` — 환경 변수 템플릿
 **배포 매뉴얼**:
 - `docs/deployment.md` — OAuth 콘솔 등록 절차(Kakao/Naver/Google) + Supabase Auth 제공자 활성화 가이드 + `.env` 설정 가이드. OAuth 콜백 URI `sagak://auth/callback`은 이미 `src/auth/oauth.ts`에 존재(본 문서는 절차만 문서화, 재구현 아님)
 
-> **참고**: SPEC-DEPLOY-001의 나머지 마일스톤(M2 GitHub Actions CI, M3 Sentry SDK 통합, M4 EAS Submit, M6 Edge Function 배포)은 미완료. M6은 SPEC-CLUB-001 / SPEC-NOTIF-001 의존으로 블로킹.
+> **참고**: SPEC-DEPLOY-001의 나머지 마일스톤(M2 GitHub Actions CI, M4 EAS Submit, M6 Edge Function 배포)은 미완료. M6은 SPEC-CLUB-001 / SPEC-NOTIF-001 의존으로 블로킹.

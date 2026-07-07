@@ -60,7 +60,6 @@ import { AuthProvider } from '@/auth/AuthContext'
 - Expo/EAS 빌드 시작 시 가장 먼저 평가되는 설정 파일
 - `validateEnv(process.env, ENV)`를 호출하여 필수 환경 변수 누락 시 빌드를 즉시 중단 (`MissingEnvError`) — REQ-DEPLOY-018 fail-fast 게이트
 - 프로덕션 프로필은 `REQUIRED_PROD` 키 집합에 대해 추가 검증
-- `EXPO_PUBLIC_SENTRY_DSN`을 `extra`에 노출 (M3 Sentry SDK 통합 대비)
 
 **의존성:**
 ```typescript
