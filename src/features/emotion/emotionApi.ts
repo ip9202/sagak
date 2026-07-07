@@ -102,6 +102,7 @@ export async function createEmotionRecord(
 // T-003: list (조회 + 작성자 조인 + 스티커 집계 + 스포일러 분할)
 // ---------------------------------------------------------------------------
 
+// @MX:NOTE: [AUTO] cross-domain 공개 상수 — emotion.listEmotionRecords + feed.fetchClubFeedPage 공유 (이슈 #27 DRY). 컬럼/조인 변경 시 양쪽 영향.
 /**
  * PostgREST select 컬럼 — emotion_records 본문 + users 조인(nickname/avatar) +
  * sticker_reactions 집계. sticker_type 만 선택하여 원시 행 배열을 받은 뒤 클라이언트에서 count 로 환산한다.
@@ -113,6 +114,7 @@ export async function createEmotionRecord(
 export const EMOTION_LIST_SELECT =
   '*, users(nickname,avatar_url), sticker_reactions(sticker_type)';
 
+// @MX:NOTE: [AUTO] cross-domain 공개 헬퍼 — emotion + feed 동일 집계 규칙 (이슈 #27 DRY). 규칙 변경 시 스티커 카운트 양쪽 영향.
 /**
  * 원시 sticker 행 배열을 타입별 count 로 집계한다 (시나리오 1.7).
  *
@@ -134,6 +136,7 @@ export function aggregateStickers(
   }));
 }
 
+// @MX:NOTE: [AUTO] cross-domain 공개 헬퍼 — emotion + feed 동일 환산 로직 (이슈 #27 DRY). 매핑 변경 시 양쪽 영향.
 /**
  * 단일 행을 환산한다 (sticker 집계 포함).
  *
