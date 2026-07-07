@@ -416,6 +416,20 @@ describe('AuthContext — M1-3 AC-S6/S9: signOut 액션 (REQ-AUTH-011, REQ-AUTH-
     await expect(captured[0].signOut()).rejects.toThrow('network');
   });
 
+  it('S9 — signOut()은 auth.signOut이 거부되어도 React Query 캐시를 클리어한다 (S-1 hardening, issue #26)', async () => {
+    // 보안 불변량: auth.signOut() 네트워크 실패 시에도 캐시 위생은 보장되어야 한다.
+    // clear()가 await auth.signOut() 뒤에 있으면 거부 시 스킵된다 → 최상단 동기 호출로 hardening.
+    // 시나리오: 부분 실패(local 세션 제거 + 서버 호출 실패) + 로컬 SIGNED_OUT 미발생일 때
+    // signOut 액션 경로만이 캐시를 보장할 수 있다.
+    mockSupabaseClient.auth.signOut.mockRejectedValue(new Error('network'));
+    const captured = await renderAndCaptureAll();
+
+    await expect(captured[0].signOut()).rejects.toThrow('network');
+
+    // 캐시 클리어는 네트워크 결과와 무관하게 호출되어야 한다
+    expect(mockQueryClientClear).toHaveBeenCalledTimes(1);
+  });
+
   it('S9 — signOut()이 React Query 캐시를 클리어한다 (getQueryClient().clear() 호출 1회, issue #26)', async () => {
     // SECURITY defense-in-depth: signOut 액션은 로컬 React 상태와 함께
     // React Query 캐시도 즉시 클리어해야 한다. 그렇지 않으면 공유 기기에서

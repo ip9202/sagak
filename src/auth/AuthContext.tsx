@@ -209,11 +209,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
    * 2. onAuthStateChange 구독이 SIGNED_OUT 이벤트를 수신 (이중 클리어, 안전망).
    */
   const signOut = async (): Promise<void> => {
-    await getSupabaseClient().auth.signOut();
-    // @MX:WARN: [AUTO] signOut 액션 즉시 React Query 캐시 클리어 — SIGNED_OUT 이벤트 도착 전 레이스 윈도우 제거
-    // @MX:REASON: SIGNED_OUT 이벤트를 기다리면 이벤트 도착 전 사용자 B가 캐시된 타인 감정 기록을 볼 수 있다. signOut 액션이 낙관적으로 즉시 비워 단일 수렴 지점(SIGNED_OUT 핸들러)과 이중 방어. QueryClient.clear()는 멱등하므로 이중 호출은 무해하다.
+    // @MX:WARN: [AUTO] signOut 액션 최상단에서 React Query 캐시 클리어 — 네트워크 결과·SIGNED_OUT 이벤트와 무관하게 캐시 위생 보장
+    // @MX:REASON: auth.signOut()이 거부되거나 SIGNED_OUT 이벤트가 지연/누락되어도 타인 감정 기록 캐시는 반드시 비워져야 한다. clear()를 호출 최상단에 두어 네트워크 실패에 우발적으로 스킵되지 않도록 한다 (S-1 hardening). SIGNED_OUT 핸들러가 단일 수렴 지점 안전망으로 이중 방어. QueryClient.clear()는 멱등하므로 이중 호출은 무해하다.
     // @MX:SPEC SPEC-AUTH-001
     getQueryClient().clear();
+    await getSupabaseClient().auth.signOut();
     setSession(null);
     setUser(null);
     setProfile(null);
