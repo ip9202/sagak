@@ -29,6 +29,7 @@ import type {
   StickerAggregate,
   UpdateEmotionInput,
 } from './types';
+import { isSpoilerForRecord } from '../feed/spoilerFilter';
 
 /** 빈 content 검증 에러 코드 */
 const EMPTY_CONTENT_CODE = 'EMPTY_CONTENT';
@@ -206,14 +207,9 @@ export async function listEmotionRecords(
 
   for (const raw of rows) {
     const record = toWithAuthor(raw);
-    const pageNum = raw.page_number ?? 0;
-    const isOwn = raw.user_id === options.userId;
-    // 본인 기록은 항상 safe.
-    // 타인 기록: currentPage > 0 일 때만 page_number <= currentPage 가 safe (EC-8 경계).
-    // currentPage === 0 (독서 전) 이면 타인 기록은 모두 spoiler (EC-7).
-    const isSafe =
-      isOwn || (options.currentPage > 0 && pageNum <= options.currentPage);
-    if (isSafe) {
+    // @MX:NOTE: [AUTO] 스포일러 판정을 spoilerFilter.isSpoilerForRecord SSOT로 위임 — 단일 진실 공급원(SPEC-FEED-001, 이슈 #27 제안4)
+    const isSpoiler = isSpoilerForRecord(raw, options.currentPage, options.userId);
+    if (!isSpoiler) {
       safe.push(record);
     } else {
       spoiler.push(record);
