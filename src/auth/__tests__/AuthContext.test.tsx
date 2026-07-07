@@ -58,6 +58,16 @@ jest.mock('../../lib/supabase/client', () => ({
   getSupabaseClient: () => mockSupabaseClient,
 }));
 
+// getQueryClient 모킹 — React Query 캐시 클리어 검증 (SPEC-AUTH-001, issue #26)
+// signOut 액션 / SIGNED_OUT 이벤트에서 타인 감정 기록(EmotionRecordWithAuthor) 잔존 방어.
+// 실제 QueryClient.clear() 동작 자체는 @tanstack/react-query 책임이므로 여기서는 호출 계약만 검증한다.
+const mockQueryClientClear = jest.fn();
+const mockQueryClient = { clear: mockQueryClientClear };
+jest.mock('../../lib/query/queryClient', () => ({
+  getQueryClient: () => mockQueryClient,
+  resetQueryClient: jest.fn(),
+}));
+
 import { AuthProvider, AuthContext } from '../AuthContext';
 import type { AuthContextValue } from '../types';
 import type { Session, User } from '@supabase/supabase-js';
@@ -405,6 +415,33 @@ describe('AuthContext — M1-3 AC-S6/S9: signOut 액션 (REQ-AUTH-011, REQ-AUTH-
 
     await expect(captured[0].signOut()).rejects.toThrow('network');
   });
+
+  it('S9 — signOut()은 auth.signOut이 거부되어도 React Query 캐시를 클리어한다 (S-1 hardening, issue #26)', async () => {
+    // 보안 불변량: auth.signOut() 네트워크 실패 시에도 캐시 위생은 보장되어야 한다.
+    // clear()가 await auth.signOut() 뒤에 있으면 거부 시 스킵된다 → 최상단 동기 호출로 hardening.
+    // 시나리오: 부분 실패(local 세션 제거 + 서버 호출 실패) + 로컬 SIGNED_OUT 미발생일 때
+    // signOut 액션 경로만이 캐시를 보장할 수 있다.
+    mockSupabaseClient.auth.signOut.mockRejectedValue(new Error('network'));
+    const captured = await renderAndCaptureAll();
+
+    await expect(captured[0].signOut()).rejects.toThrow('network');
+
+    // 캐시 클리어는 네트워크 결과와 무관하게 호출되어야 한다
+    expect(mockQueryClientClear).toHaveBeenCalledTimes(1);
+  });
+
+  it('S9 — signOut()이 React Query 캐시를 클리어한다 (getQueryClient().clear() 호출 1회, issue #26)', async () => {
+    // SECURITY defense-in-depth: signOut 액션은 로컬 React 상태와 함께
+    // React Query 캐시도 즉시 클리어해야 한다. 그렇지 않으면 공유 기기에서
+    // 사용자 A가 로그아웃한 후 사용자 B가 로그인할 때 A의 캐시된 감정 기록
+    // (EmotionRecordWithAuthor — 타인 피드 콘텐츠)가 잔존하여 잠시 노출될 수 있다.
+    // signOut 액션은 SIGNED_OUT 이벤트 도착 전에 낙관적으로 캐시를 비운다.
+    mockSupabaseClient.auth.signOut.mockResolvedValue({ error: null });
+    const captured = await renderAndCaptureAll();
+    await captured[0].signOut();
+
+    expect(mockQueryClientClear).toHaveBeenCalledTimes(1);
+  });
 });
 
 describe('AuthContext — M1-4 AC-S3: getSession() 자동 로그인 (REQ-AUTH-012)', () => {
@@ -693,6 +730,34 @@ describe('AuthContext — M1-4 AC-S2: onAuthStateChange 구독 (REQ-AUTH-011)', 
     expect(latest.session).toBeNull();
     expect(latest.user).toBeNull();
     void beforeCount;
+  });
+
+  it('S2-10 — SIGNED_OUT 이벤트 수신 시 React Query 캐시를 클리어한다 (issue #26)', async () => {
+    // SECURITY defense-in-depth: onAuthStateChange SIGNED_OUT 핸들러는
+    // 모든 로그아웃 경로(타 기기 로그아웃, 토큰 만료, 세션 취소)의 단일 수렴 지점이다.
+    // signOut 액션을 거치지 않는 경로(예: 다른 기기에서 로그아웃)에서도
+    // 반드시 캐시가 클리어되어야 타인 감정 기록 잔존 노출이 차단된다.
+    // clear()는 멱등하므로 signOut 액션 → SIGNED_OUT 이벤트 경로의 이중 호출은 무해하다.
+    mockSupabaseClient.auth.getSession.mockResolvedValue({ data: { session: null }, error: null });
+
+    const captured: AuthContextValue[] = [];
+    render(
+      <AuthProvider>
+        <ContextProbe onValue={(v) => captured.push(v)} />
+      </AuthProvider>
+    );
+    await waitFor(() => {
+      expect(onAuthCallback).not.toBeNull();
+    });
+
+    // SIGNED_OUT 이벤트 발생
+    act(() => {
+      onAuthCallback?.('SIGNED_OUT', null);
+    });
+
+    await waitFor(() => {
+      expect(mockQueryClientClear).toHaveBeenCalledTimes(1);
+    });
   });
 });
 

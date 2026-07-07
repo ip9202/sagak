@@ -14,6 +14,7 @@ import type { Session, User, Provider } from '@supabase/supabase-js';
 import * as WebBrowser from 'expo-web-browser';
 import type { AuthContextValue, AuthProvider, UserProfile } from './types';
 import { getSupabaseClient } from '../lib/supabase/client';
+import { getQueryClient } from '../lib/query/queryClient';
 import { getOAuthRedirectUri } from './oauth';
 
 // @MX:ANCHOR: [AUTO] AuthContext 단일 진실 원천 — app 전역 세션/프로필/인증 액션 노출
@@ -121,9 +122,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           break;
         case 'SIGNED_OUT':
           // 로컬 상태 전체 클리어 (signOut 액션과 동일 효과)
+          // @MX:WARN: [AUTO] SIGNED_OUT 시 React Query 캐시 클리어 — 공유 기기 사용자 교체 시 타인 감정 기록(EmotionRecordWithAuthor) 잔존 노출 차단
+          // @MX:REASON: 이 핸들러는 모든 로그아웃 경로(타 기기 로그아웃/토큰 만료/세션 취소)의 단일 수렴 지점이다. 캐시를 비우지 않으면 사용자 A의 피드/서재/클럽 캐시가 B에게 refetch 전까지 잠시 노출된다. signOut 액션 외 경로는 이 핸들러만 거치므로 방어망 필수.
+          // @MX:SPEC SPEC-AUTH-001
           setSession(null);
           setUser(null);
           setProfile(null);
+          getQueryClient().clear();
           break;
         default:
           // 알 수 없는 이벤트 — 무시 (SPEC에 명시된 4개 외)
@@ -204,6 +209,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
    * 2. onAuthStateChange 구독이 SIGNED_OUT 이벤트를 수신 (이중 클리어, 안전망).
    */
   const signOut = async (): Promise<void> => {
+    // @MX:WARN: [AUTO] signOut 액션 최상단에서 React Query 캐시 클리어 — 네트워크 결과·SIGNED_OUT 이벤트와 무관하게 캐시 위생 보장
+    // @MX:REASON: auth.signOut()이 거부되거나 SIGNED_OUT 이벤트가 지연/누락되어도 타인 감정 기록 캐시는 반드시 비워져야 한다. clear()를 호출 최상단에 두어 네트워크 실패에 우발적으로 스킵되지 않도록 한다 (S-1 hardening). SIGNED_OUT 핸들러가 단일 수렴 지점 안전망으로 이중 방어. QueryClient.clear()는 멱등하므로 이중 호출은 무해하다.
+    // @MX:SPEC SPEC-AUTH-001
+    getQueryClient().clear();
     await getSupabaseClient().auth.signOut();
     setSession(null);
     setUser(null);
