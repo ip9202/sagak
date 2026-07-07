@@ -1,10 +1,10 @@
 /**
  * 스포일러 판정 순수함수 (SPEC-FEED-001 T-A2, F7/F8/EC-7/EC-8)
  *
- * emotion 도메인의 listEmotionRecords safe/spoiler 분할 규칙
- * (src/features/emotion/emotionApi.ts 206-219 줄) 과 동일한 의미론을
- * 독립 순수함수로 mirror 한다. Feed 도메인은 무한 스크롤 + 진도 변경 시
- * 서버 재요청 없이 클라이언트에서 재평가(F9)해야 하므로 별도 노출한다.
+ * emotion 도메인의 listEmotionRecords safe/spoiler 분할 규칙의 SSOT(Single Source of Truth).
+ * Feed 도메인은 무한 스크롤 + 진도 변경 시 서버 재요청 없이 클라이언트에서 재평가(F9)해야 하므로
+ * 별도 순수함수로 노출한다. emotion 도메인은 이 함수를 import하여 인라인 분할을 제거했다
+ * (이슈 #27 제안4, SPEC-FEED-001).
  *
  * 규칙:
  * - 본인 기록(user_id === viewerUserId) → 항상 spoiler 아님
@@ -13,7 +13,7 @@
  * - page_number <= currentPage → spoiler 아님 (EC-8 경계 포함)
  * - page_number null → 0 취급
  *
- * @MX:NOTE: [AUTO] emotionApi.ts 의 분할 규칙과 의미론 동일 — 두 도메인 규칙이 어긋나면 스포일러 UX 가 일관성을 잃는다. emotionApi 가 export 하지 않는 관계로 본 도메인에서 순수함수로 재구성한다.
+ * @MX:NOTE: [AUTO] emotionApi.ts 가 이 함수를 SSOT로 사용하며 인라인 분할을 제거함 — 두 도메인 규칙이 어긋나면 스포일러 UX 가 일관성을 잃는다(SPEC-FEED-001, 이슈 #27 제안4). feed 도메인의 클라이언트 재평가(F9)를 위해 순수함수로 노출한다.
  * @MX:SPEC SPEC-FEED-001
  */
 import type {
