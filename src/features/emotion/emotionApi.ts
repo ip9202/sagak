@@ -24,6 +24,8 @@ import type {
   EmotionRecordWithAuthor,
   EmotionSortOption,
   ListEmotionOptions,
+  RawListRow,
+  RawStickerRow,
   StickerAggregate,
   UpdateEmotionInput,
 } from './types';
@@ -100,33 +102,28 @@ export async function createEmotionRecord(
 // T-003: list (조회 + 작성자 조인 + 스티커 집계 + 스포일러 분할)
 // ---------------------------------------------------------------------------
 
+// @MX:NOTE: [AUTO] cross-domain 공개 상수 — emotion.listEmotionRecords + feed.fetchClubFeedPage 공유 (이슈 #27 DRY). 컬럼/조인 변경 시 양쪽 영향.
 /**
  * PostgREST select 컬럼 — emotion_records 본문 + users 조인(nickname/avatar) +
  * sticker_reactions 집계. sticker_type 만 선택하여 원시 행 배열을 받은 뒤 클라이언트에서 count 로 환산한다.
+ *
+ * emotion.listEmotionRecords 와 feed.fetchClubFeedPage 가 공유하는 단일 소스
+ * (SPEC-FEED-001 DRY, 이슈 #27) — 두 도메인 모두 emotion_records 리스트 조회에
+ * 동일한 컬럼/조인 형태를 사용하므로 emotion 도메인이 노출한다.
  */
-const EMOTION_LIST_SELECT =
+export const EMOTION_LIST_SELECT =
   '*, users(nickname,avatar_url), sticker_reactions(sticker_type)';
 
-/**
- * PostgREST 응답의 원시 sticker_reactions 행 (집계 전).
- * GROUP BY 대신 단순 join 결과로 type 만 수집한다.
- */
-interface RawStickerRow {
-  sticker_type: StickerType;
-}
-
-/**
- * PostgREST list 응답 원시 형태 — 클라이언트에서 EmotionRecordWithAuthor 로 환산한다.
- */
-interface RawListRow extends EmotionRecordRow {
-  users: { nickname: string | null; avatar_url: string | null } | null;
-  sticker_reactions: RawStickerRow[];
-}
-
+// @MX:NOTE: [AUTO] cross-domain 공개 헬퍼 — emotion + feed 동일 집계 규칙 (이슈 #27 DRY). 규칙 변경 시 스티커 카운트 양쪽 영향.
 /**
  * 원시 sticker 행 배열을 타입별 count 로 집계한다 (시나리오 1.7).
+ *
+ * feed.fetchClubFeedPage 가 동일 집계 규칙을 사용하므로 export 한다
+ * (SPEC-FEED-001 DRY, 이슈 #27 — 규칙이 어긋나면 집계가 깨진다).
  */
-function aggregateStickers(raw: RawStickerRow[] | null | undefined): StickerAggregate[] {
+export function aggregateStickers(
+  raw: RawStickerRow[] | null | undefined,
+): StickerAggregate[] {
   if (!raw || raw.length === 0) return [];
   const counts = new Map<StickerType, number>();
   for (const row of raw) {
@@ -139,10 +136,14 @@ function aggregateStickers(raw: RawStickerRow[] | null | undefined): StickerAggr
   }));
 }
 
+// @MX:NOTE: [AUTO] cross-domain 공개 헬퍼 — emotion + feed 동일 환산 로직 (이슈 #27 DRY). 매핑 변경 시 양쪽 영향.
 /**
  * 단일 행을 환산한다 (sticker 집계 포함).
+ *
+ * feed.fetchClubFeedPage 가 동일 환산 로직을 사용하므로 export 한다
+ * (SPEC-FEED-001 DRY, 이슈 #27).
  */
-function toWithAuthor(raw: RawListRow): EmotionRecordWithAuthor {
+export function toWithAuthor(raw: RawListRow): EmotionRecordWithAuthor {
   return {
     ...(raw as EmotionRecordRow),
     users: raw.users ?? null,

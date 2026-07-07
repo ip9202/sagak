@@ -30,7 +30,7 @@ jest.mock('@react-native-async-storage/async-storage', () => ({
   removeItem: jest.fn(),
 }));
 
-// 쿼리 응답 원시 형태(RawFeedRow) 흉내 — sticker_reactions 은 집계 전 원시 행.
+// 쿼리 응답 원시 형태(RawListRow) 흉내 — sticker_reactions 은 집계 전 원시 행.
 // 테스트 가독성을 위해 EmotionRecordWithAuthor 처럼 다루되 sticker_reactions 원시 형태 허용.
 type RawRow = Record<string, unknown>;
 

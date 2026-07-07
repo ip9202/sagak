@@ -51,6 +51,27 @@ export interface EmotionRecordWithAuthor extends EmotionRecordRow {
   sticker_reactions: StickerAggregate[];
 }
 
+/**
+ * PostgREST 응답의 원시 sticker_reactions 행 (집계 전).
+ * GROUP BY 대신 단순 join 결과로 type 만 수집한다.
+ *
+ * emotion.listEmotionRecords 와 feed.fetchClubFeedPage 가 동일 쿼리 형태를
+ * 사용하므로 wire-shape 타입도 emotion 도메인이 단일 소스로 노출한다
+ * (SPEC-EMOTION-001 / SPEC-FEED-001 DRY, 이슈 #27).
+ */
+export interface RawStickerRow {
+  sticker_type: StickerType;
+}
+
+/**
+ * PostgREST list 응답 원시 형태 — 클라이언트에서 EmotionRecordWithAuthor 로 환산한다.
+ * emotion.listEmotionRecords 와 feed.fetchClubFeedPage 양쪽이 동일한 환산 대상으로 사용.
+ */
+export interface RawListRow extends EmotionRecordRow {
+  users: { nickname: string | null; avatar_url: string | null } | null;
+  sticker_reactions: RawStickerRow[];
+}
+
 /** 감정 기록 정렬 옵션 — time(created_at DESC) | page(page_number ASC, created_at ASC 2차) */
 export type EmotionSortOption = 'time' | 'page';
 
