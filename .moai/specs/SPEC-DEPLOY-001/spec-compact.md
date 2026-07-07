@@ -34,7 +34,7 @@ issue_number: 0
 | REQ-DEPLOY-BUILD     | 5      | EAS Build (iOS/Android, 환경 분리, 재현성)        |
 | REQ-DEPLOY-SUBMIT    | 3      | EAS Submit (TestFlight, Play Console, 크리덴셜)   |
 | REQ-DEPLOY-CICD      | 5      | GitHub Actions (CI 게이트, Git Flow, 태깅, hotfix)|
-| REQ-DEPLOY-OBSERVE   | 5      | Sentry (에러 추적, 환경 분리, 소스맵, 릴리즈)     |
+| REQ-DEPLOY-OBSERVE   | 5      | ~~Sentry (에러 추적, 환경 분리, 소스맵, 릴리즈)~~ **철회 (2026-07-07, PR #140)** |
 | REQ-DEPLOY-INFRA     | 6      | OAuth, Storage 버킷, Edge Function, Supabase 프로비저닝 |
 
 ---
@@ -43,7 +43,6 @@ issue_number: 0
 
 - `eas.json` (3개 빌드 프로필)
 - `.github/workflows/ci.yml`, `.github/workflows/deploy.yml`
-- `sentry.properties` / Sentry CLI 통합
 - `.env.example`, `.env.development`, `.env.staging`, `.env.production`
 - `docs/deployment.md` (배포 매뉴얼)
 - OAuth 콘솔 설정 (Kakao/Naver/Google)
@@ -79,7 +78,7 @@ issue_number: 0
 | 1  | CI/CD 트리거 분기                               | 해결됨      |
 | 2  | 빌드 캐시 전략                                  | 미해결      |
 | 3  | Fastlane 스토어 메타데이터 자동화               | 미해결      |
-| 4  | Sentry 릴리즈 트래킹 연동 방식                   | 미해결      |
+| 4  | ~~Sentry 릴리즈 트래킹 연동 방식~~ **철회 (2026-07-07)** | N/A (REQ 무효) |
 | 5  | 로컬 빌드 vs 클라우드 빌드 비용 최적화          | 미해결      |
 | 6  | 환경 분리: 별도 프로젝트 vs 단일 프로젝트+RLS  | 해결됨      |
 
@@ -98,12 +97,12 @@ issue_number: 0
 
 1. **M1 (High)**: 환경 변수 + EAS Build 파운데이션 — ✅ 완료 (PR #15, 2514263, 2026-06-17)
 2. **M2 (High)**: GitHub Actions CI 파이프라인 — ✅ 완료 (PR #52, 86729fb, 2026-06-24)
-3. **M3 (High)**: Sentry 통합 및 관측 인프라 — ✅ 완료 (PR #53 578ff82 + PR #54 7a92664, 2026-06-24 — SDK 설치, app-entry 연결, 방어 깊이. source-map/upload 제외 §6 #4)
+3. **M3 (High)**: ~~Sentry 통합 및 관측 인프라~~ **철회 (2026-07-07, PR #140)** — 사용자 결정으로 Sentry 통합 제거. REQ-DEPLOY-014~017 무효.
 4. **M4 (Medium)**: EAS Submit 및 스토어 배포 자동화 — ✅ 완료 (PR #52, 86729fb, 2026-06-24)
 5. **M5 (Medium)**: OAuth 인프라 + Storage 버킷 프로비저닝 — ✅ 완료 (문서화만, PR #15)
 6. **M6 (Medium)**: Edge Function 배포 + Supabase 프로비저닝 (최종 통합 게이트) — ✅ 완료 (PR #52, 86729fb, 2026-06-24)
 
-> **구현 진행 상태 (2026-06-24)**: 본 SPEC은 **완료(implemented)** 상태이다. 모든 6개 마일스톤(M1~M6) 구현 완료 및 머지됨 (PR #52, 86729fb). M3에서 Sentry SDK 설치(`@sentry/react-native@~7.11.0`) 및 app-entry 연결 완료. §6 #4 (Sentry CLI source-map upload / release tracking)는 여전히 미해결. 상세 진행 로그는 `progress.md` 참조.
+> **구현 진행 상태 (2026-06-24, 갱신 2026-07-07)**: 본 SPEC은 **완료(implemented)** 상태이다. 모든 6개 마일스톤(M1~M6) 구현 완료 및 머지됨 (PR #52, 86729fb). **철회 (2026-07-07, PR #140)**: 사용자 결정으로 Sentry 통합 제거. REQ-DEPLOY-014~017 무효. 상세 진행 로그는 `progress.md` 참조.
 
 > **§6 #6 결정 (2026-07-01)**: 단일 프로젝트(lqltwbpocbgoxvhlmjdo) prod 승격 정책 채택. dev는 로컬 Docker, prod는 단일 클라우드, staging은 prod 동일 클라우드 + ENV flag 구분. 별도 클라우드 프로젝트 생성은 MVP 이후 검토.
 
@@ -111,11 +110,10 @@ issue_number: 0
 
 ## 9. 인수 DoD 핵심
 
-- 24개 REQ 인수 기준 통과
+- 19개 REQ 인수 기준 통과 (REQ-DEPLOY-014~017 철회로 24→19개)
 - 첫 프로덕션 릴리즈 v1.0.0 양 스토어 심사 제출
 - 세 환경 Supabase 프로젝트 + Edge Function 3종 배포
 - 세 OAuth 제공자(Kakao/Naver/Google) 로그인 검증
-- Sentry 프로덕션 통합 검증
 - TRUST 5 게이트 5/5 통과
 
 ---
