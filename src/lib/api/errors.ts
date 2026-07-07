@@ -3,11 +3,11 @@
  * REQ-API-011: 에러 정규화 (normalizeError)
  * REQ-API-012: 7개 에러 카테고리 분류 (classifyError)
  * REQ-API-014: 한국어 사용자 친화적 메시지 매핑 (getUserFriendlyMessage)
- * REQ-API-015: Sentry 호환 구조화 로깅 (logToSentry)
+ * REQ-API-015: 구조화 에러 로깅 (logToSentry)
  *
  * 본 모듈은 src/errors/index.ts 의 AppError 를 타입 기반으로 재사용한다.
- * @sentry/react-native 의존성은 추가하지 않으며, SPEC-DEPLOY-001 에서 실제
- * Sentry SDK 로 전환 가능한 로거 인터페이스만 제공한다.
+ * @sentry/react-native 의존성은 추가하지 않으며, console.error 싱크 기반의
+ * 구조화 에러 로거 인터페이스를 제공한다 (Sentry SDK 통합은 2026-07-07 제거됨).
  */
 import { AppError, type ErrorCategory } from '../../errors';
 
@@ -344,11 +344,11 @@ export function getUserFriendlyMessage(error: AppError): string {
 }
 
 /**
- * Sentry captureException 호환 로그 구조 (REQ-API-015)
+ * 구조화 에러 로그 구조 (REQ-API-015)
  *
- * SPEC-DEPLOY-001 에서 @sentry/react-native 의 captureException 으로
- * 교체 가능한 형태. name/message/stack 은 Error 표준 필드, extra 에
- * 카테고리/코드/상태/원본/타임스탬프/재시도소진 메타데이터를 담는다.
+ * name/message/stack 은 Error 표준 필드, extra 에 카테고리/코드/상태/
+ * 원본/타임스탬프/재시도소진 메타데이터를 담는다. logToSentry 가
+ * console.error 싱크로 전달한다.
  */
 export interface SentryLogPayload {
   name: string;
@@ -365,7 +365,7 @@ export interface SentryLogPayload {
 }
 
 /**
- * REQ-API-015: Sentry 호환 구조화 로깅
+ * REQ-API-015: 구조화 에러 로깅
  *
  * 로깅 대상 (REQ 명시):
  * - UNKNOWN 카테고리 에러
@@ -374,8 +374,7 @@ export interface SentryLogPayload {
  * 그 외 카테고리(NETWORK/AUTH/RLS_DENIED/VALIDATION/NOT_FOUND/SERVER)는
  * 사용자에게 일회성으로 노출되는 예상 에러이므로 로깅하지 않는다.
  *
- * 기본 싱크는 console.error 이며, SentryLogPayload 구조를 그대로 전달한다.
- * SPEC-DEPLOY-001 에서 실제 Sentry captureException 호출로 교체 가능하다.
+ * console.error 싱크로 SentryLogPayload 구조를 그대로 전달한다.
  */
 export function logToSentry(error: AppError): void {
   const category = error.category ?? 'UNKNOWN';
@@ -399,6 +398,6 @@ export function logToSentry(error: AppError): void {
     },
   };
 
-  // 기본 싱크: console.error (SPEC-DEPLOY-001에서 Sentry captureException으로 전환 예정)
+  // 싱크: console.error (구조화 에러 로그)
   console.error(payload);
 }

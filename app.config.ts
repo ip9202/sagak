@@ -24,7 +24,6 @@ import type { ConfigContext } from 'expo/config';
 const REQUIRED_PROD_ENV = [
   'EXPO_PUBLIC_SUPABASE_URL',
   'EXPO_PUBLIC_SUPABASE_ANON_KEY',
-  'EXPO_PUBLIC_SENTRY_DSN',
 ] as const;
 
 export default ({ config }: ConfigContext) => {
@@ -48,10 +47,6 @@ export default ({ config }: ConfigContext) => {
       EXPO_PUBLIC_SUPABASE_ANON_KEY: process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY,
       // NOTE: service_role 키는 서버 전용(Edge Functions)이므로 클라이언트 번들에 주입하지 않는다.
       // 절대 EXPO_PUBLIC_ 접두사를 붙이지 말 것 (RLS 우회 위험, DoD #11 위반).
-
-      // Sentry DSN (SPEC-DEPLOY-001 M1): production 크래시 리포팅용 DSN.
-      // SDK 설치는 M3, 여기서는 빌드 시점 주입 + 키 존재 검증만 담당.
-      EXPO_PUBLIC_SENTRY_DSN: process.env.EXPO_PUBLIC_SENTRY_DSN,
 
       // Environment (REQ-API-019)
       ENV: process.env.ENV || 'development',

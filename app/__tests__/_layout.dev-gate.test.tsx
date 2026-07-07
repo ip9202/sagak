@@ -57,17 +57,6 @@ jest.mock('../../src/features/notification', () => ({
   useNotificationResponse: () => {},
 }));
 
-// SPEC-DEPLOY-001 M3 (REQ-DEPLOY-014): _layout 이 sentry 모듈을 import.
-// @sentry/react-native ESM 변환 이슈 회피 — 동작은 sentry.test.ts 가 검증.
-jest.mock('../../src/lib/sentry', () => ({
-  initSentry: jest.fn().mockResolvedValue(undefined),
-  getSentryConfigInput: jest.fn().mockReturnValue({
-    dsn: '',
-    env: 'development',
-    release: '1.0.0',
-  }),
-}));
-
 // __DEV__=false로 고정한 상태에서 _layout 모듈을 로드한다
 // jest 테스트 파일 상단에서 global.__DEV__를 설정하면 모듈 평가 시점에 반영된다
 (global as { __DEV__?: boolean }).__DEV__ = false;

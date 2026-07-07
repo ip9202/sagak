@@ -8,12 +8,10 @@ import Constants from 'expo-constants';
  * SPEC-DEPLOY-001 M1 / REQ-DEPLOY-003.
  *
  * - Supabase URL / anon key: 클라이언트가 Supabase 에 접근하기 위한 최소 요구값
- * - Sentry DSN: production 크래시 리포팅 (SDK 설치는 M3, 여기선 키 검증만)
  */
 export const REQUIRED_PROD: readonly string[] = [
   'EXPO_PUBLIC_SUPABASE_URL',
   'EXPO_PUBLIC_SUPABASE_ANON_KEY',
-  'EXPO_PUBLIC_SENTRY_DSN',
 ];
 
 /**
