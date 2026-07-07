@@ -60,7 +60,7 @@
   - 크리덴셜(`EXPO_TOKEN`, `SENTRY_AUTH_TOKEN`, `SENTRY_ORG`, `SENTRY_STAGING_PROJECT`)은 GitHub Actions Secrets 로 참조 — 파일 자체는 유효, 값 미설정 시 해당 잡이 fail-fast
 - **상태**: M2a, M2b 모두 완료 및 머지됨 (PR #52, commit 86729fb)
 
-### M3 — Sentry 통합 및 관측 인프라 ✅ 완료
+### M3 — Sentry 통합 (2026-07-07 제거됨: 사용자 결정, 유료 서비스 미사용)
 
 - **범위**: REQ-DEPLOY-014~017 (Sentry SDK, 소스맵 업로드, 릴리즈 트래킹)
 - **SDK 설치 (PR #53, 578ff82)**: `@sentry/react-native@~7.11.0` 런타임 의존성 설치 완료 (Expo SDK 55 호환, `npx expo install` 사용)
@@ -70,7 +70,7 @@
 - **테스트**: sentry suite 이제 20개 테스트 (12 buildSentryConfig + 5 initSentry 통합 + 3 getSentryConfigInput). 전체 프로젝트 137 suites / 1204 tests 통과 (이전 1195).
 - **남은 작업**: §6 #4 (Sentry CLI source-map upload / release tracking)는 여전히 OPEN/미해결.
 - **plugin 등록 연기 (PR #56 시도 → 닫음, 2026-06-24)**: `@sentry/react-native` Expo config plugin 등록을 시도했으나, 적용한 `disableAutoUpload` 옵션이 7.11.0 `PluginProps`(`{organization, project, authToken, url, experimental_android}`)에 **미존재 = NO-OP**임을 `node_modules` 타입 정의 직검으로 발견. 단독 등록 시 크리덴셜(`SENTRY_AUTH_TOKEN`/`ORG`/`PROJECT`) 없는 빌드가 iOS/Android 업로드 단계에서 실패 위험이 있어 PR 닫음. **재진행 조건**: 크리덴셜 프로비저닝 + §6 #4 해결 후 `["@sentry/react-native"]`(NO-OP 옵션 제거) + `metro.config.js` `getSentryExpoConfig`와 함께. **함정 메모**: Context7 main 인용 ≠ pinned 버전 — 외부 SDK 옵션은 반드시 `node_modules/<pkg>/**/*.d.ts`로 교차 검증 (memory lessons #14).
-- **상태**: ✅ 완료 (SDK 설치 + app-entry 연결 + 방어 깊이, source-map/release tracking 제외)
+- **상태**: ❌ 제거됨 (2026-07-07, feature/SPEC-DEPLOY-001-remove-sentry) — `@sentry/react-native` SDK·`src/lib/sentry.ts`·`_layout.tsx` initSentry 연결·`env.ts` REQUIRED_PROD `EXPO_PUBLIC_SENTRY_DSN`·CI `upload-sentry-sourcemaps` job·`.env.*` SENTRY_DSN·`docs/deployment.md` §6 전부 제거. **REQ-DEPLOY-014~017 철회** (Sentry 미사용). `logToSentry`(REQ-API-015, `@sentry` 비의존 console.error 로거)는 보존(주석만 정리). 사용자 결정: Sentry 유료 전환 부담으로 미사용 확정.
 
 ### M4 — EAS Submit 및 스토어 배포 자동화 ✅ 완료
 

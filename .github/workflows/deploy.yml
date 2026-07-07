@@ -1,9 +1,8 @@
 name: Deploy
 
-# @MX:NOTE: [AUTO] SPEC-DEPLOY-001 M2b — release/hotfix 배포 자동화 + develop Sentry 소스맵.
-# @MX:SPEC: SPEC-DEPLOY-001 (AC-DEPLOY-010 release 태깅+EAS Build, AC-DEPLOY-011 hotfix 듀얼 머지,
-#   AC-DEPLOY-012 develop Sentry 소스맵, AC-DEPLOY-013 환경별 배포 트리거 분리)
-# 자격증명(EXPO_TOKEN, SENTRY_AUTH_TOKEN, EAS 크리덴셜)은 GitHub Actions Secrets 로 주입한다.
+# @MX:NOTE: [AUTO] SPEC-DEPLOY-001 M2b — release/hotfix 배포 자동화.
+# @MX:SPEC: SPEC-DEPLOY-001 (AC-DEPLOY-010 release 태깅+EAS Build, AC-DEPLOY-011 hotfix 듀얼 머지, AC-DEPLOY-013 환경별 배포 트리거 분리)
+# 자격증명(EXPO_TOKEN, EAS 크리덴셜)은 GitHub Actions Secrets 로 주입한다.
 # Secrets 이 없어도 워크플로우 파일 자체는 유효 — 실제 실행 시점에 값이 누락되면 잡이 실패한다.
 
 on:
@@ -23,36 +22,6 @@ concurrency:
   cancel-in-progress: false   # 배포 잡은 중복 취소 금지
 
 jobs:
-  # AC-DEPLOY-012: develop 푸시 시 Sentry 소스맵 업로드 (staging 환경)
-  upload-sentry-sourcemaps:
-    name: Sentry Source Maps (develop -> staging)
-    if: github.ref == 'refs/heads/develop'
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: 'npm'
-
-      - name: 의존성 설치
-        run: npm ci
-
-      - name: Sentry 소스맵 업로드 (staging)
-        # SENTRY_AUTH_TOKEN, SENTRY_ORG, SENTRY_PROJECT 가 Secrets 에 있어야 실행됨.
-        # 미설정 시 이 단계가 실패하며 워크플로우 중단 (fail-fast).
-        env:
-          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
-          SENTRY_ORG: ${{ secrets.SENTRY_ORG }}
-          SENTRY_PROJECT: ${{ secrets.SENTRY_STAGING_PROJECT }}
-        run: |
-          if [ -z "$SENTRY_AUTH_TOKEN" ]; then
-            echo "SENTRY_AUTH_TOKEN missing — skipping sourcemap upload (pre-provision)";
-            exit 0;
-          fi
-          npx @sentry/cli sourcemaps upload --release sagak@${{ github.sha }} dist
-
   # AC-DEPLOY-010: main 머지 시 버전 태그 자동 생성
   # release/vX.Y.Z 브랜치가 main에 squash 머지되면 커밋 메시지에서 버전을 추출해 태그.
   tag-release:
