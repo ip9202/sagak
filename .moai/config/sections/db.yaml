@@ -1,45 +1,22 @@
-# Database Documentation Configuration
-# Controls /moai db workflow, auto-sync hook, and schema documentation policy.
-#
-# Structure: 8 keys directly under `db:` (REQ-010)
-#   - 5 system-fixed keys: enabled, dir, auto_sync, migration_patterns, engine
-#   - 3 interview-input keys: orm, multi_tenant, migration_tool (filled by `/moai db init`)
-
 db:
-  # [System] Enabled when /moai db init has run. Default false until user opts in.
-  enabled: true
-
-  # [System] Documentation folder (relative to project root)
-  dir: ".moai/project/db"
-
-  # [System] Automatic schema sync on migration file changes
-  auto_sync:
+    auto_sync:
+        debounce_seconds: 10
+        enabled: true
+        excluded_patterns:
+            - .moai/project/db/**
+            - .moai/cache/**
+            - '**/*.lock'
+        require_user_approval: true
+    dir: .moai/project/db
     enabled: true
-    debounce_seconds: 10
-    require_user_approval: true
-    excluded_patterns:
-      - ".moai/project/db/**"
-      - ".moai/cache/**"
-      - "**/*.lock"
-
-  # [System] Migration file detection globs (PostToolUse matcher references these)
-  # Supabase CLI 규칙(supabase/migrations/*.sql)이 포함됨 — 단일 패턴만 매칭하도록 정렬.
-  migration_patterns:
-    - "supabase/migrations/**/*.sql"
-    - "prisma/schema.prisma"
-    - "alembic/versions/**/*.py"
-    - "db/migrate/**/*.rb"
-    - "migrations/**/*.sql"
-    - "sql/migrations/**/*.sql"
-
-  # [Interview] Primary database engine — Supabase(관리형 PostgreSQL + PostgREST + RLS)
-  engine: "supabase"
-
-  # [Interview] ORM/ODM — Supabase JS Client(PostgREST 직접 호출, 타입 생성·Realtime 통합)
-  orm: "supabase-js"
-
-  # [Interview] Multi-tenant strategy — 단일 스키마 + RLS(행 단위 사용자 데이터 격리)
-  multi_tenant: "single-schema-rls"
-
-  # [Interview] Migration tool — Supabase CLI(supabase/migrations/*.sql 규칙)
-  migration_tool: "supabase-cli"
+    engine: supabase
+    migration_patterns:
+        - supabase/migrations/**/*.sql
+        - prisma/schema.prisma
+        - alembic/versions/**/*.py
+        - db/migrate/**/*.rb
+        - migrations/**/*.sql
+        - sql/migrations/**/*.sql
+    migration_tool: supabase-cli
+    multi_tenant: single-schema-rls
+    orm: supabase-js

@@ -1,3 +1,11 @@
+# ============================================
+# sagak .gitignore (React Native / Expo)
+# ============================================
+# Base: HEAD 원본 (sagak RN 맞춤)
+# Merged: MoAI-ADK 유용 패턴 (TS/Claude local/MoAI per-machine state)
+# Updated: 2026-07-20 — moai update 덮어쓰기 손상 복구
+# ============================================
+
 # Dependencies
 node_modules/
 .yarn/
@@ -68,5 +76,48 @@ coverage/
 # MoAI logs
 .moai/logs/
 .moai/reports/
+.moai/evolution/telemetry/*.jsonl
 *.bak
 *.bak[0-9]
+
+# ============================================
+# MoAI-ADK 병합 패턴 (2026-07-20 추가)
+# sagak(RN)에 해당하는 MoAI 유용 패턴만 선택 — Go/Python 패턴은 제외
+# ============================================
+
+# TypeScript / JS 산물
+*.tsbuildinfo
+.tscache/
+.next/
+out/
+
+# Claude Code local state (per-machine, never tracked)
+.claude/settings.local.json
+.claude/settings.local.json.lock
+.claude/settings.local.*.json
+.claude/plans/
+.claude/agent-memory/
+.claude/worktrees/
+.claude/.env.local*
+.claude/local/
+
+# Claude skill credentials
+.claude/skills/*/.env*
+.claude/skills/*/secrets/
+
+# MoAI per-machine state (never tracked)
+.moai/status_line.sh
+.moai/memory/
+.moai/worktrees/
+.moai/branches/
+.moai/state/
+.moai/cache/
+.moai-backups/
+.moai/backups/
+
+# MoAI runtime logs (per-session auto-generated, never tracked)
+.moai/harness/usage-log.jsonl
+.moai/lessons-inbox.jsonl
+
+# Firebase deploy cache (sagak Firebase 사용)
+.firebase/
