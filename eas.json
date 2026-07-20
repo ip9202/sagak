@@ -31,8 +31,6 @@
       "distribution": "store",
       "environment": "production",
       "env": {
-        "EXPO_PUBLIC_SUPABASE_URL": "your-production-project-url.supabase.co",
-        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "your-production-anon-key",
         "ENV": "production"
       },
       "cache": {
@@ -43,8 +41,6 @@
       "distribution": "internal",
       "environment": "production",
       "env": {
-        "EXPO_PUBLIC_SUPABASE_URL": "your-production-project-url.supabase.co",
-        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "your-production-anon-key",
         "ENV": "production"
       },
       "cache": {
