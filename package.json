@@ -10,8 +10,7 @@
     "test": "jest",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
-    "gen-types": "node scripts/gen-types-with-header.js",
-    "eas-build-post-install": "[ -n \"$GOOGLE_SERVICES_JSON_B64\" ] && mkdir -p android/app && printf '%s' \"$GOOGLE_SERVICES_JSON_B64\" | base64 -d > android/app/google-services.json || echo 'skip: GOOGLE_SERVICES_JSON_B64 unset'"
+    "gen-types": "node scripts/gen-types-with-header.js"
   },
   "dependencies": {
     "@expo-google-fonts/inter": "^0.4.2",
