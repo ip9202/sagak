@@ -114,5 +114,9 @@ out/
 .moai-backups/
 .moai/backups/
 
+# MoAI runtime logs (per-session auto-generated, never tracked)
+.moai/harness/usage-log.jsonl
+.moai/lessons-inbox.jsonl
+
 # Firebase deploy cache (sagak Firebase 사용)
 .firebase/
