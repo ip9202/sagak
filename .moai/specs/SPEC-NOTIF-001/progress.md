@@ -46,3 +46,19 @@
 - **검증 인프라**: projectId(@ip9202/sagak) 주입, eas.json SENTRY_DSN 빈값 제거(EAS init validation)
 - **회귀 (검증 중 발견/수정)**: (tabs) 하위 라우트 6개 href:null (4탭 깨짐) + my.tsx ScrollView (스크롤 불가)
 - **EAS cloud build 갭 (연기)**: google-services.json gitignore로 인해 EAS cloud builds 실패 가능성. 현재는 dev client(`expo run:android`) 사용 중이므로 non-blocking. Phase 5 DEPLOY/prod release 시 해결 필요(EAS secrets 활용 또는 수동 업로드).
+
+## N7 사전 준비 정리 (2026-07-20)
+
+- **브랜치**: `feature/SPEC-NOTIF-001-n7-prep` (develop f1975cc 기반, 0 0 divergence)
+- **작업 범위**: plan.md / progress.md / acceptance.md 업데이트. 코드 변경 없음.
+- **eas-cli 21.x FCM V1 CLI 재검증 (lesson #13 정정)**:
+  - 검증 출처: eas-cli CHANGELOG.md (raw.githubusercontent.com/expo/eas-cli/main/CHANGELOG.md) + Expo 공식 docs (docs.expo.dev/push-notifications/fcm-credentials/) 교차 (lessons #14 적용)
+  - 결론: eas-cli v7.2.0 (2024-02-11) PR #2197부터 FCM V1 Service Account Key를 `eas credentials` 인터랙티브 메뉴로 CLI 업로드 지원. 21.0.2는 당연히 포함.
+  - lesson #13 정정: "eas-cli 20.x FCM V1 CLI 불가"는 부분 정정. CLI 자체는 지원됨. 실제 블로커는 Application Identifier 최초 등록 시 keystore 강제 (별개 문제).
+  - `eas credentials --help` (현재 설치된 20.x) 서브커맨드: `credentials:configure-build`만 노출되지만, 인터랙티브 `eas credentials` 메뉴 진입 시 FCM V1 경로 존재.
+- **keystore 비가역 결정 — 사용자 승인 대기**:
+  - [HARD] 첫 EAS prod 빌드 실행 전 사용자 명시적 승인 필요. keystore(.jks/.p12) 영구 귀속 = Play Store 서명키 고정, 교체 곤란.
+  - 사용자 승인 포인트: `eas build --platform android --profile production` 실행 전 "prod 서명키 영구 귀속 + keystore 백업 책임" 명시 후 승인.
+  - 본 세션에서는 실행하지 않음 (문서 안데만).
+- **prod 빌드 옵션 비교 (plan.md §Optional Goal N7-C)**: EAS 클라우드 vs `--local`. google-services.json gitignore → 클라우드는 EAS Secrets 우회, 로컬은 직접 경로 사용.
+- **산출**: plan.md N7 사전 검증 절차(A~F) 섹션 추가, acceptance.md N7 시나리오/수동 검증 항목 21.x 재평가 반영.
