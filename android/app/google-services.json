@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "1034527939245",
+    "project_id": "sagak-dev",
+    "storage_bucket": "sagak-dev.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1034527939245:android:9e6bbeed82c8a2264f8424",
+        "android_client_info": {
+          "package_name": "com.sagak.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyA9mbNL5jqs1t4KeYXjDLaJT6_Td3Olwdk"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
