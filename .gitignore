@@ -76,6 +76,7 @@ coverage/
 # MoAI logs
 .moai/logs/
 .moai/reports/
+.moai/evolution/telemetry/*.jsonl
 *.bak
 *.bak[0-9]
 
