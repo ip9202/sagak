@@ -4,7 +4,7 @@ title: "푸시 알림 및 알림 센터 — 구현 계획"
 version: "1.0.0"
 status: implemented
 created: 2026-06-14
-updated: 2026-06-21
+updated: 2026-07-20
 author: "강력쇠주먹"
 priority: medium
 issue_number: 0
@@ -12,6 +12,8 @@ labels: [notif, push, expo-push, notification-center, edge-function, supabase, p
 ---
 
 > **업데이트 (2026-06-21)**: Optional Goal (3순위) 구현 완료. PR #38에서 REQ-NOTIF-001~004 (Expo Push Token 획득·권한·서버 등록·포그라운드 핸들러) 병격. 4개 신규 소스 파일(`registerToken.ts`, `registerForPush.ts`, `usePushTokenRegistration.ts`, `useNotificationResponse.ts`) + 4개 테스트 + mock 추가. tsc 0 errors, jest 1136/1136 pass, lint 0 errors, TRUST 5 5/5. Primary Goal (CENTER/SEND)는 PR #34에서 이미 완료됨.
+>
+> **업데이트 (2026-07-20)**: N7 사전 준비 정리 (feature/SPEC-NOTIF-001-n7-prep 브랜치). eas-cli 21.x FCM V1 CLI 지원 재검증 완료 — v7.2.0(2024-02-11)#2197부터 `eas credentials` 인터랙티브 메뉴로 Service Account Key 업로드 지원. lesson #13 "20.x FCM V1 CLI 불가" 정정 (CLI 자체는 가능, 실제 블로커는 Application Identifier 최초 등록 시 keystore 강제). Optional Goal 섹션에 N7 실행 절차(사용자 승인 대기) 추가.
 
 # SPEC-NOTIF-001: 구현 계획 (plan.md)
 
@@ -101,6 +103,95 @@ labels: [notif, push, expo-push, notification-center, edge-function, supabase, p
 - 자동화 검증 N1(token 성공), N2(token 실패 silent), N5(서버 등록), N8(탭 라우팅) 통과
 - 수동 검증 N3(권한 허용), N4(권한 거부), N7(포그라운드 수신) 대기 중 (실기기 필요)
 - TRUST 5 5/5, tsc 0 errors, jest 1136/1136 pass, lint 0 errors
+
+#### N7 사전 검증 절차 (2026-07-20 사전 준비 — 사용자 승인 대기)
+
+> 본 절차는 REQ-NOTIF-004 포그라운드 알림 수신 수동 검증(N7)을 prod 첫 EAS 빌드 시점에 수행하기 위한 사전 준비 결과를 정리한다. 코드 구현은 완료되었으나 크리덴셜/빌드 파이프라인 미비로 ⏳ 상태 유지.
+
+**A. eas-cli 21.x FCM V1 CLI 지원 재검증 (lesson #13 정정)**
+
+- **검증 방법**: eas-cli 공식 CHANGELOG.md(raw.githubusercontent.com/expo/eas-cli/main/CHANGELOG.md) + Expo 공식 문서(docs.expo.dev/push-notifications/fcm-credentials/) 교차 검증. lessons #14(외부 문서는 설치된 패키지로 교차) 적용.
+- **검증 결과**: eas-cli v7.2.0 (2024-02-11) PR #2197 (by @christopherwalter)에서 FCM V1 Service Account Key CLI 설정 지원이 추가됨. 21.0.2는 v7.2.0 이후 버전이므로 당연히 포함.
+- **CLI 경로**(공식 문서 기준):
+  ```
+  eas credentials
+  → Android > production > Google Service Account
+  → Manage your Google Service Account Key for Push Notifications (FCM V1)
+  → Set up a Google Service Account Key for Push Notifications (FCM V1) > Upload a new service account key
+  ```
+  로컬에 JSON 파일이 있으면 자동 감지, `Y`로 업로드.
+- **lesson #13 정정**: 기존 "eas-cli 20.x FCM V1 CLI 불가" 진술은 부분 정정. `eas credentials` 인터랙티브 메뉴는 20.x에서도 동일하게 동작하며, 7.2.0+ 기본 탑재 기능. 실제 N7 블로커는 CLI 지원 부재가 아니라 **Application Identifier 최초 등록 시 keystore(.jks/.p12) 업로드 강제** (대시보드 New Application Identifier 마법사 Step 3/5, Generate/Skip 불가). 이는 FCM V1 설정과는 별개 문제로, 첫 EAS prod 빌드 시점에 자동 해소됨.
+
+**B. keystore 강제 생성 — 비가역성 경고 (사용자 승인 필수)**
+
+> [HARD] 아직 사용자 승인 미확보 상태. prod 첫 EAS 빌드 실행 전 반드시 아래 비가역성을 사용자에게 명시하고 승인받을 것.
+
+- **비가역 귀속**: 첫 EAS prod 빌드 시 EAS가 자동 생성하는 Android keystore(또는 사용자가 업로드하는 keystore)는 prod 서명키로 영구 귀속됨. Play Store에 한 번 서명된 앱은 동일 package name에 대해 다른 keystore로 교체 불가 (Google Play App Signing에 의존하지 않는 한).
+- **백업 책임**: keystore 비밀번호 + `.jks`/`.p12` 파일은 안전한 별도 보관(사용자 확보 항목). 분실 시 앱을 새 package name으로 재출시해야 함.
+- **사용자 승인 포인트**: prod 첫 EAS 빌드 실행 명령(`eas build --platform android --profile production`)을 내리기 전, "이 빌드는 prod 서명키를 영구 귀속시킵니다. keystore 백업 책임이 사용자에게 있습니다"를 명시하고 승인받을 것. (이 문서는 절차만 안내하며, 실제 빌드 실행 권한은 사용자에게 있음 — 본 세션에서 실행하지 않음.)
+
+**C. prod 빌드 실행 옵션 비교 (클라우드 vs 로컬)**
+
+| 옵션 | 명령 | keystore 처리 | google-services.json 처리 | 비고 |
+|------|------|---------------|---------------------------|------|
+| EAS 클라우드 빌드 | `eas build --platform android --profile production` | EAS가 자동 생성 (원격 저장) | EAS Secrets로 업로드 필요 (gitignore 대상이므로) | 권장 — identifier + FCM V1 자동 연계 |
+| 로컬 빌드 | `eas build --platform android --profile production --local` | 로컬 keystore 파일 직접 지정 (또는 새 생성) | 로컬 `android/app/google-services.json` 그대로 사용 | 클라우드 빌드 회피 시 선택. 단, identifier 등록은 여전히 EAS 서버 필요 |
+
+- **google-services.json gitignore 제약**: 현재 `.gitignore` 추적 제외 상태. EAS 클라우드 빌드는 소스 tarball에 이 파일이 누락되므로, **EAS Secrets** 또는 **환경 변수 주입**으로 대체해야 함. 해법:
+  1. EAS Secrets에 `google-services.json` 내용을 base64로 등록 → `eas-build` post-install hook에서 복원 (일반적 패턴)
+  2. 또는 `app.json`의 `expo.android.googleServicesFile`을 동적 경로로 지정 후, 빌드 시 secret에서 파일로 덤프
+- **Firebase Service Account Key (FCM V1)**: prod용 JSON 파일은 사용자가 별도 보관 중. `eas credentials` 실행 시 로컬에서 자동 감지되도록 빌드 머신(또는 로컬 실행 머신)에 배치.
+
+**D. 수동 검증 체크리스트 (N7 포그라운드 수신)**
+
+prod 빌드 실기기 설치 후 아래 단계 수행:
+
+1. **사전 조건 확인**: `eas credentials` → Android > production 경로에서 FCM V1 service account key 등록 완료 상태 (CLI 경로 A 참조)
+2. **prod 빌드 설치**: `eas build:run` 또는 생성된 APK/AAB 실기기 사이드로드
+3. **앱 실행**: 로그인 → 알림 권한 허용 → Expo Push Token 획득 (N3 절차와 동일)
+4. **토큰 서버 등록 확인**: Supabase `users.push_token` UPDATE 정상 (N5)
+5. **포그라운드 상태 유지**: 앱을 띄운 상태에서 기기 홈으로 나가지 않음
+6. **푸시 발송 트리거**: 서버에서 `send-notification` Edge Function 호출 (curl/Supabase Studio) — `type: "reading_reminder"` 등
+7. **검증 항목**:
+   - [ ] 인앱 배너가 표시된다 (`Notifications.setNotificationHandler`의 `shouldShowAlert: true` 동작)
+   - [ ] 시스템 알림은 표시되지 않는다 (포그라운드 억제)
+   - [ ] 알림 탭 시 routeMapper가 type에 맞는 화면으로 라우팅한다 (N8과 동일)
+   - [ ] 알림 센터 목록에 해당 알림이 추가된다 (Realtime 또는 재조회)
+8. **실패 시 롤백**: 검증 실패 시 `Notifications.setNotificationHandler` 설정 점검 → 재검증. 크리덴셜 문제라면 `eas credentials`에서 FCM V1 키 재확인.
+
+**E. EAS Secrets 구성 패턴 (placeholder만 — 실제 값은 사용자 주입)**
+
+> 본 섹션은 구조/절차만 안내한다. 실제 크리덴셜 값은 다루지 않는다 (사용자 확보 후 주입).
+
+```bash
+# 1) EAS 로그인 (사용자 실행)
+eas whoami   # 인증 상태 확인
+eas login    # 미인증 시
+
+# 2) prod env 변수 주입 (placeholder)
+eas env:push --environment production <<EOF
+EXPO_PUBLIC_SUPABASE_URL=<prod-supabase-url>
+EXPO_PUBLIC_SUPABASE_ANON_KEY=<prod-anon-key>
+# 그 외 prod 전용 변수
+EOF
+
+# 3) google-services.json EAS Secret 등록 (base64 인코딩 후)
+base64 -i android/app/google-services.json | eas secret:push --name GOOGLE_SERVICES_JSON_B64 --stdin
+
+# 4) FCM V1 service account key 업로드 (eas credentials 인터랙티브)
+eas credentials
+# → Android > production > Google Service Account > FCM V1 > Upload new key
+# (로컬에 prod-firebase-service-account.json 배치 후 자동 감지)
+
+# 5) prod 빌드 (사용자 승인 후 실행)
+eas build --platform android --profile production
+```
+
+**F. 의존성**
+
+- `eas-cli` 21.x로 업그레이드 권장 (사용자 실행 — `npm install -g eas-cli`). 20.x에서도 `eas credentials` 인터랙티브 FCM V1 경로는 동작하지만, 21.x의 버그 픽스(tmp 디렉토리 정리, 보안 의존성 업데이트)가 포함됨. 본 세션에서는 업그레이드 실행하지 않음.
+- Firebase Service Account Key (prod용 JSON): 사용자가 별도 보관 중. 빌드 머신에 배치 시 `eas credentials` 자동 감지.
+- `google-services.json` (prod): `android/app/` 로컬 존재 (gitignore). EAS 클라우드 빌드 시에는 EAS Secrets로 우회.
 
 ---
 
