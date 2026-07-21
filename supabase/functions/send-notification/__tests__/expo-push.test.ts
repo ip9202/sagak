@@ -41,7 +41,7 @@ describe('SPEC-NOTIF-001 REQ-NOTIF-012: sendExpoPush', () => {
     expect(r).toEqual({ ok: true });
     // 페이로드 구조 (REQ-NOTIF-012)
     const call = fetchMock.mock.calls[0];
-    expect(call[0]).toBe('https://exp.host/api/v2/push/send');
+    expect(call[0]).toBe('https://exp.host/--/api/v2/push/send');
     const body = JSON.parse(call[1].body);
     expect(body).toMatchObject({
       to: INPUT.token,
