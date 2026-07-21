@@ -2,10 +2,10 @@
 # NOTE: 8-field frontmatter (SPEC-DB-001 형식 준수)
 id: SPEC-NOTIF-001
 title: "Push Notifications & Notification Center"
-version: "1.0.0"
-status: draft
+version: "1.1.0"
+status: completed
 created: 2026-06-14
-updated: 2026-06-14
+updated: 2026-07-21
 author: "강력쇠주먹"
 priority: medium
 issue_number: 0

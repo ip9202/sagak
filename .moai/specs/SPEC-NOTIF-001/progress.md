@@ -62,3 +62,15 @@
   - 본 세션에서는 실행하지 않음 (문서 안데만).
 - **prod 빌드 옵션 비교 (plan.md §Optional Goal N7-C)**: EAS 클라우드 vs `--local`. google-services.json gitignore → 클라우드는 EAS Secrets 우회, 로컬은 직접 경로 사용.
 - **산출**: plan.md N7 사전 검증 절차(A~F) 섹션 추가, acceptance.md N7 시나리오/수동 검증 항목 21.x 재평가 반영.
+
+## §E.4 Sync-phase Audit-Ready Signal
+
+- **Sync complete at**: 2026-07-21
+- **Sync commit SHA**: 7e96d99 (백필 완료)
+- **Version bump**: 1.0.0 → 1.1.0
+- **CHANGELOG entry**: [1.1.0] 섹션 생성 (N7 완료 + 단일 백엔드 결정 + 빌드 인프라 수정)
+- **交付物**:
+  - spec.md frontmatter: `status: completed`, `updated: 2026-07-21`, `version: 1.1.0`
+  - package.json: `version: 1.1.0`
+  - CHANGELOG.md: [1.1.0] 섹션 (신규)
+  - progress.md: §E.4 추가 (본 섹션)
