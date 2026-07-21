@@ -26,8 +26,10 @@ android/
 *.mobileprovision
 *.pem
 
-# Firebase FCM credentials (SPEC-NOTIF-001)
-# google-services.json: Android client config (FCM 등록, 공개 식별자) — git 추적 (prod 클라우드 빌드 주입, SPEC-NOTIF-001 N7)
+# Firebase FCM credentials (SPEC-NOTIF-001 N7)
+# google-services.json: Android FCM 클라이언트 config — prod 클라우드 빌드는 GOOGLE_SERVICES_JSON_B64
+#   EAS env로 주입 (eas-build-post-install base64 디코딩). 파일 자체는 비공개 유지 (git 추적 제외).
+google-services.json
 # google-service-account.json: FCM V1 서버 private key (EAS Push 전송용, 민감) — eas.json submit 참조
 google-service-account.json
 prod-firebase-service-account.json
