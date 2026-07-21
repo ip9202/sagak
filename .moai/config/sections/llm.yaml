@@ -2,6 +2,7 @@ llm:
     mode: ""
     team_mode: glm
     glm_env_var: GLM_API_KEY
+    plan_type: subscription
     performance_tier: medium
     claude_models:
         high: claude-opus-4-7
@@ -10,10 +11,11 @@ llm:
     glm:
         base_url: https://api.z.ai/api/anthropic
         models:
-            high: glm-5.1
+            high: glm-5.2[1m]
             medium: glm-4.7
             low: glm-4.5-air
-            opus: glm-5.1
+            fable: glm-5.2
+            opus: glm-5.2
             sonnet: glm-4.7
             haiku: glm-4.5-air
     default_model: ""

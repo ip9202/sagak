@@ -1,226 +1,123 @@
 # ============================================
-# MoAI-ADK Package Distribution .gitignore
+# sagak .gitignore (React Native / Expo)
 # ============================================
-# Version: 0.33.0
-# Updated: 2026-01-10
-# Purpose: Essential patterns for user projects
+# Base: HEAD 원본 (sagak RN 맞춤)
+# Merged: MoAI-ADK 유용 패턴 (TS/Claude local/MoAI per-machine state)
+# Updated: 2026-07-20 — moai update 덮어쓰기 손상 복구
 # ============================================
 
-# ===========================================
-# Go Build Artifacts
-# ===========================================
-bin/
-*.exe
-*.exe~
-*.dll
-*.so
-*.dylib
-cover.out
-cover.html
-cpu.prof
-mem.prof
+# Dependencies
+node_modules/
+.yarn/
 
-# ===========================================
-# Build Artifacts & Distribution
-# ===========================================
-build/
+# Expo
+.expo/
+.expo-shared/
 dist/
-*.egg-info/
-*.egg
 
-# ===========================================
-# Python Cache & Bytecode
-# ===========================================
-__pycache__/
-.pytest_cache/
-*.pyc
-*.pyo
-*.pyd
-.mypy_cache/
-.ruff_cache/
-*.db
-*.sqlite
-*.sqlite3
-*.rdb
-*.dbm
+# Native
+ios/
+android/
+*.orig.*
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+*.pem
 
-# ===========================================
-# Virtual Environments
-# ===========================================
-venv/
-.venv/
-env/
-.env/
-.uv_cache/
-.uv-cache/
+# Firebase FCM credentials (SPEC-NOTIF-001)
+# google-services.json: Android client config (FCM 등록, 공개 식별자) — git 추적 (prod 클라우드 빌드 주입, SPEC-NOTIF-001 N7)
+# google-service-account.json: FCM V1 서버 private key (EAS Push 전송용, 민감) — eas.json submit 참조
+google-service-account.json
+prod-firebase-service-account.json
 
-# ===========================================
-# Test Coverage
-# ===========================================
-.coverage
-coverage.json
-htmlcov/
+# Metro
+.metro-health-check*
 
-# ===========================================
-# IDE & Editors
-# ===========================================
+# Debug
+npm-debug.*
+yarn-debug.*
+yarn-error.*
+
+# IDE
 .vscode/
 .idea/
 *.swp
 *.swo
-*.sw?
 *~
-.cursor/
-*.sublime-project
-*.sublime-workspace
-*.njsproj
-*.sln
-*.suo
-.#*
 
-# ===========================================
-# OS Files
-# ===========================================
-# Mac
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Sentry CLI local config (SPEC-DEPLOY-001 — contains auth token, must never commit)
+sentry.properties
+.sentryclirc
+
+# Keep staging/production env templates for EAS builds (but not actual values)
+!.env.example
+!.env.staging
+!.env.production
+
+# OS
 .DS_Store
-.AppleDouble
-.LSOverride
-.DocumentRevisions-V100
-.fseventsd
-.Spotlight-V100
-.TemporaryItems
-.Trashes
-.VolumeIcon.icns
-
-# Windows
-[Dd]esktop.ini
 Thumbs.db
-ehthumbs.db
 
-# Linux
-.directory
-
-# ===========================================
-# Logs & Temporary Files
-# ===========================================
+# Testing
+coverage/
 *.log
-logs/
+
+# Temporary
 *.tmp
 *.temp
-*.bak
-*.backup
 
-# ===========================================
-# Backups
-# ===========================================
-.moai-backups/
-*.backup/
-*-backup/
-*_backup_*/
-
-# ===========================================
-# Secrets and Credentials (CRITICAL)
-# ===========================================
-# Environment files
-.env
-.env.*
-!.env.example
-
-# Certificate files
-*.pem
-*.p12
-*.pfx
-*.jks
-
-# Private keys (specific patterns to avoid false positives)
-# FIXED: Issue #237 - Replaced overly broad *key* and *secret* patterns
-*-key.*
-*_key.*
-*.key.*
-*-secret-key.*
-*-api-key.*
-api-key-*
-secret-key-*
-private-key*
-*-secret.*
-*_secret.*
-*.secret.*
-secret-*.*
-
-# Credential patterns in environment files
-*_secret=*
-*_token=*
-
-# Cloud provider credentials
-.aws/config
-.aws/credentials
-
-# ===========================================
-# Claude Code Configuration
-# ===========================================
-.claude/settings.local.json
-.claude/settings.local.*.json
-.claude/.env.local*
-.claude/local/
-.claude/plans/
-.claude/agent-memory/
-.claude/worktrees/
-
-# Skill-specific credentials
-.claude/skills/*/.env*
-.claude/skills/*/secrets/
-.claude/skills/*/*/*secret*
-.claude/skills/*/*/*key*
-.claude/skills/*/*/*token*
-# Re-include legitimate skill module files containing "token" in their name
-!.claude/skills/*/modules/*token*.md
-
-# ===========================================
-# Local-Only Files (never sync via git pull)
-# ===========================================
-.moai/status_line.sh
-.moai/memory/
-.moai/worktrees/
-
-# ===========================================
-# Evolution Telemetry (local-only usage data)
-# Learnings and new-skills are git-tracked for team sharing.
-# ===========================================
+# MoAI logs
+.moai/logs/
+.moai/reports/
 .moai/evolution/telemetry/*.jsonl
-!.moai/evolution/telemetry/.gitkeep
+*.bak
+*.bak[0-9]
 
-# ===========================================
-# Node.js (for docs/Nextra)
-# ===========================================
-node_modules/
+# ============================================
+# MoAI-ADK 병합 패턴 (2026-07-20 추가)
+# sagak(RN)에 해당하는 MoAI 유용 패턴만 선택 — Go/Python 패턴은 제외
+# ============================================
+
+# TypeScript / JS 산물
 *.tsbuildinfo
 .tscache/
 .next/
 out/
 
-# ===========================================
-# Build Tools & Frameworks
-# ===========================================
-.turbo/
-.nuxt/
-dist-ssr/
+# Claude Code local state (per-machine, never tracked)
+.claude/settings.local.json
+.claude/settings.local.json.lock
+.claude/settings.local.*.json
+.claude/plans/
+.claude/agent-memory/
+.claude/worktrees/
+.claude/.env.local*
+.claude/local/
 
-# ===========================================
-# Deployment & CI/CD
-# ===========================================
-.vercel/
-.netlify/
+# Claude skill credentials
+.claude/skills/*/.env*
+.claude/skills/*/secrets/
+
+# MoAI per-machine state (never tracked)
+.moai/status_line.sh
+.moai/memory/
+.moai/worktrees/
+.moai/branches/
+.moai/state/
+.moai/cache/
+.moai-backups/
+.moai/backups/
+
+# MoAI runtime logs (per-session auto-generated, never tracked)
+.moai/harness/usage-log.jsonl
+.moai/lessons-inbox.jsonl
+
+# Firebase deploy cache (sagak Firebase 사용)
 .firebase/
-
-# ===========================================
-# Project Planning Docs (external, symlinked)
-# .booktalk is a symlink to a separate bookTalk vault; tracked elsewhere.
-# Matches both the symlink file and a real directory if it ever becomes one.
-# ===========================================
-.booktalk
-
-# ===========================================
-# Supabase local (generated by `supabase start`)
-# ===========================================
-supabase/.branches
-supabase/.temp/

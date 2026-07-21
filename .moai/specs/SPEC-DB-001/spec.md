@@ -105,7 +105,11 @@ labels: [database, supabase, postgresql, rls, security, schema]
 > 도입이 필요하다.
 
 **WHERE** `provider` 컬럼이 존재하면,
-**THEN** 시스템은 값이 `'kakao'`, `'apple'`, `'google'` 중 하나임을 보장해야 한다.
+**THEN** 시스템은 값이 `'kakao'`, `'naver'`, `'google'` 중 하나임을 보장해야 한다.
+
+> **제공자 선정 이유**: 카카오/네이버/구글은 한국 시장 주류 OAuth 조합이다.
+> Apple 제외: App Store Guideline 4.8 한국 예외 조항 적용.
+> 네이버는 Supabase Custom OIDC(2026년 6월 기능)로 연동된다.
 
 #### REQ-DB-002: books 테이블 정의
 
@@ -588,8 +592,10 @@ RLS 우회로 INSERT해야 한다.
 
 본 SPEC은 다음을 포함하지 않는다:
 
-1. **Supabase Auth 제공자 설정**: 카카오/애플/구글 OAuth 앱 등록 및 콜백 URL 설정은
-   본 SPEC 범위 밖이다 (인프라 설정).
+1. **Supabase Auth 제공자 설정**: 카카오/네이버/구글 OAuth 앱 등록 및 콜백 URL 설정은
+   본 SPEC 범위 밖이다 (인프라 설정, SPEC-DEPLOY-001 위임).
+   - 네이버는 Supabase Custom OIDC(2026년 6월 기능)로 연동
+   - Apple 제외: App Store Guideline 4.8 한국 예외 적용
 2. **Edge Function 로직**: `kakao-book-search`, `process-join-request`,
    `generate-completion-report`, `send-notification` 등의 Edge Function 구현 로직은
    본 SPEC 범위 밖이다. 본 SPEC은 트리거/정책으로 자동 처리되는 부분만 정의한다.

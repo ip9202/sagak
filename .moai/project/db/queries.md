@@ -89,6 +89,29 @@ const { data } = await supabase
 // 클라이언트에서 그룹 카운트, 또는 PostgREST의 count 헤더 활용
 ```
 
+### 모임 진도 median 집계 (SPEC-CLUB-003)
+
+```ts
+// Purpose: host가 소유한 모임들의 멤버 읽기 진도 중앙값 집계
+// Parameters: hostId(uuid)
+// Returns: TABLE(club_id, median_page, member_count_with_progress, total_pages)
+// Security: SECURITY INVOKER + auth.uid() defense-in-depth
+
+const { data, error } = await supabase.rpc('get_host_clubs_progress', {
+  p_host_id: hostId
+});
+
+// 집계 로직 (PostgreSQL 서버):
+// - user_books_public 뷰 소스 (is_public=true만 포함)
+// - current_page > 0 멤버만 percentile_cont(0.5) median 계산
+// - books.total_pages LEFT JOIN (NULL 허용 → COALESCE 0)
+// - type='group' AND status='active' 필터
+```
+
+> **Degradation 패턴 (REQ-CLUBC-008)**: RPC 에러 시 진도 필드를 기본값(0, 0, null)으로 채우고
+> 기존 clubs+count 데이터는 정상 반환. 진도 표시는 보조 정보이므로 장애가 모임 목록
+> 자체를 사용 불가능하게 만들어서는 안 된다.
+
 ---
 
 ## Reports

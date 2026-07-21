@@ -1,0 +1,64 @@
+{
+  "cli": {
+    "version": ">= 5.9.0",
+    "appVersionSource": "remote"
+  },
+  "build": {
+    "development": {
+      "developmentClient": true,
+      "distribution": "internal",
+      "env": {
+        "EXPO_PUBLIC_SUPABASE_URL": "your-dev-project-url.supabase.co",
+        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "your-dev-anon-key",
+        "ENV": "development"
+      },
+      "cache": {
+        "key": "package-lock.json"
+      }
+    },
+    "preview": {
+      "distribution": "internal",
+      "env": {
+        "EXPO_PUBLIC_SUPABASE_URL": "your-staging-project-url.supabase.co",
+        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "your-staging-anon-key",
+        "ENV": "staging"
+      },
+      "cache": {
+        "key": "package-lock.json"
+      }
+    },
+    "production": {
+      "distribution": "store",
+      "environment": "production",
+      "env": {
+        "ENV": "production"
+      },
+      "cache": {
+        "key": "package-lock.json"
+      }
+    },
+    "production-internal": {
+      "distribution": "internal",
+      "environment": "production",
+      "env": {
+        "ENV": "production"
+      },
+      "cache": {
+        "key": "package-lock.json"
+      }
+    }
+  },
+  "submit": {
+    "production": {
+      "android": {
+        "serviceAccountKeyPath": "./google-service-account.json",
+        "track": "internal"
+      },
+      "ios": {
+        "appleId": "your-apple-id@example.com",
+        "ascAppId": "your-app-store-connect-app-id",
+        "appleTeamId": "your-apple-team-id"
+      }
+    }
+  }
+}

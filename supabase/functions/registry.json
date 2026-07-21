@@ -1,0 +1,9 @@
+{
+  "$comment": "Single source of truth (SSOT) for Edge Function 목록. TS(src/lib/edge-function-deploy.ts)와 Bash(scripts/deploy-edge-functions.sh)가 모두 이 파일에서 함수 이름을 파생한다. 함수 추가/삭제/이름 변경 시 이 파일만 수정하면 양쪽에 자동 반영된다. SPEC-DEPLOY-001 REQ-DEPLOY-022.",
+  "functions": [
+    { "name": "kakao-book-search", "spec": "SPEC-BOOK-001", "note": "위임" },
+    { "name": "process-join-request", "spec": "SPEC-CLUB-001", "note": "위임" },
+    { "name": "send-notification", "spec": "SPEC-NOTIF-001", "note": "위임" },
+    { "name": "naver-userinfo-proxy", "spec": "SPEC-DEPLOY-001", "note": "REQ-DEPLOY-019 Naver OIDC" }
+  ]
+}

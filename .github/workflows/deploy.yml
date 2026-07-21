@@ -1,0 +1,126 @@
+name: Deploy
+
+# @MX:NOTE: [AUTO] SPEC-DEPLOY-001 M2b — release/hotfix 배포 자동화.
+# @MX:SPEC: SPEC-DEPLOY-001 (AC-DEPLOY-010 release 태깅+EAS Build, AC-DEPLOY-011 hotfix 듀얼 머지, AC-DEPLOY-013 환경별 배포 트리거 분리)
+# 자격증명(EXPO_TOKEN, EAS 크리덴셜)은 GitHub Actions Secrets 로 주입한다.
+# Secrets 이 없어도 워크플로우 파일 자체는 유효 — 실제 실행 시점에 값이 누락되면 잡이 실패한다.
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+  # release/hotfix 는 main 머지 시점(push to main)의 커밋 메시지/브랜치로 판별
+  # workflow_dispatch 로 수동 트리거도 허용 (릴리스 준비 단계 점검용)
+
+permissions:
+  contents: write   # 태그/Release 생성용
+  id-token: write   # OIDC (향후 클라우드 연동)
+
+concurrency:
+  group: deploy-${{ github.ref }}
+  cancel-in-progress: false   # 배포 잡은 중복 취소 금지
+
+jobs:
+  # AC-DEPLOY-010: main 머지 시 버전 태그 자동 생성
+  # release/vX.Y.Z 브랜치가 main에 squash 머지되면 커밋 메시지에서 버전을 추출해 태그.
+  tag-release:
+    name: Tag Release (main)
+    if: |
+      github.ref == 'refs/heads/main' &&
+      contains(github.event.head_commit.message, 'release/')
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.parse-version.outputs.version }}
+      tagged: ${{ steps.create-tag.outputs.tagged }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # 태그 히스토리 필요
+
+      - name: 커밋 메시지에서 버전 추출
+        id: parse-version
+        run: |
+          MSG="${{ github.event.head_commit.message }}"
+          VERSION=$(echo "$MSG" | grep -oE 'v[0-9]+\.[0-9]+\.[0-9]+' | head -1)
+          if [ -z "$VERSION" ]; then
+            echo "No version found in commit message — skipping tag";
+            echo "version=" >> "$GITHUB_OUTPUT";
+          else
+            echo "Detected version: $VERSION";
+            echo "version=$VERSION" >> "$GITHUB_OUTPUT";
+          fi
+
+      - name: 태그 생성 (main 에만, SemVer)
+        id: create-tag
+        if: steps.parse-version.outputs.version != ''
+        run: |
+          VERSION="${{ steps.parse-version.outputs.version }}"
+          if git rev-parse "$VERSION" >/dev/null 2>&1; then
+            echo "Tag $VERSION already exists — skipping";
+            echo "tagged=false" >> "$GITHUB_OUTPUT";
+          else
+            git tag "$VERSION"
+            git push origin "$VERSION"
+            echo "tagged=true" >> "$GITHUB_OUTPUT";
+          fi
+
+  # AC-DEPLOY-010 / AC-DEPLOY-013: production EAS Build 트리거
+  production-build:
+    name: EAS Build (production)
+    needs: tag-release
+    if: needs.tag-release.outputs.tagged == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: EAS CLI 설치
+        run: npm install -g eas-cli
+
+      - name: .easignore 준비
+        run: echo "credentials JSON via EAS Secrets — no file in repo (REQ-DEPLOY-008)"
+
+      - name: EAS Build (production, all platforms)
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+        run: |
+          if [ -z "$EXPO_TOKEN" ]; then
+            echo "EXPO_TOKEN missing — cannot run EAS Build (pre-provision)";
+            exit 1;
+          fi
+          eas build --profile production --platform all --non-interactive
+
+  # AC-DEPLOY-011: hotfix 듀얼 머지 검증
+  # hotfix/* 가 main에 머지된 경우, 동일 변경이 develop에도 머지되었는지 git diff 로 검증.
+  verify-hotfix-dual-merge:
+    name: Verify Hotfix Dual Merge (main <-> develop)
+    if: |
+      github.ref == 'refs/heads/main' &&
+      contains(github.event.head_commit.message, 'hotfix/')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: develop 동기화 상태 검증
+        run: |
+          git fetch origin develop
+          # main과 develop의 차이가 hotfix 관련 커밋만 남기고 없어야 함.
+          DIFF=$(git log origin/main..origin/develop --oneline || true)
+          echo "Commits in develop not in main:"
+          echo "$DIFF"
+          # 역방향: main에만 있고 develop에 없는 hotfix 커밋이 있으면 실패
+          MISSING=$(git log origin/develop..origin/main --oneline | grep -i hotfix || true)
+          if [ -n "$MISSING" ]; then
+            echo "FAIL: hotfix commits on main not merged back to develop:";
+            echo "$MISSING";
+            echo "Workspace Git Flow requires dual merge for hotfix/* branches.";
+            exit 1;
+          fi
+          echo "OK: hotfix dual merge verified."

@@ -1,0 +1,106 @@
+/**
+ * App Layout - ThemeProvider + AuthProvider + QueryClientProvider wrapper
+ * SPEC-AUTH-001 — REQ-AUTH-010 (AC-S1: AuthProvider 배치)
+ * SPEC-NAV-001 — REQ-NAV-012 (루트 Stack 그룹 확장)
+ * SPEC-LIBRARY-001 — TASK-001 (QueryClientProvider bootstrap)
+ *
+ * 구조:
+ *   <ThemeProvider>          ← 최외곽 (토큰/다크모드)
+ *     <QueryClientProvider>  ← React Query 캐시 (서재/진행률 비동기 상태)
+ *       <AuthProvider>       ← 그 안쪽 (세션/프로필)
+ *         <Stack>            ← expo-router
+ *           <Stack.Screen name="index" />      ← 진입 분기 (useSession 기반 redirect)
+ *           <Stack.Screen name="(tabs)" />     ← 4탭 셸 (보호됨)
+ *           <Stack.Screen name="(auth)" />     ← 인증/온보딩 (보호됨)
+ *           <Stack.Screen name="_dev" />       ← __DEV__ 전용 데모
+ *
+ * AuthProvider가 ThemeProvider 안쪽이어야 useTheme()을 사용하는 자식이
+ * 안전하게 동작하며, 동시에 모든 라우트가 인증 상태에 접근할 수 있다.
+ * QueryClientProvider는 모든 도메인(useQuery/useMutation)의 캐시를 공유하기 위해
+ * Stack 외곽에 배치한다.
+ * _dev는 프로덕션 빌드(__DEV__=false)에서 제외되어 번들에서 사라진다.
+ */
+
+import React from 'react';
+import { ActivityIndicator, View } from 'react-native';
+import { Stack } from 'expo-router';
+import { QueryClientProvider } from '@tanstack/react-query';
+import * as WebBrowser from 'expo-web-browser';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { useFonts } from 'expo-font';
+import {
+  Inter_400Regular,
+  Inter_500Medium,
+  Inter_600SemiBold,
+  Inter_700Bold,
+} from '@expo-google-fonts/inter';
+import { ThemeProvider, useTheme } from '../src/theme/theme';
+import { AuthProvider } from '../src/auth/AuthContext';
+import { getQueryClient } from '../src/lib/query/queryClient';
+// SPEC-NOTIF-001 Optional (REQ-NOTIF-001~004): 클라이언트 Expo Push 통합
+import {
+  usePushTokenRegistration,
+  useNotificationResponse,
+} from '../src/features/notification';
+
+// @MX:NOTE: [AUTO] OAuth 콜백 딥링크(sagak://auth/callback)로 앱이 열렸을 때 인증 세션 브라우저를 닫고
+//           Supabase가 코드 교환을 완료하도록 돕는다. 반드시 모듈 최상단(컴포넌트 외부)에서 호출해야 한다.
+//           컴포넌트 내부에서 호출 시 렌더링마다 중복 실행되거나 타이밍이 어긋나 세션이 누락된다.
+WebBrowser.maybeCompleteAuthSession();
+
+export default function RootLayout() {
+  // SPEC-UI-002 P0 — Inter static per-weight 4종 로드. useFonts 게이트로 로드 완료 전까지
+  // SplashLoader 를 렌더해 FOUT(스타일 없는 텍스트 점멠)을 방지한다. 에러 시에도 앱 정지를
+  // 피하기 위해 loaded 만 분기 기준으로 쓰고, 폰트 누락 시 RN 이 시스템 폰트로 폴백한다.
+  const [fontsLoaded] = useFonts({
+    Inter_400Regular,
+    Inter_500Medium,
+    Inter_600SemiBold,
+    Inter_700Bold,
+  });
+
+  return (
+    <ThemeProvider>
+      <SafeAreaProvider>
+        {fontsLoaded ? (
+          <QueryClientProvider client={getQueryClient()}>
+            <AuthProvider>
+              <PushNotificationHost />
+              <Stack screenOptions={{ headerShown: false }}>
+                <Stack.Screen name="index" />
+                <Stack.Screen name="(tabs)" />
+                <Stack.Screen name="(auth)" />
+                {/* @MX:NOTE: [AUTO] _dev는 __DEV__ 게이트 — 프로덕션 빌드에서는 Screen 선언 자체가 제외되어 접근 불가 (R3) */}
+                {__DEV__ && <Stack.Screen name="_dev" options={{ presentation: 'modal' }} />}
+              </Stack>
+            </AuthProvider>
+          </QueryClientProvider>
+        ) : (
+          <SplashLoader />
+        )}
+      </SafeAreaProvider>
+    </ThemeProvider>
+  );
+}
+
+// @MX:NOTE: [AUTO] SPEC-UI-002 P0 — 폰트 로드 전 splash 화면. ThemeProvider 내부에서
+//   호출되므로 useTheme 토큰(bg.base, brand[500])을 안전하게 사용한다.
+function SplashLoader(): React.JSX.Element {
+  const theme = useTheme();
+  return (
+    <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: theme.colors.bg.base }}>
+      <ActivityIndicator size="large" color={theme.colors.brand[500]} />
+    </View>
+  );
+}
+
+// @MX:NOTE: [AUTO] SPEC-NOTIF-001 Optional: 푸시 토큰 등록 + 알림 탭 라우팅 훅을
+//   AuthProvider 내부에서 호출하기 위한 빈 호스트 컴포넌트. 두 훅 모두 useSession/useRouter 에
+//   의존하므로 AuthProvider/Stack 라우터 컨텍스트 안에 있어야 한다. 렌더링 결과는 null.
+function PushNotificationHost(): React.JSX.Element | null {
+  // REQ-NOTIF-001~003: 인증된 사용자 푸시 토큰 획득 + 서버 등록
+  usePushTokenRegistration();
+  // REQ-NOTIF-004: foreground 알림 표시 + 탭 라우팅
+  useNotificationResponse();
+  return null;
+}

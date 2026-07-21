@@ -1,0 +1,186 @@
+/**
+ * (tabs) 그룹 레이아웃 — 4탭 Tabs 네비게이터 + 인증/온보딩 가드
+ * SPEC-NAV-001 — REQ-NAV-001, REQ-NAV-003, REQ-NAV-022, REQ-NAV-023, REQ-NAV-013
+ * 인수 시나리오: T1~T6, G4, G6, EC3, EC7, S3/S4 (스택 전환)
+ *
+ * 진입 분기 (단일 진실 원천 useSession):
+ * - null (loading)      → ActivityIndicator (EC7: 리다이렉트 루프 방지, 아무 그룹도 렌더링하지 않음)
+ * - !isAuthenticated     → router.replace('/(auth)/login')  (G4)
+ * - authenticated & !isOnboarded → router.replace('/(auth)/onboarding') (G6, EC3)
+ * - 그 외                → Tabs 렌더링
+ *
+ * React 19 호환: router.replace()는 useEffect 에서만 호출한다(렌더링 중
+ * NavigationContainerInner 상태 갱신 시 런타임 에러). index.tsx 진입 분기와
+ * 동일한 useEffect 패턴을 사용한다.
+ *
+ * 탭 구성 (REQ-NAV-001):
+ * 홈(home) → 서재(book-open) → 모임(users) → 마이(user)
+ * 모든 스타일 값은 useTheme() 토큰에서 임포트 (REQ-NAV-003, 하드코딩 금지).
+ */
+
+import React, { useEffect } from 'react';
+import { ActivityIndicator, View } from 'react-native';
+import { Tabs, useRouter } from 'expo-router';
+// @MX:NOTE: [AUTO] SPEC-UI-002 — 아이콘 라이브러리를 Feather(@expo/vector-icons)에서
+//           lucide-react-native 로 이관. .pen 이 library: "lucide" 를 규정하므로 코드 정합성 확보.
+import { Home, BookOpen, Users, User } from 'lucide-react-native';
+import { useTheme } from '../../src/theme/theme';
+import { useSession } from '../../src/auth/useSession';
+import { StatusBar } from '../../src/components/StatusBar';
+
+// @MX:ANCHOR: [AUTO] (tabs) 그룹 진입 게이트 — 미인증/온보딩미완 사용자의 보호 라우트 접근 차단
+// @MX:REASON: fan_in >= 3 (홈/서재/모임/마이 모든 탭이 이 게이트 통과). useSession 단일 진실 원천 기반으로 동작하며, 양쪽 가드(tabs/auth)가 동일 상태를 받아 EC7 리다이렉트 루프를 방지한다.
+export default function TabsLayout() {
+  const s = useSession();
+  const router = useRouter();
+  const theme = useTheme();
+
+  // 원시값으로 추출 — useEffect 의존성 무한 루프 방지
+  const loading = s === null;
+  const isAuthenticated = s?.isAuthenticated ?? false;
+  const isOnboarded = s?.isOnboarded ?? false;
+
+  // @MX:WARN: [AUTO] replace 호출은 useEffect 내에서만 — 렌더링 중 호출 시 React 19 런타임 에러
+  // @MX:REASON: NavigationContainerInner 의 상태를 렌더링 도중 갱신하면
+  //             "Cannot update a component while rendering a different component" 에러로 앱 부팅이 막힌다.
+  useEffect(() => {
+    // EC7: loading 시 아무 리다이렉트도 하지 않음 → 리다이렉트 루프 방지
+    if (loading) return;
+
+    // G4: 미인증 사용자의 (tabs) 접근 차단 → login
+    // @MX:WARN: [AUTO] replace 사용 필수 — push 사용 시 백스택에 보호 화면이 남아 인증 후 다시 노출됨
+    // @MX:REASON: 사용자가 로그인한 뒤 백버튼으로 보호된 콘텐츠에 접근하는 시나리오를 차단하기 위해 replace 사용.
+    if (!isAuthenticated) {
+      router.replace('/(auth)/login');
+      return;
+    }
+
+    // G6/EC3: 인증됐으나 온보딩 미완료 → onboarding
+    if (!isOnboarded) {
+      router.replace('/(auth)/onboarding');
+      return;
+    }
+  }, [loading, isAuthenticated, isOnboarded, router]);
+
+  // EC7: loading 시 인디케이터만 렌더 → 리다이렉트 루프 방지
+  if (loading) {
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: theme.colors.bg.base }}>
+        {/* @MX:NOTE: [AUTO] SPEC-UI-002 REQ-SCREEN-001 — 상단 상태바 영역 일관 처리 (로딩 화면도 동일) */}
+        <StatusBar />
+        <ActivityIndicator size="large" color={theme.colors.brand[500]} />
+      </View>
+    );
+  }
+
+  // 미인증/온보딩미완 — useEffect 가 리다이렉트 수행하는 동안 빈 화면
+  if (!isAuthenticated || !isOnboarded) {
+    return null;
+  }
+
+  // REQ-NAV-003: 모든 스타일 값은 useTheme() 토큰 (하드코딩 금지)
+  // @MX:NOTE: [AUTO] 탭바 토큰 스타일링 — bg-surface/border-default/brand-500/text-tertiary 모두 theme 토큰
+  // @MX:NOTE: [AUTO] SPEC-UI-002 REQ-SCREEN-001 — 4개 탭 전체에 일관된 상단 StatusBar 적용.
+  //           각 탭 화면의 자체 헤더 구조(REQ-SCREEN-010 타이틀 22/700)는 유지하고,
+  //           상단 상태바/노치 영역만 추가. StatusBar 는 SafeAreaInsets.top 으로 높이 결정.
+  return (
+    <View style={{ flex: 1, backgroundColor: theme.colors.bg.base }}>
+      <StatusBar />
+      <Tabs
+        screenOptions={{
+          headerShown: false,
+          tabBarActiveTintColor: theme.colors.brand[500],
+          tabBarInactiveTintColor: theme.colors.text.tertiary,
+          tabBarStyle: {
+            backgroundColor: theme.colors.bg.surface,
+            borderTopColor: theme.colors.border.default,
+            borderTopWidth: 0.5,
+            height: 56,
+          },
+          tabBarLabelStyle: {
+            fontSize: theme.typography.label.fontSize,
+            fontWeight: theme.typography.label.fontWeight,
+          },
+        }}
+      >
+      <Tabs.Screen
+        name="index"
+        options={{
+          title: '홈',
+          tabBarIcon: ({ color }) => <Home size={24} color={color} />,
+          tabBarAccessibilityLabel: '홈 탭',
+        }}
+      />
+      <Tabs.Screen
+        name="library"
+        options={{
+          title: '서재',
+          tabBarIcon: ({ color }) => <BookOpen size={24} color={color} />,
+          tabBarAccessibilityLabel: '서재 탭',
+        }}
+      />
+      <Tabs.Screen
+        name="clubs"
+        options={{
+          title: '모임',
+          tabBarIcon: ({ color }) => <Users size={24} color={color} />,
+          tabBarAccessibilityLabel: '모임 탭',
+        }}
+      />
+      <Tabs.Screen
+        name="my"
+        options={{
+          title: '마이',
+          tabBarIcon: ({ color }) => <User size={24} color={color} />,
+          tabBarAccessibilityLabel: '마이 탭',
+        }}
+      />
+      {/* 동적 라우트 — 탭바에 표시되지 않음 (href:null). S3/S4 스택 진입/복귀용.
+          REQ-NAV-013: 기본 전환은 React Navigation 슬라이드(기본값).
+          모달형 presentation은 별도 Stack 그룹 도입 시 지원 예정 (Tabs.Screen은
+          presentation 옵션을 타입 수준에서 지원하지 않으므로 현재는 href:null만 적용). */}
+      <Tabs.Screen
+        name="[bookId]"
+        options={{ href: null, headerShown: false }}
+      />
+      {/* SPEC-BOOK-001 M4: 검색·스캔 화면 — 탭바 미표시 (href:null), 스택 진입용 */}
+      <Tabs.Screen
+        name="search"
+        options={{ href: null, headerShown: false }}
+      />
+      <Tabs.Screen
+        name="scan"
+        options={{ href: null, headerShown: false }}
+      />
+      <Tabs.Screen
+        name="clubs/[clubId]"
+        options={{ href: null, headerShown: false }}
+      />
+      {/* SPEC-CLUB-001 M3/M5: 독자 목록 / host 수신 요청 — 탭바 미표시 (href:null), 스택 진입용 */}
+      <Tabs.Screen
+        name="readers"
+        options={{ href: null, headerShown: false }}
+      />
+      <Tabs.Screen
+        name="host-requests"
+        options={{ href: null, headerShown: false }}
+      />
+      {/* @MX:NOTE: [AUTO] 하위 라우트 — 탭바 미표시 (href:null), 스택 진입용.
+          선언 누락 시 expo-router 가 자동 탭으로 노출시켜 SPEC-UI-002 캡슐형 4탭이 깨짐 (회귀).
+          NOTIF/PROFILE/ROUTINE/CLUB 하위 라우트가 누적되며 발견됨. */}
+      <Tabs.Screen name="my/notifications" options={{ href: null, headerShown: false }} />
+      <Tabs.Screen name="my/edit" options={{ href: null, headerShown: false }} />
+      <Tabs.Screen name="my/timer" options={{ href: null, headerShown: false }} />
+      <Tabs.Screen name="my/alarm" options={{ href: null, headerShown: false }} />
+      <Tabs.Screen name="clubs/new" options={{ href: null, headerShown: false }} />
+      <Tabs.Screen name="clubs/[clubId]/feed" options={{ href: null, headerShown: false }} />
+      {/* @MX:NOTE: [AUTO] SPEC-ROUTINE-001(completion) / SPEC-EMOTION-001(emotion) 하위 라우트.
+          선언 누락 시 expo-router 자동 탭 노출로 SPEC-UI-002 캡슐형 4탭 깨짐 (회귀). href:null 로 숨김.
+          completion/index (완독 다이어리 리스트) 포함 — 마이 탭 router.push('/completion') 진입 전용. */}
+      <Tabs.Screen name="completion/index" options={{ href: null, headerShown: false }} />
+      <Tabs.Screen name="completion/[bookId]" options={{ href: null, headerShown: false }} />
+      <Tabs.Screen name="emotion/[bookId]" options={{ href: null, headerShown: false }} />
+      </Tabs>
+    </View>
+  );
+}
