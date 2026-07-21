@@ -30,7 +30,7 @@ export interface ExpoPushResult {
   error?: string;
 }
 
-const EXPO_ENDPOINT = 'https://exp.host/api/v2/push/send';
+const EXPO_ENDPOINT = 'https://exp.host/--/api/v2/push/send';
 
 /**
  * Expo Push API 로 푸시를 발송한다 (REQ-NOTIF-012).
