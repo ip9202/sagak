@@ -27,10 +27,10 @@ android/
 *.pem
 
 # Firebase FCM credentials (SPEC-NOTIF-001)
-# google-services.json: Android client config (FCM 등록, 공개 식별자) — 보안 일관성 위해 ignore
+# google-services.json: Android client config (FCM 등록, 공개 식별자) — git 추적 (prod 클라우드 빌드 주입, SPEC-NOTIF-001 N7)
 # google-service-account.json: FCM V1 서버 private key (EAS Push 전송용, 민감) — eas.json submit 참조
-google-services.json
 google-service-account.json
+prod-firebase-service-account.json
 
 # Metro
 .metro-health-check*
