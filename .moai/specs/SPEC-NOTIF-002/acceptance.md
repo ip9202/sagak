@@ -141,14 +141,14 @@ depends_on: [SPEC-NOTIF-001]
 
 ### §3.1 단위 테스트
 
-- **Realtime 구독 훅**: 모킹된 Supabase channel로 INSERT 이벤트 발생 → 쿼리 갱신 확인 (N2-1, N2-3, N2-4).
+- **Realtime 구독 훅**: 모킹된 Supabase channel로 INSERT 이벤트 발생 → `invalidateQueries` 호출 확인 (N2-1, N2-3, N2-4). 단, 모킹된 클라이언트는 이벤트 도달 시의 클라이언트 동작(갱신/cleanup/filter 매칭)만 검증한다 — 서버 측 RLS 브로드캐스트 게이트는 단위 테스트로 검증 불가(N2-2는 §3.2 통합 테스트).
 - **useNotificationResponse invalidateQueries**: `queryClient.invalidateQueries` spy로 호출 검증 (N2-5, N2-6).
 - **NotificationsScreen RefreshControl**: 렌더링 + `onRefresh` → `refetch` 호출 확인 (N2-8, N2-9).
-- **RLS 검증**: 모킹된 타인 세션으로 INSERT 시 수신 안 됨 확인 (N2-2).
 
 ### §3.2 통합 테스트
 
 - **Realtime E2E(로컬 Supabase)**: 인증된 세션에서 `notifications` INSERT → 클라이언트 캐시 갱신 (가능한 경우).
+- **N2-2 타인 알림 RLS 브로드캐스트 차단 (통합 필수)**: 로컬 Supabase 환경에서 사용자 A/B 세션으로 검증 — B의 notifications INSERT 시 A가 이벤트를 수신하지 않음을 실제 RLS 게이트로 확인. 클라이언트 모킹으로는 서버 측 RLS 게이트를 검증할 수 없다(단위 테스트는 매칭되지 않은 이벤트 미표시만 검증 가능 — 실제 RLS 차단과 구분). RLS 브로드캐스트 게이트는 feed 선례 `supabase/migrations/20240620000001_enable_realtime_feed.sql` 주석의 팔로업 검증 시나리오 1-3(멤버/비회원/public 수신 분기)과 동일 방식으로 로컬 통합 테스트에서 검증한다.
 - **SPEC-NOTIF-001 회귀**: 기존 테스트 suite 전수 PASS.
 
 ### §3.3 수동 검증 (실기기)
