@@ -78,7 +78,7 @@ manual_verification_deferred:        # acceptance §3.3 실기기 — 사용자 
 ## §E.4 Sync-phase Audit-Ready Signal
 
 ```yaml
-sync_commit_sha: pending-backfill-sync    # 본 sync 커밋은 self-referential 회피 — 후속 커밋에 실제 SHA backfill
+sync_commit_sha: 999bafce4ac4812a131d70c531f603ccf8321190    # backfill 완료 — self-referential 회피 후 실제 SHA 기록
 sync_status: audit-ready                  # sync-phase 완료, sync-auditor 대기
 sync_complete_at: 2026-07-22
 changelog_entry_position: "[Unreleased] > Added > 알림 센터 실시간 갱신 (SPEC-NOTIF-002)"
