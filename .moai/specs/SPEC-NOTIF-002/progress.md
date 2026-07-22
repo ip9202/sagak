@@ -24,6 +24,8 @@ AC PASS/FAIL matrix (acceptance.md 시나리오 + 검증 명령 + 실제 출력)
 | N2-5 포그라운드 수신 갱신 (단위) | REQ-NOTIF2-002 | PASS | `npx jest useNotificationResponse -t "N2-5"` | `addNotificationReceivedListener` 수신 시 `invalidateQueries({ queryKey: [NOTIFICATION_QUERY_PREFIX] })` 1회 (12/12 PASS) |
 | N2-6 배너 탭 갱신 (단위) | REQ-NOTIF2-002 | PASS | `npx jest useNotificationResponse -t "N2-6"` | 배너 탭 시 라우팅(N8 유지) + 동일 invalidate 호출 (12/12 PASS) |
 | N2-7 읽음 처리 충돌 없음 (단위) | REQ-NOTIF2-002 | PASS | `npx jest useNotificationResponse -t "N2-7"` | 수신/탭 양쪽 invalidate 모두 동일 queryKey([NOTIFICATION_QUERY_PREFIX]) — useMarkAsRead 동일 키로 React Query 정규화 (12/12 PASS) |
+| N2-8 pull-to-refresh (단위) | REQ-NOTIF2-003 | PASS | `npx jest NotificationsScreen -t "N2-8"` | RefreshControl 부착 + onRefresh → refetch(getNotifications 재호출) + 갱신 중 refreshing=true, 완료 시 false (8/8 PASS) |
+| N2-9 갱신 중 에러 처리 (단위) | REQ-NOTIF2-003 | PASS | `npx jest NotificationsScreen -t "N2-9"` | refetch reject 시 throw/크래시 없음, 이전 목록 유지(isError guard `&& !data` 로 갱신 에러는 이전 데이터 보존), refreshing 해제 (8/8 PASS) |
 
 grep 증거 (결함 해소 — M1):
 - `grep -rn "postgres_changes" src/features/notification/` → 1+ 매치 (useNotificationsRealtime.ts)
@@ -32,7 +34,10 @@ grep 증거 (결함 해소 — M1):
 grep 증거 (결함 해소 — M2):
 - `grep -c "invalidateQueries" src/features/notification/useNotificationResponse.ts` → 2 (배너 탭 + 포그라운드 수신 양쪽)
 
-SPEC-NOTIF-001 회귀: `npx jest src/features/notification` → 7 suites / 53 tests PASS (기존 6 suites/41 + M1 신규 1 suite/8 + M2 신규 4 tests, 기존 41 전수 PASS — 회귀 없음).
+grep 증거 (결함 해소 — M3):
+- `grep -c "RefreshControl" src/features/notification/components/NotificationsScreen.tsx` → 2 (import + JSX 부착)
+
+SPEC-NOTIF-001 회귀: `npx jest src/features/notification` → 7 suites / 55 tests PASS (기존 6 suites/41 + M1 신규 1 suite/8 + M2 신규 4 + M3 신규 2 tests, 기존 41 전수 PASS — 회귀 없음).
 
 ## §F Phase 4 Mode Selection
 

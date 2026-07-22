@@ -12,7 +12,7 @@
  *
  * @MX:SPEC SPEC-NOTIF-001
  */
-import React from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -20,6 +20,7 @@ import {
   ActivityIndicator,
   ScrollView,
   Pressable,
+  RefreshControl,
 } from 'react-native';
 import { router, type Href } from 'expo-router';
 import { useTheme } from '../../../theme/theme';
@@ -70,6 +71,18 @@ export function NotificationsScreen(): React.JSX.Element {
   const userId = session?.user?.id ?? '';
   useNotificationsRealtime({ userId });
 
+  // REQ-NOTIF2-003: pull-to-refresh — refetch 기반 refreshing state 관리.
+  const [refreshing, setRefreshing] = useState(false);
+  const handleRefresh = (): void => {
+    setRefreshing(true);
+    void listQuery
+      .refetch()
+      .catch(() => {
+        // N2-9: 갱신 에러는 조용히 처리 — React Query 가 이전 데이터를 유지한다 (throw 없음).
+      })
+      .finally(() => setRefreshing(false));
+  };
+
   const unreadCount = unreadQuery.data ?? 0;
 
   // 로딩 가드 (SPEC-UI-002)
@@ -84,8 +97,9 @@ export function NotificationsScreen(): React.JSX.Element {
     );
   }
 
-  // 에러 상태
-  if (listQuery.isError) {
+  // 에러 상태 — 단, 기존 데이터가 있으면(갱신 중 refetch 에러) 이전 목록을 유지한다 (N2-9).
+  // React Query 는 refetch 실패 시에도 직전 성공 데이터를 보존한다.
+  if (listQuery.isError && !listQuery.data) {
     return (
       <View
         testID="notifications-error"
@@ -176,7 +190,18 @@ export function NotificationsScreen(): React.JSX.Element {
         ) : null}
       </View>
 
-      <ScrollView contentContainerStyle={styles.list}>
+      <ScrollView
+        testID="notifications-scroll"
+        contentContainerStyle={styles.list}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={handleRefresh}
+            tintColor={theme.colors.brand[500]}
+            colors={[theme.colors.brand[500]]}
+          />
+        }
+      >
         {items.length === 0 ? (
           <View testID="notifications-empty" style={styles.empty}>
             <Text style={{ color: theme.colors.text.tertiary }}>
