@@ -69,10 +69,10 @@ coverage_new_or_modified_files:
     - useNotificationResponse.ts: stmts 100 / branch 100 / lines 100
     - NotificationsScreen.tsx: stmts 93.02 / branch 78.94 / lines 95.23 (잔여 103/122 = SPEC-NOTIF-001 baseline 분기 — error-view 렌더 + markAsRead onError, 본 SPEC 이전부터 미커버)
 jest_notification_suite: 7 suites / 58 tests PASS (기존 41 전수 PASS — 회귀 없음)
-manual_verification_deferred:        # acceptance §3.3 실기기 — 사용자 개입 영역
-  - N2-1 실시간 반영 (알림 센터 오픈 상태에서 notifications INSERT → 목록 갱신)
-  - N2-5 포그라운드 수신 갱신 (prod 빌드 푸시 수신 → 캐시 갱신)
-  - N2-8 pull-to-refresh (당겨서 스피너 + 갱신)
+manual_verification_deferred:        # acceptance §3.3 실기기 — 2026-07-22 빌드 c0a0b6a9에서 N2-1/N2-5/N2-8 실기기 PASS 완료
+  - N2-1 실시간 반영 (알림 센터 오픈 상태에서 notifications INSERT → 목록 갱신) ✅ PASS 2026-07-22 실기기 (빌드 c0a0b6a9, DB INSERT → 자동 반영 확인)
+  - N2-5 포그라운드 수신 갱신 (prod 빌드 푸시 수신 → 캐시 갱신) ✅ PASS 2026-07-22 실기기 (Expo Push 포그라운드 수신 확인)
+  - N2-8 pull-to-refresh (당겨서 스피너 + 갱신) ✅ PASS 2026-07-22 실기기 (사용자 pull down 확인)
 ```
 
 ## §E.4 Sync-phase Audit-Ready Signal
