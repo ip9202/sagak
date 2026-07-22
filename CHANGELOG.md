@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - 포그라운드 푸시 수신/배너 탭 시 목록 갱신 (N2-5, N2-6, N2-7 PASS)
   - pull-to-refresh (RefreshControl) 구현 (N2-8, N2-9 PASS)
   - Supabase Realtime publication 구성 (`supabase_realtime` + `REPLICA IDENTITY FULL`)
+  - **실기기 검증 완료 (2026-07-22, prod 빌드 `c0a0b6a9`)**: N2-1 Realtime 자동 반영 · N2-5 포그라운드 수신 · N2-8 pull-to-refresh — 단위 PASS를 넘어 실기기 PASS 확인
   - **Residual (N2-2)**: 타인 알림 RLS 차단 검증 — 로컬 Supabase 통합 runtime smoke 필요 (사용자 개입 영역)
   - Implementation files:
     - `src/features/notification/useNotificationsRealtime.ts` (Realtime 구독 훅)
