@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [v1.2.1] - 2026-07-22
+
+### Changed
+- **N2-2 타인 알림 RLS 차단 종단간 검증 강화** (runtime smoke + pgTAP 0020, PR #155) — 기능 변화 없음, 검증 강화
+- **실기기 검증 확정** (빌드 c0a0b6a9, N2-1/N2-5/N2-8 PASS)
+- **main↔develop 동기화** (backmerge PR #154)
+
+### Changed
+- **Version bump**: 1.2.0 → 1.2.1
+
 ## [v1.2.0] - 2026-07-22
 
 ### Added
@@ -16,7 +26,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - pull-to-refresh (RefreshControl) 구현 (N2-8, N2-9 PASS)
   - Supabase Realtime publication 구성 (`supabase_realtime` + `REPLICA IDENTITY FULL`)
   - **실기기 검증 완료 (2026-07-22, prod 빌드 `c0a0b6a9`)**: N2-1 Realtime 자동 반영 · N2-5 포그라운드 수신 · N2-8 pull-to-refresh — 단위 PASS를 넘어 실기기 PASS 확인
-  - **Residual (N2-2)**: 타인 알림 RLS 차단 검증 — 로컬 Supabase 통합 runtime smoke 필요 (사용자 개입 영역)
+  - **N2-2 타인 알림 RLS 차단 (RESOLVED, 2026-07-22, PR #155)**: 로컬 Supabase 종단간 runtime smoke 완료 — 서버 SELECT RLS 게이트가 Realtime 브로드캐스트에도 적용됨 확인 (Node.js smoke + pgTAP 0020). 별도 broadcast RLS policy 불필요 (migration 주석의 open follow-up question 해결됨).
   - Implementation files:
     - `src/features/notification/useNotificationsRealtime.ts` (Realtime 구독 훅)
     - `src/features/notification/useNotificationResponse.ts` (invalidateQueries 연결)
