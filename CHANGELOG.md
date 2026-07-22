@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [v1.2.0] - 2026-07-22
+
 ### Added
 - **알림 센터 실시간 갱신** (SPEC-NOTIF-002)
   - Realtime INSERT 이벤트 구독 (N2-1, N2-3, N2-4 PASS)
@@ -22,7 +24,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - `supabase/migrations/20260722000001_enable_realtime_notifications.sql` (publication 구성)
 
 ### Changed
-- **Version bump**: 1.1.0 → 1.2.0 (target)
+- **Version bump**: 1.1.0 → 1.2.0
 
 ## [1.1.0] - 2026-07-21
 
