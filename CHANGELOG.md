@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [v1.2.1] - 2026-07-22
+
+### Changed
+- **N2-2 타인 알림 RLS 차단 종단간 검증 강화** (runtime smoke + pgTAP 0020, PR #155) — 기능 변화 없음, 검증 강화
+- **실기기 검증 확정** (빌드 c0a0b6a9, N2-1/N2-5/N2-8 PASS)
+- **main↔develop 동기화** (backmerge PR #154)
+
+### Changed
+- **Version bump**: 1.2.0 → 1.2.1
+
 ## [v1.2.0] - 2026-07-22
 
 ### Added
