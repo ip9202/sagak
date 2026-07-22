@@ -2,7 +2,7 @@
 id: SPEC-NOTIF-002
 title: "알림 센터 실시간 갱신 — 구현 계획"
 version: "0.1.0"
-status: in-progress
+status: completed
 created: 2026-07-22
 updated: 2026-07-22
 author: "강력쇠주먹"

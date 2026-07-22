@@ -75,6 +75,32 @@ manual_verification_deferred:        # acceptance §3.3 실기기 — 사용자 
   - N2-8 pull-to-refresh (당겨서 스피너 + 갱신)
 ```
 
+## §E.4 Sync-phase Audit-Ready Signal
+
+```yaml
+sync_commit_sha: pending-backfill-sync    # 본 sync 커밋은 self-referential 회피 — 후속 커밋에 실제 SHA backfill
+sync_status: audit-ready                  # sync-phase 완료, sync-auditor 대기
+sync_complete_at: 2026-07-22
+changelog_entry_position: "[Unreleased] > Added > 알림 센터 실시간 갱신 (SPEC-NOTIF-002)"
+b12_self_test_a:
+  pre_emission_dup_check: "grep -c 'SPEC-NOTIF-002' CHANGELOG.md → 0 (중복 없음, 본 entry는 첫 등록)"
+  ac_count_match: "acceptance.md grep → 9 ACs (8 PASS + 1 GAP N2-2), CHANGELOG entry 명시와 일치"
+  file_path_verify: "ls src/features/notification/useNotifications*.{ts,tsx} supabase/migrations/20260722000001* → 모두 존재"
+b12_self_test_b:
+  frontmatter_transitions: "4 artifacts (spec/plan/acceptance/progress) frontmatter status: in-progress → completed, updated: 2026-07-22"
+  spec_body_untouched: "grep -c 'status: completed' .moai/specs/SPEC-NOTIF-002/{spec,plan,acceptance}.md body-only → 0 (본체 미변경, frontmatter만 변경)"
+b12_self_test_c:
+  conventional_commit_subject: "docs(SPEC-NOTIF-002): sync-phase artifacts (또는 chore(SPEC-NOTIF-002): ...)"
+  moai_trailer_present: "🗿 MoAI <email@mo.ai.kr> 트레일러 포함"
+  no_amend_no_force: "git log --oneline -1 → --amend/--force 부재"
+residual_disclosure:
+  n2_2_runtime_smoke: "N2-2 타인 알림 RLS 차단 — 로컬 Supabase 통합 runtime smoke 필요 (acceptance §3.2 통합 테스트), 사용자 개입 영역. CHANGELOG과 본 progress.md §E.4에 명시하여 sync-auditor 평가 가능"
+sync_artifacts:
+  changelog: "CHANGELOG.md [Unreleased] 섹션에 SPEC-NOTIF-002 entry 추가 (AC 9개, 파일 경로 4개, residual 명시)"
+  readme: "README.md 부재 — 갱신 불필요 (CHANGELOG로 대응)"
+  mx_tag_validation: "MX tags — run-phase에서 validated (N2-3 cleanup @MX:WARN, N2-5/6 invalidate @MX:NOTE). sync-phase에서 중복/누락 없음 확인"
+```
+
 ## §F Phase 4 Mode Selection
 
 **입력 파라미터**:
