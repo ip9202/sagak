@@ -10,7 +10,7 @@
  *
  * token-only 스타일링 (FROZEN — 색/간격 하드코딩 금지).
  *
- * @MX:SPEC SPEC-NOTIF-001
+ * @MX:SPEC SPEC-NOTIF-001, SPEC-NOTIF-002
  */
 import React, { useState } from 'react';
 import {
