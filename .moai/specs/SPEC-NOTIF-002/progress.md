@@ -21,12 +21,18 @@ AC PASS/FAIL matrix (acceptance.md 시나리오 + 검증 명령 + 실제 출력)
 | N2-2 타인 알림 RLS 차단 (통합) | REQ-NOTIF2-001 | GAP | acceptance §3.2 로컬 Supabase 통합 | 로컬 Supabase 미기동 — 서버 RLS 게이트는 단위 테스트 범위 밖 (Residual: N2-2 runtime smoke 필요) |
 | N2-3 구독 cleanup (단위) | REQ-NOTIF2-001 | PASS | `npx jest useNotificationsRealtime -t "N2-3"` | unmount 시 `channel.unsubscribe()` + `client.removeChannel(channel)` 1회씩 호출 (8/8 PASS) |
 | N2-4 비활성 시 구독 부재 (단위) | REQ-NOTIF2-001 | PASS | `npx jest useNotificationsRealtime -t "N2-4"` | userId 빈 값 시 `channel` 미호출, `subscribe` 미호출 (8/8 PASS) |
+| N2-5 포그라운드 수신 갱신 (단위) | REQ-NOTIF2-002 | PASS | `npx jest useNotificationResponse -t "N2-5"` | `addNotificationReceivedListener` 수신 시 `invalidateQueries({ queryKey: [NOTIFICATION_QUERY_PREFIX] })` 1회 (12/12 PASS) |
+| N2-6 배너 탭 갱신 (단위) | REQ-NOTIF2-002 | PASS | `npx jest useNotificationResponse -t "N2-6"` | 배너 탭 시 라우팅(N8 유지) + 동일 invalidate 호출 (12/12 PASS) |
+| N2-7 읽음 처리 충돌 없음 (단위) | REQ-NOTIF2-002 | PASS | `npx jest useNotificationResponse -t "N2-7"` | 수신/탭 양쪽 invalidate 모두 동일 queryKey([NOTIFICATION_QUERY_PREFIX]) — useMarkAsRead 동일 키로 React Query 정규화 (12/12 PASS) |
 
 grep 증거 (결함 해소 — M1):
 - `grep -rn "postgres_changes" src/features/notification/` → 1+ 매치 (useNotificationsRealtime.ts)
 - `ls supabase/migrations/*enable_realtime_notifications*` → `20260722000001_enable_realtime_notifications.sql` 존재
 
-SPEC-NOTIF-001 회귀: `npx jest src/features/notification` → 7 suites / 49 tests PASS (기존 6 suites/41 tests + 신규 1 suite/8 tests, 기존 41 전수 PASS — 회귀 없음).
+grep 증거 (결함 해소 — M2):
+- `grep -c "invalidateQueries" src/features/notification/useNotificationResponse.ts` → 2 (배너 탭 + 포그라운드 수신 양쪽)
+
+SPEC-NOTIF-001 회귀: `npx jest src/features/notification` → 7 suites / 53 tests PASS (기존 6 suites/41 + M1 신규 1 suite/8 + M2 신규 4 tests, 기존 41 전수 PASS — 회귀 없음).
 
 ## §F Phase 4 Mode Selection
 
