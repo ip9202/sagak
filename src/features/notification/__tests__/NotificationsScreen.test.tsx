@@ -9,7 +9,7 @@
  * queries 모듈과 expo-router 를 mock 하여 순수 UI 동작을 검증한다.
  */
 import React from 'react';
-import { render, fireEvent, waitFor } from '@testing-library/react-native';
+import { render, fireEvent, waitFor, act } from '@testing-library/react-native';
 import {
   QueryClient,
   QueryClientProvider,
@@ -44,6 +44,16 @@ jest.mock('expo-secure-store', () => ({
 
 // expo-router router mock
 jest.mock('expo-router', () => ({ router: { push: jest.fn() } }));
+
+// SPEC-NOTIF-002: 알림 센터가 useSession(userId) + useNotificationsRealtime 를 마운트한다.
+// Realtime 동작은 별도 테스트(useNotificationsRealtime.test.tsx)에서 검증하므로
+// 화면 테스트에서는 두 훅을 no-op 로 mock 하여 UI 동작에 집중한다.
+jest.mock('../../../auth/useSession', () => ({
+  useSession: () => ({ user: { id: 'u-1' } }),
+}));
+jest.mock('../useNotificationsRealtime', () => ({
+  useNotificationsRealtime: () => ({ status: 'connected', lastError: undefined }),
+}));
 
 import { NotificationsScreen } from '../components/NotificationsScreen';
 import {
@@ -172,5 +182,77 @@ describe('SPEC-NOTIF-001 NotificationsScreen', () => {
     });
     // completion 은 미구현 폴백 → router.push 호출 없음
     expect(routerPush).not.toHaveBeenCalled();
+  });
+
+  // --- SPEC-NOTIF-002 REQ-NOTIF2-003: pull-to-refresh (RefreshControl) ---
+
+  it('N2-8: RefreshControl 부착 + pull-to-refresh 시 useNotifications refetch 호출 + 스피너 표시/해제', async () => {
+    mockedGetNotifications.mockResolvedValue([makeNotification({ id: 'n-1' })]);
+    mockedGetUnreadCount.mockResolvedValue(1);
+    const result = renderWithClient(<NotificationsScreen />);
+    await result.findByTestId('notification-item-n-1'); // 초기 로드 대기
+
+    const refreshControlProps = () =>
+      result.getByTestId('notifications-scroll').props.refreshControl.props;
+
+    // RefreshControl 부착 확인 + 초기 refreshing=false
+    expect(refreshControlProps().refreshing).toBe(false);
+    expect(typeof refreshControlProps().onRefresh).toBe('function');
+
+    // refetch 가 갱신 중에 머물도록 deferred promise 사용
+    let resolveRefetch!: (v: NotificationRow[]) => void;
+    const refetchBefore = mockedGetNotifications.mock.calls.length;
+    mockedGetNotifications.mockImplementationOnce(
+      () =>
+        new Promise<NotificationRow[]>((resolve) => {
+          resolveRefetch = resolve;
+        }),
+    );
+
+    // pull-to-refresh → onRefresh
+    act(() => {
+      refreshControlProps().onRefresh();
+    });
+
+    // 갱신 중 → 스피너 표시 (refreshing=true) + refetch(getNotifications) 재호출
+    expect(refreshControlProps().refreshing).toBe(true);
+    await waitFor(() => {
+      expect(mockedGetNotifications.mock.calls.length).toBeGreaterThan(
+        refetchBefore,
+      );
+    });
+
+    // 재조회 완료 → 스피너 해제 (refreshing=false)
+    resolveRefetch([makeNotification({ id: 'n-1' })]);
+    await waitFor(() => {
+      expect(refreshControlProps().refreshing).toBe(false);
+    });
+  });
+
+  it('N2-9: 갱신 중 refetch 에러 시 throw/크래시 없이 이전 목록 상태 유지', async () => {
+    mockedGetNotifications.mockResolvedValue([makeNotification({ id: 'n-1' })]);
+    mockedGetUnreadCount.mockResolvedValue(1);
+    const result = renderWithClient(<NotificationsScreen />);
+    await result.findByTestId('notification-item-n-1'); // 이전 상태(데이터) 로드
+
+    const refreshControlProps = () =>
+      result.getByTestId('notifications-scroll').props.refreshControl.props;
+
+    // refetch 가 reject 되도록 설정
+    mockedGetNotifications.mockImplementationOnce(async () => {
+      throw new Error('network');
+    });
+
+    // 에러가 사용자에게 throw 되지 않고 조용히 처리되어야 한다 (N2-9).
+    await act(async () => {
+      refreshControlProps().onRefresh();
+    });
+
+    // 이전 데이터 유지 (항목 렌더링, 에러 뷰로 전환되지 않음) + 스피너 해제
+    await waitFor(() => {
+      expect(result.queryByTestId('notification-item-n-1')).toBeTruthy();
+      expect(result.queryByTestId('notifications-error')).toBeNull();
+      expect(refreshControlProps().refreshing).toBe(false);
+    });
   });
 });

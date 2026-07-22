@@ -44,6 +44,11 @@ export interface NotificationResponse {
   notification: { request: NotificationRequest };
 }
 
+/** 포그라운드 수신 알림(addNotificationReceivedListener) — SPEC-NOTIF-002 REQ-NOTIF2-002 N2-5 */
+export interface ReceivedNotification {
+  request: NotificationRequest;
+}
+
 export interface Subscription {
   remove: () => void;
 }
@@ -60,6 +65,7 @@ let mockTokenError: Error | null = null;
 let mockAndroidChannelId: string | null = null;
 let handlerRef: unknown = null;
 let responseListeners: Array<(response: NotificationResponse) => void> = [];
+let receivedListeners: Array<(notification: ReceivedNotification) => void> = [];
 
 export function setPermissionResponse(resp: PermissionResponse | null): void {
   mockPermissionResponse = resp;
@@ -87,6 +93,16 @@ export function emitNotificationResponse(response: NotificationResponse): void {
     listener(response);
   }
 }
+/** addNotificationReceivedListener 로 등록된 모든 리스너 반환 (SPEC-NOTIF-002 N2-5) */
+export function getReceivedListeners(): Array<(notification: ReceivedNotification) => void> {
+  return receivedListeners;
+}
+/** 테스트 헬퍼: 등록된 포그라운드 수신 리스너들에게 알림 전달 (SPEC-NOTIF-002 N2-5) */
+export function emitNotification(notification: ReceivedNotification): void {
+  for (const listener of receivedListeners) {
+    listener(notification);
+  }
+}
 /** setNotificationChannelAsync 가 마지막으로 받은 channel 설정 객체 반환 */
 export function getLastChannelConfig(): { name?: string; importance?: number } | null {
   return mockLastChannelConfig;
@@ -101,11 +117,13 @@ export function __reset(): void {
   mockLastChannelConfig = null;
   handlerRef = null;
   responseListeners = [];
+  receivedListeners = [];
   // jest.fn call history 도 reset
   getExpoPushTokenAsync.mockClear();
   requestPermissionsAsync.mockClear();
   setNotificationHandler.mockClear();
   addNotificationResponseReceivedListener.mockClear();
+  addNotificationReceivedListener.mockClear();
   setNotificationChannelAsync.mockClear();
 }
 
@@ -138,6 +156,18 @@ export const addNotificationResponseReceivedListener = jest.fn(
     return {
       remove: () => {
         responseListeners = responseListeners.filter((l) => l !== cb);
+      },
+    };
+  },
+);
+
+// SPEC-NOTIF-002 REQ-NOTIF2-002 N2-5: 포그라운드 푸시 수신 리스너
+export const addNotificationReceivedListener = jest.fn(
+  (cb: (notification: ReceivedNotification) => void): Subscription => {
+    receivedListeners.push(cb);
+    return {
+      remove: () => {
+        receivedListeners = receivedListeners.filter((l) => l !== cb);
       },
     };
   },

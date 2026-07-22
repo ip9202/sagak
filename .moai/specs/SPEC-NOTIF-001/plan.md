@@ -152,11 +152,11 @@ prod 빌드 실기기 설치 후 아래 단계 수행:
 4. **토큰 서버 등록 확인**: Supabase `users.push_token` UPDATE 정상 (N5)
 5. **포그라운드 상태 유지**: 앱을 띄운 상태에서 기기 홈으로 나가지 않음
 6. **푸시 발송 트리거**: 서버에서 `send-notification` Edge Function 호출 (curl/Supabase Studio) — `type: "reading_reminder"` 등
-7. **검증 항목**:
-   - [ ] 인앱 배너가 표시된다 (`Notifications.setNotificationHandler`의 `shouldShowAlert: true` 동작)
-   - [ ] 시스템 알림은 표시되지 않는다 (포그라운드 억제)
-   - [ ] 알림 탭 시 routeMapper가 type에 맞는 화면으로 라우팅한다 (N8과 동일)
-   - [ ] 알림 센터 목록에 해당 알림이 추가된다 (Realtime 또는 재조회)
+7. **검증 항목** (2026-07-22 실기기 검증 결과 — prod-internal APK `f4a2e4b3`):
+   - [x] 인앱 배너가 표시된다 (`Notifications.setNotificationHandler`의 `shouldShowAlert: true` 동작) — ✅ 포그라운드 heads-up 배너 관측
+   - [x] 시스템 알림은 표시되지 않는다 (포그라운드 억제) — ✅
+   - [x] 알림 탭 시 routeMapper가 type에 맞는 화면으로 라우팅한다 (N8과 동일) — ✅ 알림센터 라우팅 관측
+   - [~] 알림 센터 목록에 해당 알림이 추가된다 (Realtime 또는 재조회) — **부분 통과**: DB INSERT는 ✅(행 2535584a/369e23cb 관측), 단 **실시간 반영 ❌** — 앱 재실행 시에만 `refetchOnMount`로 표시. 원인: Realtime 구독 부재 + `useNotificationResponse` invalidateQueries 미연결 + RefreshControl 부재. **→ 별개 후속 SPEC-NOTIF-002로 이관** (REQ-NOTIF2-001/002/003)
 8. **실패 시 롤백**: 검증 실패 시 `Notifications.setNotificationHandler` 설정 점검 → 재검증. 크리덴셜 문제라면 `eas credentials`에서 FCM V1 키 재확인.
 
 **E. EAS Secrets 구성 패턴 (placeholder만 — 실제 값은 사용자 주입)**
