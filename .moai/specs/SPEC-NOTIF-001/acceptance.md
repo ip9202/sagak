@@ -1,16 +1,18 @@
 ---
 id: SPEC-NOTIF-001
 title: "푸시 알림 및 알림 센터 — 인수 기준"
-version: "1.0.0"
-status: implemented
+version: "1.0.1"
+status: completed
 created: 2026-06-14
-updated: 2026-07-20
+updated: 2026-07-22
 author: "강력쇠주먹"
 priority: medium
 issue_number: 0
 labels: [notif, push, expo-push, notification-center, edge-function, supabase, phase-4, acceptance]
 ---
 
+> **업데이트 (2026-07-22)**: ✅ **N7 포그라운드 알림 수신 통과** — FCM V1 service account key 업로드(sagak-dev, `eas credentials` 인터랙티브) + prod-internal APK `f4a2e4b3` 실기기 검증 7/7 PASS(`push_sent:true`, DB INSERT 2535584a/369e23cb, 포그라운드 heads-up 배너, 탭 시 알림센터 라우팅, 알림센터 조회). 빌드 인프라 회귀 정리(5a9c3a2 → 9498baf → a50bdb2). **별개 결함**: 알림센터 실시간 갱신 미구현(Realtime 구독 부재 + invalidateQueries 미연결 + RefreshControl 부재)은 후속 **SPEC-NOTIF-002**로 분리. 상세는 §1 시나리오 N7 검증 상태 및 HISTORY 참조.
+>
 > **업데이트 (2026-06-21)**: Optional Goal (REQ-NOTIF-001~004) 구현 완료(PR #38). 자동화 N1/N2/N5/N8 통과. **수동 검증: N4 통과**(권한 거부 폴백 — 알림 센터 정상 동작, silent, 크래시 없음). **N3/N7 보류**(Android FCM 자격증명 미설정 — projectId 주입 완료, FCM credentials가 전제; lesson #4 사례). dev 마이그레이션 20240620000001/02/03 적용(notifications.data + users.push_token + ENUM).
 >
 > **업데이트 (2026-06-22)**: PR #41 머지. **N3 해소**(Android FCM 자격증명 완료 — Firebase sagak-dev 프로젝트 + google-services.json 구성, `Default FirebaseApp is not initialized` 에러 해소, `getExpoPushTokenAsync` 토큰 획득 성공). **REQ-NOTIF-003 회귀 수정**(PostgREST 21000 — WHERE 절 `.eq('id', userId)` 추가, 기존 "RLS만으로 충분" 가정 was wrong, lesson #12 참조). **N7 Phase 5/prod 연기**(포그라운드 알림 수신 — EAS identifier 등록이 keystore 강제 + eas-cli 20.x FCM V1 CLI 불가, 로컬 dev 정책 충돌 → prod 첫 EAS 빌드 시점으로 연기, lesson #13).
@@ -24,6 +26,7 @@ labels: [notif, push, expo-push, notification-center, edge-function, supabase, p
 | 날짜 | 버전 | 변경 내용 | 작성자 |
 |------|------|-----------|--------|
 | 2026-06-14 | 1.0.0 | 최초 작성 — 13개 REQ에 대한 Given-When-Then 시나리오, 품질 게이트, 검증 방법 | 강력쇠주먹 |
+| 2026-07-22 | 1.0.1 | N7 포그라운드 알림 수신 통과 반영 — FCM V1 service account key 업로드(sagak-dev, `eas credentials` 인터랙티브) + prod-internal APK `f4a2e4b3` 실기기 검증 7/7 PASS(`push_sent:true`, DB INSERT 2535584a/369e23cb 관측, 포그라운드 heads-up 배너 `shouldShowAlert:true`, 탭 시 알림센터 라우팅, 알림센터 조회). 빌드 인프라 회귀 정리(5a9c3a2 gitignore → 9498baf post-install 미작동 → a50bdb2 git 추적 회귀). **별개 결함**: 알림센터 실시간 갱신 미구현(Realtime 구독 부재 + `useNotificationResponse` invalidateQueries 미연결 + RefreshControl 부재)은 후속 SPEC-NOTIF-002로 분리. | 강력쇠주먹 |
 
 ---
 
@@ -102,11 +105,14 @@ labels: [notif, push, expo-push, notification-center, edge-function, supabase, p
 **Then** 시스템은 인앱 배너 또는 토스트로 알림을 표시한다
 **And** OS 시스템 알림은 표시하지 않는다 (포그라운드 억제)
 
-**검증 상태**: ⏳ **Phase 5/prod 연기 (2026-06-22) — 사전 준비 진행 (2026-07-20)** — 두 단계로 표기:
-- **2026-06-22 연기 사유**: EAS identifier 최초 등록 시 **keystore(.jks/.p12) 업로드 강제**(대시보드 New Application Identifier 마법사 Step 3/5, Generate/Skip 불가). sagak 로컬 dev 정책(EAS 클라우드 빌드 안 함)과 충돌 → prod 첫 EAS 빌드 시점으로 연기.
-- **2026-07-20 사전 준비 (lesson #13 정정)**: eas-cli 21.x FCM V1 CLI 지원 재검증 — v7.2.0(2024-02-11) PR #2197부터 `eas credentials` 인터랙티브 메뉴로 FCM V1 service account key 업로드 지원(CHANGELOG.md + 공식 docs 교차, lessons #14). **lesson #13 "20.x FCM V1 CLI 불가" 부분 정정** — CLI 자체는 가능, 실제 블로커는 Application Identifier 최초 등록 시 keystore 강제(별개 문제). 상세 절차는 plan.md §Optional Goal N7 사전 검증 절차(A~F) 참조.
-- **N7 해소 조건**: (1) 사용자의 keystore 비가역 결정 승인, (2) `eas build --platform android --profile production` 실행으로 Application Identifier + keystore 자동 등록, (3) `eas credentials` 인터랙티브 메뉴로 FCM V1 service account key 업로드, (4) prod 빌드 실기기 설치 후 포그라운드 알림 수신 수동 검증 체크리스트(plan.md §N7-D) 수행.
-- N3(토큰 획득)=완료, N7(포그라운드 메시지 전달)=prod 연기(사전 준비 진행 중).
+**검증 상태**: ✅ **통과 (2026-07-22)** — REQ-NOTIF-004 포그라운드 알림 수신 검증 7/7 PASS. N7 해소 조건 4개 전부 완료:
+- **(1) keystore 비가역 결정 승인**: ✅ — 사용자 서명 keystore 귀속 승인.
+- **(2) prod 빌드**: ✅ — `eas build --platform android --profile production` 실행, Application Identifier + keystore 자동 등록 완료 (빌드 ID `3e8d5511`, AAB 산출).
+- **(3) FCM V1 service account key 업로드**: ✅ — `eas credentials` 인터랙티브 메뉴로 sagak-dev 프로젝트 FCM V1 키 업로드 완료.
+- **(4) 실기기 검증**: ✅ — prod-internal APK `f4a2e4b3` 실기기 설치 후 포그라운드 알림 수신 수동 검증 체크리스트(plan.md §N7-D) 수행.
+- **관측 증거**: `push_sent:true` 응답 + DB INSERT 관측(행 ID 2535584a / 369e23cb) + 포그라운드 heads-up 배너(`shouldShowAlert:true` 동작) + 알림 탭 시 알림센터 라우팅 + 알림센터 조회(앱 재실행 후 오늘 알림 2개 표시, 사용자 확인).
+- **빌드 인프라 회귀 정리**: `5a9c3a2`(gitignore) → `9498baf`(eas-build-post-install 미작동) → `a50bdb2`(google-services.json git 추적 회귀).
+- **별개 결함 (SPEC-NOTIF-002 이관)**: 알림센터 실시간 갱신 미구현 — (a) Realtime 구독 부재(`src/features/notification/`에서 `channel`/`postgres_changes`/`.on('INSERT')` grep 0건, `channel` 매치는 Android `setNotificationChannelAsync`만), (b) `useNotificationResponse.ts`에서 `invalidateQueries` 미연결(grep 0건), (c) `NotificationsScreen.tsx`가 `ScrollView` 사용 중 `RefreshControl` 부재. N7 자체(REQ-NOTIF-004 포그라운드 수신)는 통과이나, plan.md §N7-D 체크리스트 항목 "알림 센터 목록에 해당 알림이 추가된다(Realtime 또는 재조회)"의 실시간 반영 부분은 미충족(앱 재실행 시에만 `refetchOnMount`로 표시) → 별개 후속 SPEC-NOTIF-002로 분리.
 
 #### 시나리오 N8: 알림 탭 시 딥링크 라우팅
 
@@ -397,8 +403,8 @@ labels: [notif, push, expo-push, notification-center, edge-function, supabase, p
 ### 3.3 수동 검증 (실기기)
 
 - **Expo Push Token 획득**: 실기기 로그인 후 토큰 획득 — N1: ✅ **통과 (2026-06-22 PR #41)** — Pixel 6: `getExpoPushTokenAsync` 토큰 반환 성공. google-services.json + `expo.android.googleServicesFile` 구성 완료.
-- **포그라운드 알림 수신**: 앱 실행 중 푸시 도착 시 인앱 배너 — N7: ⏳ **보류 (2026-06-22) — 사전 준비 진행 (2026-07-20)** — FCM V1 service account key + Application Identifier 등록 필요. google-services.json(클라이언트)과는 별개. eas-cli 21.x에서 `eas credentials` 인터랙티브 경로로 FCM V1 키 CLI 업로드 가능 확인(재검증 완료, lesson #13 정정). 블로커는 keystore 강제(Application Identifier 최초 등록 시)로, prod 첫 EAS 빌드 시점 자동 해소. 절차는 plan.md §Optional Goal N7 사전 검증 절차(A~F) 참조.
-- **백그라운드 알림 수신**: 시스템 알림 표시: ⏳ **보류 (2026-06-22) — 사전 준비 진행 (2026-07-20)** — 동일 전제(N7). FCM V1 키 + identifier 등록이 전제되면 백그라운드 수신도 자동 활성화.
+- **포그라운드 알림 수신**: 앱 실행 중 푸시 도착 시 인앱 배너 — N7: ✅ **통과 (2026-07-22)** — FCM V1 service account key 업로드(sagak-dev, `eas credentials` 인터랙티브) + prod-internal APK `f4a2e4b3` 실기기 검증 7/7 PASS. 관측 증거: `push_sent:true` 응답 + DB INSERT(행 ID 2535584a/369e23cb) + 포그라운드 heads-up 배너(`shouldShowAlert:true`) + 알림 탭 시 알림센터 라우팅. 단, **알림센터 실시간 갱신**은 별개 결함(Realtime 구독 부재 + invalidateQueries 미연결 + RefreshControl 부재)으로 후속 SPEC-NOTIF-002 이관.
+- **백그라운드 알림 수신**: 시스템 알림 표시: ✅ **통과 (2026-07-22)** — 동일 전제(N7)로 활성화. FCM V1 key + Application Identifier 등록 완료로 백그라운드 시스템 알림 수신 자동 활성화 (N7 검증 경로와 동일 크리덴셜 전제).
 - **알림 탭 라우팅**: 알림 탭 시 화면 이동 — N19-N22: 단위 테스트 커버
 - **권한 거부 폴백**: 알림 권한 거부 후 알림 센터 동작 — N4: ✅ **통과**(빈 알림 센터 정상 조회, silent failure, 크래시 없음)
 - **서버 등록**: 실기기 userId 01ff8d99-... 토큰 등록 확인 — N5: ✅ **통과 (2026-06-22 PR #41)** — users.push_token UPDATE 성공. PostgREST 21000 WHERE 절 수정 적용.
@@ -433,7 +439,7 @@ labels: [notif, push, expo-push, notification-center, edge-function, supabase, p
 | N4 | REQ-NOTIF-002 | 수동 (권한 거부) |
 | N5 | REQ-NOTIF-003 | 통합 (토큰 등록) |
 | N6 | REQ-NOTIF-003 | 통합 (토큰 미등록) |
-| N7 | REQ-NOTIF-004 | 수동 (포그라운드 수신) |
+| N7 | REQ-NOTIF-004 | 수동 (포그라운드 수신) ✅ 통과 (2026-07-22) |
 | N8 | REQ-NOTIF-004 | 통합 (알림 탭 라우팅) |
 | N9 | REQ-NOTIF-005 | 통합 (목록 조회) |
 | N10 | REQ-NOTIF-005 | 통합 (RLS 차단) |
