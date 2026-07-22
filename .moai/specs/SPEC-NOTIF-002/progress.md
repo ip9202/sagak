@@ -39,6 +39,42 @@ grep 증거 (결함 해소 — M3):
 
 SPEC-NOTIF-001 회귀: `npx jest src/features/notification` → 7 suites / 55 tests PASS (기존 6 suites/41 + M1 신규 1 suite/8 + M2 신규 4 + M3 신규 2 tests, 기존 41 전수 PASS — 회귀 없음).
 
+M4 통합 검증: 3개 REQ 경로(Realtime INSERT / push·배너 invalidate / pull-to-refresh refetch) 모두 동일 queryKey([NOTIFICATION_QUERY_PREFIX]) / refetch 경로로 수렴 — N2-7 이 shared-key 정규화 계약 검증. 단위 suite 전수(58 tests)가 3-경로 통합 검증을 겸함. N2-2(타인 알림 RLS 브로드캐스트 차단)는 acceptance §3.2 로컬 Supabase 통합 영역(Gap).
+
+## §E.3 Run-phase Audit-Ready Signal
+
+```yaml
+run_complete_at: 2026-07-22
+run_commit_sha: pending-backfill-M4  # M4 커밋이 본 §E.3 을 포함하므로 self-referential — 후속 backfill
+run_status: audit-ready              # run-phase 완료, sync-phase 대기
+ac_pass_count: 8                     # N2-1, N2-3, N2-4, N2-5, N2-6, N2-7, N2-8, N2-9
+ac_fail_count: 0
+ac_gap_count: 1                      # N2-2 (로컬 Supabase RLS 통합 — runtime smoke 필요)
+preserve_list_post_run_count: 0      # PRESERVE 위반 0건 (SPEC-NOTIF-001 인프라 / RLS 정책 본체 무변경)
+l44_pre_commit_fetch: performed      # main baseline b7d0e62 사전 확인
+l44_post_push_fetch: pending         # push 후 origin/main 일치 검증 예정
+new_warnings_or_lints_introduced: 0  # tsc baseline exit 0 → run 종료 exit 0; eslint baseline 0 → run 종료 0
+cross_platform_build:
+  scope: RN/Expo (RefreshControl + hooks) + SQL migration — 네이티브 빌드 변경 없음
+  status: not-applicable-for-run-phase
+total_run_phase_files: 11            # 4 신규(migration + 2 hook/test + index) + 7 수정(3 SPEC frontmatter + progress + screen/2 test + response hook + mock)
+m1_to_mN_commit_strategy: per-milestone Conventional Commits 직접 main (M1=6d548e6 / M2=094c914 / M3=95932f6 / M4=this)
+coverage_new_or_modified_files:
+  statements: 96.66
+  branches: 86.36
+  functions: 90.9
+  lines: 97.75
+  files:
+    - useNotificationsRealtime.ts: stmts 100 / branch 93.75 / lines 100
+    - useNotificationResponse.ts: stmts 100 / branch 100 / lines 100
+    - NotificationsScreen.tsx: stmts 93.02 / branch 78.94 / lines 95.23 (잔여 103/122 = SPEC-NOTIF-001 baseline 분기 — error-view 렌더 + markAsRead onError, 본 SPEC 이전부터 미커버)
+jest_notification_suite: 7 suites / 58 tests PASS (기존 41 전수 PASS — 회귀 없음)
+manual_verification_deferred:        # acceptance §3.3 실기기 — 사용자 개입 영역
+  - N2-1 실시간 반영 (알림 센터 오픈 상태에서 notifications INSERT → 목록 갱신)
+  - N2-5 포그라운드 수신 갱신 (prod 빌드 푸시 수신 → 캐시 갱신)
+  - N2-8 pull-to-refresh (당겨서 스피너 + 갱신)
+```
+
 ## §F Phase 4 Mode Selection
 
 **입력 파라미터**:

@@ -228,6 +228,47 @@ describe('SPEC-NOTIF-002 REQ-NOTIF2-001: useNotificationsRealtime', () => {
     expect(result.current.lastError).toBeTruthy();
   });
 
+  it('CHANNEL_ERROR(err 없음) → fallback 메시지로 status="error"', () => {
+    const { result } = renderHook(
+      () => useNotificationsRealtime({ userId: 'u1' }),
+      { wrapper: wrapper(mockQueryClient) },
+    );
+
+    // err?.message ?? fallback 분기 — err null 일 때 fallback 메시지 사용
+    actSubscription(subscriptionCallbacks[0], 'CHANNEL_ERROR', null);
+
+    expect(result.current.status).toBe('error');
+    expect(result.current.lastError).toBeTruthy();
+  });
+
+  it('TIMED_OUT → status="error", lastError 추적', () => {
+    const { result } = renderHook(
+      () => useNotificationsRealtime({ userId: 'u1' }),
+      { wrapper: wrapper(mockQueryClient) },
+    );
+
+    actSubscription(
+      subscriptionCallbacks[0],
+      'TIMED_OUT',
+      new Error('timeout'),
+    );
+
+    expect(result.current.status).toBe('error');
+    expect(result.current.lastError).toBeTruthy();
+  });
+
+  it('TIMED_OUT(err 없음) → 시간 초과 fallback 메시지로 status="error"', () => {
+    const { result } = renderHook(
+      () => useNotificationsRealtime({ userId: 'u1' }),
+      { wrapper: wrapper(mockQueryClient) },
+    );
+
+    actSubscription(subscriptionCallbacks[0], 'TIMED_OUT', null);
+
+    expect(result.current.status).toBe('error');
+    expect(result.current.lastError).toBeTruthy();
+  });
+
   it('단절 후 재연결(SUBSCRIBED 재진입) 시 누락 보완 catch-up invalidate 호출', () => {
     renderHook(() => useNotificationsRealtime({ userId: 'u1' }), {
       wrapper: wrapper(mockQueryClient),
