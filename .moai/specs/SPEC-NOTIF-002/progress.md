@@ -18,7 +18,7 @@ AC PASS/FAIL matrix (acceptance.md 시나리오 + 검증 명령 + 실제 출력)
 | 시나리오 | REQ | 상태 | 검증 방법 / 명령 | 실제 출력 |
 |----------|-----|------|------------------|-----------|
 | N2-1 Realtime 자동 반영 (단위) | REQ-NOTIF2-001 | PASS | `npx jest useNotificationsRealtime -t "N2-1"` | INSERT 이벤트 수신 시 `invalidateQueries({ queryKey: [NOTIFICATION_QUERY_PREFIX] })` 1회 호출 (8/8 PASS) |
-| N2-2 타인 알림 RLS 차단 (통합) | REQ-NOTIF2-001 | GAP | acceptance §3.2 로컬 Supabase 통합 | 로컬 Supabase 미기동 — 서버 RLS 게이트는 단위 테스트 범위 밖 (Residual: N2-2 runtime smoke 필요) |
+| N2-2 타인 알림 RLS 차단 (통합) | REQ-NOTIF2-001 | PASS | `cd supabase && npx -y tsx scripts/realtime-smoke/n2-2-broadcast-rls.mjs` + `psql -f tests/0020_notifications_realtime_rls_test.sql` | Node.js smoke: B→A broadcast blocked (PASS) + A own-notification received (PASS, positive control). pgTAP 0020 ok 21/306 (6 new N2-2 structural-premise assertions). 서버 SELECT RLS 게이트가 Realtime 브로드캐스트에도 적용됨 종단간 검증 완료 (PR #155, 2026-07-22) |
 | N2-3 구독 cleanup (단위) | REQ-NOTIF2-001 | PASS | `npx jest useNotificationsRealtime -t "N2-3"` | unmount 시 `channel.unsubscribe()` + `client.removeChannel(channel)` 1회씩 호출 (8/8 PASS) |
 | N2-4 비활성 시 구독 부재 (단위) | REQ-NOTIF2-001 | PASS | `npx jest useNotificationsRealtime -t "N2-4"` | userId 빈 값 시 `channel` 미호출, `subscribe` 미호출 (8/8 PASS) |
 | N2-5 포그라운드 수신 갱신 (단위) | REQ-NOTIF2-002 | PASS | `npx jest useNotificationResponse -t "N2-5"` | `addNotificationReceivedListener` 수신 시 `invalidateQueries({ queryKey: [NOTIFICATION_QUERY_PREFIX] })` 1회 (12/12 PASS) |
@@ -47,9 +47,9 @@ M4 통합 검증: 3개 REQ 경로(Realtime INSERT / push·배너 invalidate / pu
 run_complete_at: 2026-07-22
 run_commit_sha: df45bf6              # M4(run-phase 종료) 커밋 — backfill (self-referential 회피)
 run_status: audit-ready              # run-phase 완료, sync-phase 대기
-ac_pass_count: 8                     # N2-1, N2-3, N2-4, N2-5, N2-6, N2-7, N2-8, N2-9
+ac_pass_count: 9                     # N2-1, N2-2, N2-3, N2-4, N2-5, N2-6, N2-7, N2-8, N2-9
 ac_fail_count: 0
-ac_gap_count: 1                      # N2-2 (로컬 Supabase RLS 통합 — runtime smoke 필요)
+ac_gap_count: 0
 preserve_list_post_run_count: 0      # PRESERVE 위반 0건 (SPEC-NOTIF-001 인프라 / RLS 정책 본체 무변경)
 l44_pre_commit_fetch: performed      # main baseline b7d0e62 사전 확인
 l44_post_push_fetch: pending         # push 후 origin/main 일치 검증 예정
@@ -84,7 +84,7 @@ sync_complete_at: 2026-07-22
 changelog_entry_position: "[Unreleased] > Added > 알림 센터 실시간 갱신 (SPEC-NOTIF-002)"
 b12_self_test_a:
   pre_emission_dup_check: "grep -c 'SPEC-NOTIF-002' CHANGELOG.md → 0 (중복 없음, 본 entry는 첫 등록)"
-  ac_count_match: "acceptance.md grep → 9 ACs (8 PASS + 1 GAP N2-2), CHANGELOG entry 명시와 일치"
+  ac_count_match: "acceptance.md grep → 9 ACs (9/9 PASS), CHANGELOG entry 명시와 일치"
   file_path_verify: "ls src/features/notification/useNotifications*.{ts,tsx} supabase/migrations/20260722000001* → 모두 존재"
 b12_self_test_b:
   frontmatter_transitions: "4 artifacts (spec/plan/acceptance/progress) frontmatter status: in-progress → completed, updated: 2026-07-22"
@@ -94,7 +94,7 @@ b12_self_test_c:
   moai_trailer_present: "🗿 MoAI <email@mo.ai.kr> 트레일러 포함"
   no_amend_no_force: "git log --oneline -1 → --amend/--force 부재"
 residual_disclosure:
-  n2_2_runtime_smoke: "N2-2 타인 알림 RLS 차단 — 로컬 Supabase 통합 runtime smoke 필요 (acceptance §3.2 통합 테스트), 사용자 개입 영역. CHANGELOG과 본 progress.md §E.4에 명시하여 sync-auditor 평가 가능"
+  n2_2_runtime_smoke: "N2-2 타인 알림 RLS 차단 — PASS 완료 (PR #155 — 로컬 Supabase 종단간 검증, 2026-07-22). 서버 SELECT RLS 게이트가 Realtime 브로드캐스트에도 적용됨 확인 (Node.js smoke + pgTAP 0020). 별도 broadcast RLS policy 불필요 — migration 주석의 open follow-up question 해결됨."
 sync_artifacts:
   changelog: "CHANGELOG.md [Unreleased] 섹션에 SPEC-NOTIF-002 entry 추가 (AC 9개, 파일 경로 4개, residual 명시)"
   readme: "README.md 부재 — 갱신 불필요 (CHANGELOG로 대응)"
