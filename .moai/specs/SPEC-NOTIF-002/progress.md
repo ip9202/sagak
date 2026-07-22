@@ -45,7 +45,7 @@ M4 통합 검증: 3개 REQ 경로(Realtime INSERT / push·배너 invalidate / pu
 
 ```yaml
 run_complete_at: 2026-07-22
-run_commit_sha: pending-backfill-M4  # M4 커밋이 본 §E.3 을 포함하므로 self-referential — 후속 backfill
+run_commit_sha: df45bf6              # M4(run-phase 종료) 커밋 — backfill (self-referential 회피)
 run_status: audit-ready              # run-phase 완료, sync-phase 대기
 ac_pass_count: 8                     # N2-1, N2-3, N2-4, N2-5, N2-6, N2-7, N2-8, N2-9
 ac_fail_count: 0
