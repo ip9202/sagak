@@ -2,7 +2,7 @@
 id: SPEC-NOTIF-002
 title: "알림 센터 실시간 갱신 — 인수 기준"
 version: "0.1.0"
-status: draft
+status: in-progress
 created: 2026-07-22
 updated: 2026-07-22
 author: "강력쇠주먹"

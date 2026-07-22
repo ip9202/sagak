@@ -45,6 +45,16 @@ jest.mock('expo-secure-store', () => ({
 // expo-router router mock
 jest.mock('expo-router', () => ({ router: { push: jest.fn() } }));
 
+// SPEC-NOTIF-002: 알림 센터가 useSession(userId) + useNotificationsRealtime 를 마운트한다.
+// Realtime 동작은 별도 테스트(useNotificationsRealtime.test.tsx)에서 검증하므로
+// 화면 테스트에서는 두 훅을 no-op 로 mock 하여 UI 동작에 집중한다.
+jest.mock('../../../auth/useSession', () => ({
+  useSession: () => ({ user: { id: 'u-1' } }),
+}));
+jest.mock('../useNotificationsRealtime', () => ({
+  useNotificationsRealtime: () => ({ status: 'connected', lastError: undefined }),
+}));
+
 import { NotificationsScreen } from '../components/NotificationsScreen';
 import {
   getNotifications,

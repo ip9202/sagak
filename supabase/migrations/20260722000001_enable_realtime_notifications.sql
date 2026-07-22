@@ -1,0 +1,52 @@
+-- SPEC-NOTIF-002 Realtime (postgres_changes) 활성화
+-- Migration: 20260722000001_enable_realtime_notifications
+-- Requirements: REQ-NOTIF2-001 (알림 센터 Realtime INSERT 구독)
+--
+-- [배경 / WHY]
+-- 알림 센터가 새 알림을 실시간으로 반영하지 못하는 근본 원인 중 하나로
+-- notifications 테이블이 아직 어떤 Realtime publication 에도 포함되어 있지 않아
+-- postgres_changes INSERT 이벤트가 클라이언트로 브로드캐스트되지 않는다는 것이
+-- grep 관측으로 확인되었다 (SPEC-NOTIF-002 spec.md §A.2 결함 1).
+-- 따라서 앱 재시작 없이 알림 센터 목록이 즉시 갱신되려면 notifications 테이블을
+-- supabase_realtime publication 에 추가해야 한다.
+-- 본 마이그레이션은 publication 구성만 추가하며 기존 RLS 정책 본체는 변경하지 않는다.
+--
+-- [RLS 브로드캐스트 보장 (N2-2 — 타인 알림 차단)]
+-- Supabase Realtime 는 postgres_changes 브로드캐스트 시 테이블의 SELECT RLS
+-- 정책을 그대로 적용한다. 즉, 구독자는 자신이 SELECT 할 수 있는 행에 대한
+-- 이벤트만 수신한다. (참고: Supabase Realtime + RLS 공식 문서)
+-- 이 동작은 기존 feed 선례 supabase/migrations/20240620000001_enable_realtime_feed.sql
+-- 이 emotion_records / sticker_reactions 에 대해 검증한 것과 동일한 패턴이다
+-- (해당 마이그레이션 주석: "Supabase Realtime 는 postgres_changes 브로드캐스트 시
+--  테이블의 SELECT RLS 정책을 그대로 적용한다").
+--
+-- 따라서 기존 notifications_select_own 정책(REQ-DB-021 — auth.uid() = user_id)이
+-- 브로드캐스트를 자동으로 게이트한다: 타인의 notifications 행은 SELECT 불가이므로
+-- INSERT 브로드캐스트 이벤트도 해당 사용자에게 전달되지 않는다 (N2-2 충족).
+-- 본 마이그레이션은 정책을 변경하지 않는다 (PRESERVE — SPEC-NOTIF-002 plan.md §A.5).
+--
+-- [REPLICA IDENTITY FULL 의 이유]
+-- 알림 브로드캐스트 페이로드가 전체 행(title, body, type, ref_id 등)을 담아야 한다.
+-- INSERT 이벤트는 기본값으로도 새 행 전체를 전달하지만, 추후 알림 UPDATE/DELETE
+-- 실시간 반영(읽음 상태 동기화 등) 시에도 안정적으로 페이로드를 전달하도록
+-- 미리 FULL 로 설정한다. feed 선례와 동일한 근거이다.
+--
+-- [팔로업 검증 (로컬/통합 테스트 필수 — lessons #4)]
+-- 외부 시스템(Supabase Realtime) 동작은 가정이 아닌 실제 검증이 필요하다.
+-- acceptance.md §3.2 N2-2 통합 테스트 시나리오를 로컬 Supabase 환경에서 확인한다:
+--   1. 사용자 A/B 서로 다른 세션으로 알림 센터 오픈
+--   2. 사용자 B 의 notifications INSERT → B 만 이벤트 수신
+--   3. 사용자 A 는 동일 INSERT 이벤트를 수신하지 않음 (notifications_select_own 게이트)
+-- 만약 프로젝트의 Supabase 버전/설정에서 SELECT RLS 가 브로드캐스트에
+-- 자동 적용되지 않는다면, 별도의 broadcast RLS 정책 추가를 팔로업해야 한다.
+
+-- ============================================================================
+-- Step 1: supabase_realtime publication 에 notifications 테이블 추가 (postgres_changes 활성화)
+-- ============================================================================
+ALTER PUBLICATION supabase_realtime
+    ADD TABLE public.notifications;
+
+-- ============================================================================
+-- Step 2: REPLICA IDENTITY FULL 설정 (브로드캐스트 페이로드에 전체 행 포함)
+-- ============================================================================
+ALTER TABLE public.notifications REPLICA IDENTITY FULL;

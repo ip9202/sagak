@@ -24,11 +24,13 @@ import {
 import { router, type Href } from 'expo-router';
 import { useTheme } from '../../../theme/theme';
 import { borderWidth } from '../../../theme/tokens';
+import { useSession } from '../../../auth/useSession';
 import {
   useNotifications,
   useUnreadCount,
   useMarkAsRead,
   useMarkAllAsRead,
+  useNotificationsRealtime,
   routeForNotification,
   type NotificationRow,
   type NotificationType,
@@ -61,6 +63,12 @@ export function NotificationsScreen(): React.JSX.Element {
   const unreadQuery = useUnreadCount();
   const markAsRead = useMarkAsRead();
   const markAll = useMarkAllAsRead();
+
+  // REQ-NOTIF2-001: 화면 진입 시 notifications INSERT Realtime 구독.
+  // 미인증/로딩(userId 빈 값) 시 enabled=false 로 구독하지 않는다 (N2-4).
+  const session = useSession();
+  const userId = session?.user?.id ?? '';
+  useNotificationsRealtime({ userId });
 
   const unreadCount = unreadQuery.data ?? 0;
 

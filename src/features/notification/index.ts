@@ -23,6 +23,8 @@ export {
   NOTIFICATION_QUERY_PREFIX,
 } from './useNotifications';
 export { useUnreadCount, UNREAD_COUNT_KEY } from './useUnreadCount';
+// SPEC-NOTIF-002 REQ-NOTIF2-001: 알림 센터 Realtime INSERT 구독
+export { useNotificationsRealtime } from './useNotificationsRealtime';
 export { useMarkAsRead } from './useMarkAsRead';
 export { useMarkAllAsRead } from './useMarkAllAsRead';
 
