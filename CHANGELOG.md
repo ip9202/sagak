@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [v1.2.2] - 2026-07-23
+
+### Fixed
+- **deploy tag-release CI 안정성 강화** (SPEC-DEPLOY-001 AC-DEPLOY-010 follow-up)
+  - `fetch-tags: true` 추가 — remote tag 미인식 `reference already exists` 거부 수정 (CI #29909418596, PR #159)
+  - 인젝션 방어 — 커밋 메시지 직접 보간 → env(COMMIT_MSG) 전환 (PR #161)
+  - ls-remote defense-in-depth — cross-actor race window 닫기 + push 실패 safe-skip (PR #161)
+  - sync-auditor 독립 리뷰 통과 (PASS-WITH-DEBT → F1 회귀 fix)
+
+### Changed
+- moai config compact 동기화 (PR #160)
+- main↔develop 동기화 (backmerge PR #158)
+- Version bump: 1.2.1 → 1.2.2
+
+### Docs
+- Git Flow × MoAI 워크플로우 치트시트 (`.moai/docs/`, PR #162)
+
 ## [v1.2.1] - 2026-07-22
 
 ### Changed
