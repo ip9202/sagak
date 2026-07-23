@@ -63,7 +63,8 @@ jobs:
           # defense-in-depth: ls-remote 로 remote 를 직접 확인한다.
           # rev-parse 는 로컬 ref 만 검사 — fetch-tags 로 보완됐으나 확인-then-push 사이의
           # cross-actor race window 는 잔존한다. ls-remote 를 authoritative source 로 쓴다.
-          REMOTE_TAG=$(git ls-remote --tags origin "refs/tags/$VERSION" 2>/dev/null)
+          # || true: set -e 하에서 ls-remote 일시적 실패(github.com blip/rate-limit) 시 step 중단 방지 — rev-parse fallback으로 degradation (PR #161 review F1)
+          REMOTE_TAG=$(git ls-remote --tags origin "refs/tags/$VERSION" 2>/dev/null || true)
           if [ -n "$REMOTE_TAG" ] || git rev-parse "$VERSION" >/dev/null 2>&1; then
             echo "Tag $VERSION already exists — skipping";
             echo "tagged=false" >> "$GITHUB_OUTPUT";
