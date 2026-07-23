@@ -37,6 +37,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0   # 태그 히스토리 필요
+          fetch-tags: true   # remote 태그 fetch — create-tag step의 rev-parse가 remote tag를 인식해 안전 skip (CI #29909418596 reference already exists 방어)
 
       - name: 커밋 메시지에서 버전 추출
         id: parse-version
