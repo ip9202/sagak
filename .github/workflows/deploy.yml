@@ -41,8 +41,11 @@ jobs:
 
       - name: 커밋 메시지에서 버전 추출
         id: parse-version
+        env:
+          # 커밋 메시지는 untrusted input — 직접 보간 대신 env로 전달해 쉘 인젝션 방어 (SPEC-DEPLOY-001 follow-up)
+          COMMIT_MSG: ${{ github.event.head_commit.message }}
         run: |
-          MSG="${{ github.event.head_commit.message }}"
+          MSG="$COMMIT_MSG"
           VERSION=$(echo "$MSG" | grep -oE 'v[0-9]+\.[0-9]+\.[0-9]+' | head -1)
           if [ -z "$VERSION" ]; then
             echo "No version found in commit message — skipping tag";
@@ -57,13 +60,27 @@ jobs:
         if: steps.parse-version.outputs.version != ''
         run: |
           VERSION="${{ steps.parse-version.outputs.version }}"
-          if git rev-parse "$VERSION" >/dev/null 2>&1; then
+          # defense-in-depth: ls-remote 로 remote 를 직접 확인한다.
+          # rev-parse 는 로컬 ref 만 검사 — fetch-tags 로 보완됐으나 확인-then-push 사이의
+          # cross-actor race window 는 잔존한다. ls-remote 를 authoritative source 로 쓴다.
+          REMOTE_TAG=$(git ls-remote --tags origin "refs/tags/$VERSION" 2>/dev/null)
+          if [ -n "$REMOTE_TAG" ] || git rev-parse "$VERSION" >/dev/null 2>&1; then
             echo "Tag $VERSION already exists — skipping";
             echo "tagged=false" >> "$GITHUB_OUTPUT";
           else
             git tag "$VERSION"
-            git push origin "$VERSION"
-            echo "tagged=true" >> "$GITHUB_OUTPUT";
+            if git push origin "$VERSION" >/tmp/tag-push.log 2>&1; then
+              echo "tagged=true" >> "$GITHUB_OUTPUT";
+            else
+              # cross-actor race: 확인-then-push 사이에 다른 actor 가 같은 tag 를 push 했으면 safe degrade.
+              if grep -qiE 'already exists|updates were rejected|rejected' /tmp/tag-push.log; then
+                echo "Tag $VERSION created concurrently by another actor — skipping";
+                echo "tagged=false" >> "$GITHUB_OUTPUT";
+              else
+                cat /tmp/tag-push.log;
+                exit 1;
+              fi
+            fi
           fi
 
   # AC-DEPLOY-010 / AC-DEPLOY-013: production EAS Build 트리거
