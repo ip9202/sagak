@@ -6,9 +6,9 @@ id: SPEC-COMPLETION-002
 title: "완독 다이어리 아카이브(리스트) + 상세 재설계 — Acceptance Criteria"
 spec: SPEC-COMPLETION-002
 version: "1.0.0"
-status: draft
+status: completed
 created: 2026-06-27
-updated: 2026-06-27
+updated: 2026-07-23
 author: "강력쇠주먹"
 priority: medium
 issue_number: 0
