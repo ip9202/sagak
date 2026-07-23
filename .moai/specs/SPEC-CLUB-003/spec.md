@@ -2,9 +2,9 @@
 id: SPEC-CLUB-003
 title: "모임 진도 집계 표시"
 version: "1.0.0"
-status: planned
+status: completed
 created: 2026-06-27
-updated: 2026-06-27
+updated: 2026-07-23
 author: "강력쇠주먹"
 priority: medium
 issue_number: 0
