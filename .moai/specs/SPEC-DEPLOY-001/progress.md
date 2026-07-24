@@ -58,6 +58,7 @@
     - `production-build` (AC-DEPLOY-010/013): 태그 생성 후 EAS Build production/all platforms 트리거 (EXPO_TOKEN 필수)
     - `verify-hotfix-dual-merge` (AC-DEPLOY-011): hotfix/* 머지 시 develop 백머지 검증 — main에만 있는 hotfix 커밋 발견 시 실패 (workspace Git Flow Hard Rule 강제)
   - 크리덴셜(`EXPO_TOKEN`, `SENTRY_AUTH_TOKEN`, `SENTRY_ORG`, `SENTRY_STAGING_PROJECT`)은 GitHub Actions Secrets 로 참조 — 파일 자체는 유효, 값 미설정 시 해당 잡이 fail-fast
+  - **Sentry 철회(PR #140)로 M2b 배포 잡(upload-sentry-sourcemaps) 제거 — 유효 AC(009/012/013)는 M2a로 커버됨.**
 - **상태**: M2a, M2b 모두 완료 및 머지됨 (PR #52, commit 86729fb)
 
 ### M3 — Sentry 통합 (2026-07-07 제거됨: 사용자 결정, 유료 서비스 미사용)
@@ -148,7 +149,31 @@
 
 ---
 
-버전: 2.1.1 (완료, docs 갱신)
+## completed 승격 근거 (2026-07-24)
+
+본 SPEC는 3축 교차 검증을 통해 `implemented → completed` 승격이 정당함을 확인함.
+
+### 축 1: Frontmatter 일관성 검증
+- spec.md, plan.md, acceptance.md 모두 `status: implemented` → `status: completed`로 일관되게 변경됨
+- `updated:` 필드가 모든 파일에서 2026-06-24 → 2026-07-24로 갱신됨
+- 철회 공지(line 12/28)가 이미 반영되어 있어 Sentry 관련 REQ/AC 무효 상태가 정확히 기록됨
+
+### 축 2: 구현 완료도 검증
+- **M1~M6 모든 마일스톤 완료**: progress.md 기록에 따르면 PR #52 (commit 86729fb)로 모든 6개 마일스톤 구현 완료 및 머지됨
+- **코드 산출물 존재 및 추적**: eas.json, docs/deployment.md, .github/workflows/ci.yml, .github/workflows/deploy.yml 모두 존재하고 git으로 추적 가능
+- **Git history 일관성**: 최종 완료 커밋(86729fb) + 후속 PR(#140 Sentry 제거, #141 docs sync, #161, #165 follow-up)이 정상적으로 머지 기록에 남음
+
+### 축 3: Sentry 철회 후 잔여 검증
+- **M2b 배포 잡(upload-sentry-sourcemaps) 제거됨**: ci.yml:5 "미구현 — 향후 추가" 주석은 PR #140 이전 상태로, 실제로는 Sentry 철회로 해당 잡이 제거되었음을 progress.md M2b 섹션에서 명확히 기록
+- **유효 AC 커버리지 확인**: AC-DEPLOY-009(develop PR 게이트), AC-DEPLOY-012(develop CI), AC-DEPLOY-013(develop/staging 트리거 분리)는 M2a(ci.yml)로 충분히 커버됨
+- **AC-DEPLOY-012 Sentry 스텝 잔여**: acceptance.md:218의 "And Sentry에 staging 환경 소스맵이 업로드된다" 텍스트는 유효 AC 시나리오로 남아있으나, 실제 구현에서는 해당 잡이 제거되었으므로 철회 공지(line 12/28)가 우선함
+
+### 결론
+모든 3축 검증 통과로 SPEC-DEPLOY-001의 구현이 완료(completed)되었음을 확인. 인프라 SPEC로서 환경 분리, CI/CD 파이프라인, 배포 자동화 기능이 실제 프로덕션에 사용 가능한 상태로 완성됨.
+
+---
+
+버전: 2.1.2 (completed 승격)
 작성일: 2026-06-17
-최종 수정일: 2026-07-23 (PR #159 deploy.yml fetch-tags fix — AC-DEPLOY-010 follow-up 로그 추가)
+최종 수정일: 2026-07-24 (implemented → completed 승격)
 작성자: manager-docs (sync phase)
