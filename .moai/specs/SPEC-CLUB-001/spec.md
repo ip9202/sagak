@@ -2,9 +2,9 @@
 id: SPEC-CLUB-001
 title: "Track A — 합류형 요청 (비동기 연결)"
 version: "1.2.0"
-status: implemented
+status: completed
 created: 2026-06-14
-updated: 2026-06-23
+updated: 2026-07-24
 author: "강력쇠주먹"
 priority: high
 issue_number: 0

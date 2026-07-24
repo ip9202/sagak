@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [v1.2.3] - 2026-07-24
+
+### Fixed
+- deploy.yml parse-version dead-code 해소 — grep 실패 시 set -e 중단 방지 (SPEC-DEPLOY-001 F2, #165)
+
+### Changed
+- SPEC frontmatter status completed 동기화 — 11건 (#166 8개 일괄 + #167 CLUB-001 + #168 API-001 + #169 FEED-001 + #170 DEPLOY-001)
+
 ## [v1.2.2] - 2026-07-23
 
 ### Fixed

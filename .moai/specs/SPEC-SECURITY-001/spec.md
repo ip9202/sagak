@@ -2,9 +2,9 @@
 id: SPEC-SECURITY-001
 title: "Edge Function JWT defense-in-depth: verify_jwt CI guard + jose signature verification"
 version: "1.1.0"
-status: planned
+status: completed
 created: 2026-07-02
-updated: 2026-07-03
+updated: 2026-07-23
 author: "강력쇠주먹"
 priority: high
 labels: [security, edge-function, jwt, jose, ci-guard, defense-in-depth, process-join-request]

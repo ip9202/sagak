@@ -1,3 +1,16 @@
+---
+id: SPEC-CLUB-003
+title: "모임 진도 집계 표시"
+version: "1.0.0"
+status: completed
+created: 2026-06-27
+updated: 2026-07-23
+author: "강력쇠주먹"
+priority: medium
+issue_number: 0
+labels: [club, track-b, progress, aggregate, median, rpc, rls, ui]
+---
+
 # SPEC-CLUB-003 인수 기준 (acceptance.md)
 
 > Given-When-Then 시나리오. 각 REQ 에 매핑. 최소 2개 시나리오 + 엣지 케이스.

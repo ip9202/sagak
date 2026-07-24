@@ -1,3 +1,14 @@
+---
+id: SPEC-UI-001
+version: 1.0.0
+status: completed
+created: 2026-06-14
+updated: 2026-07-23
+author: 강력쇠주먹
+priority: high
+issue_number: 0
+---
+
 # Implementation Plan — SPEC-UI-001
 
 > 프론트엔드 파운데이션 구현 계획. TDD (RED-GREEN-REFACTOR).

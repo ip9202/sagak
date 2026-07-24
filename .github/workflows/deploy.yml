@@ -46,7 +46,10 @@ jobs:
           COMMIT_MSG: ${{ github.event.head_commit.message }}
         run: |
           MSG="$COMMIT_MSG"
-          VERSION=$(echo "$MSG" | grep -oE 'v[0-9]+\.[0-9]+\.[0-9]+' | head -1)
+          # || true: GitHub Actions 기본 shell(-eo pipefail) 하에서 grep 매치 실패(exit 1)가
+          # pipefail → 할당문 exit 1 → set -e 트리거로 step을 중단시켜, 아래 "No version found"
+          # 분기를 dead-code로 만드는 것을 방지 (PR #161 review F2)
+          VERSION=$(echo "$MSG" | grep -oE 'v[0-9]+\.[0-9]+\.[0-9]+' | head -1 || true)
           if [ -z "$VERSION" ]; then
             echo "No version found in commit message — skipping tag";
             echo "version=" >> "$GITHUB_OUTPUT";

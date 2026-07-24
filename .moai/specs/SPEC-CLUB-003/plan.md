@@ -1,3 +1,16 @@
+---
+id: SPEC-CLUB-003
+title: "모임 진도 집계 표시"
+version: "1.0.0"
+status: completed
+created: 2026-06-27
+updated: 2026-07-23
+author: "강력쇠주먹"
+priority: medium
+issue_number: 0
+labels: [club, track-b, progress, aggregate, median, rpc, rls, ui]
+---
+
 # SPEC-CLUB-003 구현 계획 (plan.md)
 
 > SPEC-CLUB-003 "모임 진도 집계 표시" 구현 전략. 본 문서는 WHAT/HOW 를 다루며, 세부 코드는

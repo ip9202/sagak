@@ -2,9 +2,9 @@
 id: SPEC-PROFILE-001
 title: "마이페이지, 통계 및 보상"
 version: "1.0.0"
-status: draft
+status: completed
 created: 2026-06-14
-updated: 2026-06-14
+updated: 2026-07-23
 author: "강력쇠주먹"
 priority: medium
 issue_number: 0

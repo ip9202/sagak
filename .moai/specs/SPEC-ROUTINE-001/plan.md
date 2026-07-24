@@ -2,9 +2,9 @@
 id: SPEC-ROUTINE-001
 title: "독서 루틴 및 타이머 — 구현 계획"
 version: "1.0.0"
-status: draft
+status: completed
 created: 2026-06-14
-updated: 2026-06-14
+updated: 2026-07-23
 author: "강력쇠주먹"
 priority: medium
 issue_number: 0
