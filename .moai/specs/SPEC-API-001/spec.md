@@ -3,9 +3,9 @@
 id: SPEC-API-001
 title: "Supabase Client Integration & API Layer"
 version: "1.0.0"
-status: implemented
+status: completed
 created: 2026-06-14
-updated: 2026-06-15
+updated: 2026-07-24
 author: "강력쇠주먹"
 priority: high
 issue_number: 3
