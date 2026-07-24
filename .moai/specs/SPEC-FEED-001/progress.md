@@ -23,4 +23,13 @@
 - Phase 2B Phase B: COMPLETE (ClubFeedScreen + route + CTA + index, 38 tests)
 - Phase 2B Phase C: COMPLETE (useClubFeedRealtime + 통합, 53 tests, 913 전체, tsc EXIT 0)
 - Phase 2B Phase D: COMPLETE (F14 .pen 프레임 ChXne, 3계층+3카드+blur, No layout problems)
-- Phase 2.5-2.9: in_progress (evaluator-active + TRUST 5)
+- Phase 2.5-2.9: COMPLETE (2026-07-24 회고적 마감) — evaluator-active + TRUST 5 검증은 sync PR #28에서 완료, INDEX ✅✅✅ (8/8 REQ, 913 테스트), PR #138/#139 후속 리팩터(DRY/SSOT)로 안정화
+
+## completed 승격 근거 (2026-07-24)
+
+- 구현 100%: 8/8 REQ (PR #25 `63ddf12`, INDEX ✅✅✅, 913 테스트, Phase 3 완결 — INDEX line 384)
+- sync 마감: PR #28 (`d22628d`) — 완료 문서 동기화
+- 후속 안정화: PR #138/#139 (2026-07-07) — emotion 헬퍼 복제 제거(DRY) + isSpoilerForRecord SSOT 교체
+- 코드 증빙: `src/features/feed/` 7 파일(useClubFeed/queries/types/index/spoilerFilter/useClubFeedRealtime/ClubFeedScreen) + 테스트 5종
+- 본 Phase 2.5-2.9 마감은 frontmatter + 코드 + git 3축 교차 검증(verification-claim-integrity §1.1) 기반 회고적 갱신
+- frontmatter inconsistency 이력: spec/acceptance=implemented, plan=draft(PR #166 일괄 동기화에서 제외). 본 승격으로 3파일 completed로 일관성 복구

@@ -2,9 +2,9 @@
 id: SPEC-FEED-001
 title: "스포일러 방지 진도별 피드"
 version: "1.1.0"
-status: implemented
+status: completed
 created: 2026-06-14
-updated: 2026-06-20
+updated: 2026-07-24
 author: "강력쇠주먹"
 priority: medium
 issue_number: 0
