@@ -2,8 +2,10 @@ llm:
     mode: ""
     team_mode: glm
     glm_env_var: GLM_API_KEY
-    plan_type: subscription
     performance_tier: medium
+    profile: ""
+    profiles: {}
+    agent_overrides: {}
     claude_models:
         high: claude-opus-4-7
         medium: sonnet
