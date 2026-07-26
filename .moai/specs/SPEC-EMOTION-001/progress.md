@@ -46,3 +46,15 @@
   - `.moai/specs/SPEC-EMOTION-001/spec.md` — status: draft → completed, Implementation Notes 추가
 - PR #12 merged (commit a1ce6cf)
 
+### Post-Completion Sync (2026-07-26, PR #173)
+
+- SPEC completed 이후 후속 기능 개선 — visibility private 확장 + 진도 연동 + UX 개선 + 회귀 수정
+- sync-phase documentation update (manager-docs)
+- Files updated (이 sync 커밋):
+  - `CHANGELOG.md` — `[Unreleased]` 섹션에 PR #173 Added/Fixed/Changed/Technical Notes 추가
+  - `.moai/specs/SPEC-EMOTION-001/spec.md` — frontmatter `updated` 2026-06-17 → 2026-07-26 (status는 이미 completed, 본문 변경 없음)
+  - `.moai/specs/SPEC-EMOTION-001/plan.md` — frontmatter `status` draft → completed (이전 sync #167에서 누락된 승격 보완) + `updated` 2026-07-26
+  - `.moai/specs/SPEC-EMOTION-001/acceptance.md` — frontmatter `status` draft → completed (이전 sync #167에서 누락된 승격 보완) + `updated` 2026-07-26
+- PR #173 squash 머지 — develop 30e2207 (2026-07-26)
+- SCOPE NOTE: 본문 REQ-EMO-010 공개 범위 확장 (`'private'` 추가)은 SPEC 본문 수정이 필요하므로 manager-spec 영역. 이 sync에서는 frontmatter만 갱신하고 본문은 건드리지 않음 (사용자 명시적 지시). 후속 SPEC 본문 업데이트는 별도 라운드에서 manager-spec 진행 예정.
+
