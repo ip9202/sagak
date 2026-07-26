@@ -21,12 +21,11 @@ import {
   TextInput,
   TouchableOpacity,
   StyleSheet,
-  ScrollView,
 } from 'react-native';
 import { useTheme } from '../../theme/theme';
 import { spacing, radius, borderWidth, minHeight, typography } from '../../theme/tokens';
 import { Button } from '../../components/Button';
-import { selectPrompt } from './questionPrompts';
+import { getRandomPrompt } from './questionPrompts';
 import type { CreateEmotionInput, Visibility } from './types';
 
 /** 모임 선택 옵션 (외부에서 주입) */
@@ -42,8 +41,11 @@ export interface EmotionInputScreenProps {
   totalPages: number;
   /** 선택 가능한 모임 목록 (미제공 시 club 토글 숨김) */
   clubs?: ClubOption[];
-  /** 제출 콜백 — 부모가 useCreateEmotionRecord.mutate 와 연결 */
-  onSubmit: (input: CreateEmotionInput) => void;
+  /** 초기 공개 범위 (미제공 시 'public'). 서재 비공개 책 → 'private' 권장. */
+  defaultVisibility?: Visibility;
+  /** 제출 콜백 — 부모가 useCreateEmotionRecord.mutateAsync 와 연결.
+   *  Promise 해결(저장 성공) 시 폼이 초기화되고, reject 시 에러를 표시하고 폼을 유지한다. */
+  onSubmit: (input: CreateEmotionInput) => Promise<void>;
 }
 
 /** content 상한 (EC-12 — 입력 필드 maxLength) */
@@ -55,24 +57,21 @@ const CONTENT_MAX_LENGTH = 120;
 export const EmotionInputScreen: React.FC<EmotionInputScreenProps> = ({
   bookId,
   currentPage,
-  totalPages,
   clubs = [],
+  defaultVisibility = 'public',
   onSubmit,
 }) => {
   const theme = useTheme();
   const [pageNumber, setPageNumber] = useState<string>(String(currentPage));
   const [content, setContent] = useState('');
-  const [visibility, setVisibility] = useState<Visibility>('public');
+  // 화면 진입(마운트)마다 무작위 질문 — 입력 중에는 유지 (REQ-EMO-005)
+  const [prompt] = useState(() => getRandomPrompt());
+  // 초기 공개 범위 — 부모가 서재 책 is_public 등으로 'private' 전달 가능 (REQ-EMO-010 확장)
+  const [visibility, setVisibility] = useState<Visibility>(defaultVisibility);
   const [clubId, setClubId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const prompt = selectPrompt({
-    currentPage,
-    totalPages,
-    seed: currentPage,
-  });
-
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     const trimmed = content.trim();
     if (trimmed.length === 0) {
       setError('내용을 입력해주세요');
@@ -93,31 +92,38 @@ export const EmotionInputScreen: React.FC<EmotionInputScreenProps> = ({
       return;
     }
     setError(null);
-    onSubmit({
-      bookId,
-      pageNumber: parsedPage,
-      content: trimmed,
-      visibility,
-      clubId: visibility === 'club' ? clubId : null,
-    });
+    try {
+      await onSubmit({
+        bookId,
+        pageNumber: parsedPage,
+        content: trimmed,
+        visibility,
+        clubId: visibility === 'club' ? clubId : null,
+      });
+      // 저장 성공 — 폼 초기화. 페이지는 방금 저장한 페이지를 유지
+      // (currentPage 로 리셋 시 서재 진도가 0이면 매번 0으로 돌아가는 문제 방지).
+      setContent('');
+      setPageNumber(String(parsedPage));
+      setVisibility(defaultVisibility);
+      setClubId(null);
+      setError(null);
+    } catch (err) {
+      // 저장 실패 — 에러 메시지 표시, 폼은 유지 (사용자가 재시도 가능)
+      setError(err instanceof Error ? err.message : '저장에 실패했습니다');
+    }
   };
 
   return (
-    <ScrollView
+    <View
       style={[styles.container, { backgroundColor: theme.colors.bg.base }]}
       testID="emotion-input-screen"
     >
-      {/* 질문 프롬프트 (REQ-EMO-005) */}
-      <View
-        style={[
-          styles.promptBox,
-          { backgroundColor: theme.colors.bg.surface },
-        ]}
-      >
+      {/* 질문 프롬프트 (REQ-EMO-005) — 매 진입마다 무작위 질문, 폰트로 본문과 구분 */}
+      <View style={styles.promptBox}>
         <Text
           style={[
             styles.promptText,
-            { color: theme.colors.text.secondary },
+            { color: theme.colors.text.primary },
           ]}
         >
           {prompt}
@@ -204,6 +210,22 @@ export const EmotionInputScreen: React.FC<EmotionInputScreenProps> = ({
             <Text style={{ color: theme.colors.text.primary }}>모임 공개</Text>
           </TouchableOpacity>
         ) : null}
+        <TouchableOpacity
+          testID="visibility-private"
+          onPress={() => setVisibility('private')}
+          style={[
+            styles.visibilityBtn,
+            {
+              backgroundColor:
+                visibility === 'private'
+                  ? theme.colors.brand[200]
+                  : theme.colors.bg.surface,
+              borderColor: theme.colors.border.default,
+            },
+          ]}
+        >
+          <Text style={{ color: theme.colors.text.primary }}>비공개</Text>
+        </TouchableOpacity>
       </View>
 
       {/* 모임 선택 (visibility=club 시) */}
@@ -243,26 +265,29 @@ export const EmotionInputScreen: React.FC<EmotionInputScreenProps> = ({
         </Text>
       ) : null}
 
-      <Button variant="primary" onPress={handleSubmit}>
+      <Button
+        variant="primary"
+        onPress={handleSubmit}
+        style={{ marginTop: spacing[4] }}
+      >
         기록 저장
       </Button>
-    </ScrollView>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
+    // flex:1 제거 — FlatList ListHeaderComponent 안에서 flex:1 은 헤더 높이를 0/과대로 만듦.
+    // View 는 콘텐츠 높이만큼만 차지 (입력 폼이 리스트 위에 정상 표시).
     padding: spacing[4],
   },
   promptBox: {
-    padding: spacing[4],
-    borderRadius: radius.lg,
     marginBottom: spacing[4],
   },
   promptText: {
-    fontSize: typography.bodyPrompt.fontSize,
-    lineHeight: typography.bodyPrompt.lineHeight,
+    ...typography.headingSm,
+    textAlign: 'center',
   },
   label: {
     fontSize: typography.bodySm.fontSize,
@@ -294,10 +319,12 @@ const styles = StyleSheet.create({
     marginTop: spacing[4],
   },
   visibilityBtn: {
+    flex: 1,
     paddingVertical: spacing[2],
-    paddingHorizontal: spacing[4],
+    paddingHorizontal: spacing[2],
     borderRadius: radius.md,
     borderWidth: borderWidth.hairline,
+    alignItems: 'center',
   },
   clubList: {
     marginTop: spacing[3],

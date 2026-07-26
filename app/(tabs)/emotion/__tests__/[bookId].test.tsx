@@ -171,7 +171,7 @@ beforeEach(() => {
   const mutate = jest.fn();
   mockedUseCreateEmotionRecord.mockReturnValue({
     mutate,
-    mutateAsync: jest.fn(),
+    mutateAsync: mutate,
     isPending: false,
     isIdle: true,
     isError: false,

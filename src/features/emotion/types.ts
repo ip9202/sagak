@@ -12,8 +12,8 @@
 import type { Database } from '../../types/supabase';
 import type { StickerType } from '../../types';
 
-/** 감정 기록 공개 범위 (DB visibility text 컬럼을 도메인 리터럴로 좁힘) */
-export type Visibility = 'public' | 'club';
+/** 감정 기록 공개 범위 — public(전체)/club(모임)/private(나만, RLS user_id=auth.uid()) */
+export type Visibility = 'public' | 'club' | 'private';
 
 /** emotion_records.Row (gen-types) — user_id 는 RLS 가 자동 주입하므로 클라이언트 입력에서는 제외 */
 export type EmotionRecordRow = Database['public']['Tables']['emotion_records']['Row'];

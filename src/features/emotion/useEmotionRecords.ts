@@ -45,10 +45,14 @@ export interface UseEmotionRecordsArgs {
  */
 export function useEmotionRecords(args: UseEmotionRecordsArgs) {
   return useQuery<EmotionListResult>({
+    // @MX:NOTE: [AUTO] queryKey는 emotionRootKey(bookId,userId) 하위에 'list' + sort 로 두어
+    //   useCreateEmotionRecord/Update/Delete 의 invalidate(emotionRootKey) 가 접두사 매칭으로 잡도록 한다.
+    //   root 를 ['emotion', {객체}] 로 두고 list 를 ['emotion', 'list', ...] 로 분리하면
+    //   2번째 요소(객체 vs 'list') 가 달라 invalidate 매칭이 실패하는 함정(react-query prefix 매칭)이 있다.
     queryKey: [
-      'emotion',
+      ...emotionRootKey(args.bookId, args.userId),
       'list',
-      { bookId: args.bookId, userId: args.userId, sort: args.sort },
+      { sort: args.sort },
     ],
     queryFn: () =>
       listEmotionRecords({

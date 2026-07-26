@@ -17,16 +17,17 @@
  * @MX:SPEC SPEC-EMOTION-001
  */
 import React, { useEffect, useState } from 'react';
-import { View, ActivityIndicator, ScrollView, StyleSheet } from 'react-native';
+import { View, ActivityIndicator, StyleSheet } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useSession } from '../../../src/auth/useSession';
 import { useLibraryItem } from '../../../src/features/library/useLibraryItem';
+import { useUpdateProgress } from '../../../src/features/library/useLibrary';
 import { getBookDetail } from '../../../src/features/book/bookDetailApi';
 import {
   useEmotionRecords,
   useCreateEmotionRecord,
 } from '../../../src/features/emotion/useEmotionRecords';
-import type { EmotionSortOption } from '../../../src/features/emotion/types';
+import type { EmotionSortOption, Visibility } from '../../../src/features/emotion/types';
 import { useTheme } from '../../../src/theme/theme';
 import { EmotionInputScreen } from '../../../src/features/emotion/EmotionInputScreen';
 import { TimelineScreen } from '../../../src/features/emotion/TimelineScreen';
@@ -47,6 +48,9 @@ export default function EmotionBookRoute() {
 
   const libraryQuery = useLibraryItem({ bookId, userId });
   const currentPage = libraryQuery.data?.current_page ?? 0;
+  // 서재 책 비공개(is_public=false) 시 감정 기록 기본값도 'private' (사용자 기대 연동)
+  const defaultVisibility: Visibility =
+    libraryQuery.data?.is_public === false ? 'private' : 'public';
 
   const recordsQuery = useEmotionRecords({
     bookId,
@@ -56,6 +60,8 @@ export default function EmotionBookRoute() {
   });
 
   const createMutation = useCreateEmotionRecord({ bookId, userId });
+  // 감정 기록 저장 시 서재 진도(current_page)도 함께 업데이트 (사용자가 읽은 페이지 = 진도)
+  const updateProgressMutation = useUpdateProgress({ userId });
 
   // totalPages 보조 조회 — BookDetailScreen 패턴 준수 (세션 가드 후 호출)
   useEffect(() => {
@@ -104,30 +110,43 @@ export default function EmotionBookRoute() {
   // @MX:NOTE: [AUTO] SPEC-UI-002 REQ-SCREEN-001 — 비탭 화면 상단 상태바/노치 영역 처리.
   //           (tabs)/_layout.tsx 와 동일한 3계층 레이아웃: StatusBar → ScrollView(content).
   return (
-    <View style={{ flex: 1, backgroundColor: theme.colors.bg.base }}>
+    <View
+      style={{ flex: 1, backgroundColor: theme.colors.bg.base }}
+      testID="emotion-route-screen"
+    >
       <StatusBar />
-      <ScrollView
-        style={[styles.container, { backgroundColor: theme.colors.bg.base }]}
-        testID="emotion-route-screen"
-      >
-        <EmotionInputScreen
-          bookId={bookId}
-          userId={userId}
-          currentPage={currentPage}
-          totalPages={totalPages}
-          onSubmit={(input) => createMutation.mutate(input)}
-        />
-        <TimelineScreen
-          bookId={bookId}
-          userId={userId}
-          currentPage={currentPage}
-          data={recordsQuery.data ?? { safe: [], spoiler: [] }}
-          isLoading={recordsQuery.isLoading}
-          error={recordsQuery.error}
-          sort={sort}
-          onSortChange={setSort}
-        />
-      </ScrollView>
+      <TimelineScreen
+        bookId={bookId}
+        userId={userId}
+        currentPage={currentPage}
+        data={recordsQuery.data ?? { safe: [], spoiler: [] }}
+        isLoading={recordsQuery.isLoading}
+        error={recordsQuery.error}
+        sort={sort}
+        onSortChange={setSort}
+        listHeader={
+          <EmotionInputScreen
+            bookId={bookId}
+            userId={userId}
+            currentPage={currentPage}
+            totalPages={totalPages}
+            defaultVisibility={defaultVisibility}
+            onSubmit={async (input) => {
+              await createMutation.mutateAsync(input);
+              // 감정 기록 페이지로 서재 진도 업데이트 — 더 큰 페이지만 (뒤로감기 방지).
+              // updateProgressMutation onSuccess 가 libraryQuery 를 invalidate → currentPage 최신화.
+              const libraryItem = libraryQuery.data;
+              const pageNumber = input.pageNumber;
+              if (libraryItem && pageNumber !== null && pageNumber > currentPage) {
+                await updateProgressMutation.mutateAsync({
+                  id: libraryItem.id,
+                  currentPage: pageNumber,
+                });
+              }
+            }}
+          />
+        }
+      />
     </View>
   );
 }
