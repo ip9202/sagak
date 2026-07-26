@@ -8,12 +8,12 @@
  * - seed 가 다르면 다른 프롬프트가 나올 수 있다 (순환)
  * - 풀 범위를 벗어나지 않는다
  */
-import { QUESTION_PROMPTS, selectPrompt } from '../questionPrompts';
+import { QUESTION_PROMPTS, selectPrompt, getRandomPrompt } from '../questionPrompts';
 
 describe('SPEC-EMOTION-001 T-008: questionPrompts', () => {
-  it('정적 풀은 3~5개 프롬프트를 포함한다 (REQ-EMO-005)', () => {
-    expect(QUESTION_PROMPTS.length).toBeGreaterThanOrEqual(3);
-    expect(QUESTION_PROMPTS.length).toBeLessThanOrEqual(5);
+  it('정적 풀은 무작위 제안에 충분한 다양한 프롬프트를 포함한다 (REQ-EMO-005)', () => {
+    // 랜덤 선택 시 다양성을 위해 5개 이상 유지 (기존 5 → 9개로 확장)
+    expect(QUESTION_PROMPTS.length).toBeGreaterThanOrEqual(5);
   });
 
   it('모든 프롬프트는 비어있지 않은 한국어 문자열이다', () => {
@@ -49,5 +49,23 @@ describe('SPEC-EMOTION-001 T-008: questionPrompts', () => {
     });
     // seed 가 풀 크기면 0 과 동일 (modulo)
     expect(wrapped).toBe(first);
+  });
+});
+
+describe('getRandomPrompt (REQ-EMO-005 확장 — 매 진입마다 무작위 제안)', () => {
+  it('풀 내의 프롬프트를 반환한다', () => {
+    expect(QUESTION_PROMPTS).toContain(getRandomPrompt());
+  });
+
+  it('Math.random 을 0 으로 mock 하면 첫 번째 프롬프트를 반환한다', () => {
+    const spy = jest.spyOn(Math, 'random').mockReturnValue(0);
+    expect(getRandomPrompt()).toBe(QUESTION_PROMPTS[0]);
+    spy.mockRestore();
+  });
+
+  it('Math.random 이 0.999 일 때 마지막 프롬프트를 반환한다 (floor 경계)', () => {
+    const spy = jest.spyOn(Math, 'random').mockReturnValue(0.999);
+    expect(getRandomPrompt()).toBe(QUESTION_PROMPTS[QUESTION_PROMPTS.length - 1]);
+    spy.mockRestore();
   });
 });

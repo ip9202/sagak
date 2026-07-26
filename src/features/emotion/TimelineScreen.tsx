@@ -43,6 +43,8 @@ export interface TimelineScreenProps {
   error: unknown;
   sort: EmotionSortOption;
   onSortChange: (sort: EmotionSortOption) => void;
+  /** FlatList 상단에 렌더링할 헤더(EmotionInputScreen). 단일 스크롤 구조 유지용. */
+  listHeader?: React.ReactNode;
 }
 
 /**
@@ -55,6 +57,7 @@ export const TimelineScreen: React.FC<TimelineScreenProps> = ({
   error,
   sort,
   onSortChange,
+  listHeader,
 }) => {
   const theme = useTheme();
   const [bookTitle, setBookTitle] = useState('');
@@ -104,95 +107,96 @@ export const TimelineScreen: React.FC<TimelineScreenProps> = ({
     );
   }
 
-  const total = data.safe.length + data.spoiler.length;
-
-  // 빈 상태 (EC-5)
-  if (total === 0) {
-    return (
-      <View
-        style={[styles.center, { backgroundColor: theme.colors.bg.base }]}
-        testID="timeline-empty"
-      >
-        <Text style={{ color: theme.colors.text.secondary }}>
-          아직 감정 기록이 없습니다. 첫 기록을 남겨보세요.
-        </Text>
-      </View>
-    );
-  }
-
-  // safe + spoiler 순으로 합친 렌더링 목록 (spoiler 는 isSpoiler=true)
+  // safe + spoiler 순으로 합친 렌더링 목록 (spoiler 는 isSpoiler=true).
+  // 빈 상태는 ListEmptyComponent 로 처리 — 헤더(입력 폼)는 항상 표시.
   const items: { record: EmotionRecordWithAuthor; isSpoiler: boolean }[] = [
     ...data.safe.map((record) => ({ record, isSpoiler: false })),
     ...data.spoiler.map((record) => ({ record, isSpoiler: true })),
   ];
 
   return (
-    <View
-      style={[styles.container, { backgroundColor: theme.colors.bg.base }]}
+    <FlatList
+      data={items}
+      keyExtractor={(item) => item.record.id}
+      renderItem={({ item }) => (
+        <EmotionRecordCard
+          nickname={item.record.users?.nickname ?? '익명'}
+          page={item.record.page_number ?? 0}
+          daysAgo={0}
+          content={item.record.content}
+          bookTitle={bookTitle}
+          stickers={item.record.sticker_reactions.map((s) => ({
+            type: s.sticker_type,
+            count: s.count,
+          }))}
+          isSpoiler={item.isSpoiler}
+        />
+      )}
+      ListHeaderComponent={
+        <>
+          {listHeader}
+          {/* 정렬 토글 (REQ-EMO-009, 시나리오 4.3/4.4) */}
+          <View style={styles.sortRow}>
+            <TouchableOpacity
+              testID="sort-time"
+              onPress={() => onSortChange('time')}
+              style={[
+                styles.sortBtn,
+                {
+                  backgroundColor:
+                    sort === 'time'
+                      ? theme.colors.brand[200]
+                      : theme.colors.bg.surface,
+                  borderColor: theme.colors.border.default,
+                },
+              ]}
+            >
+              <Text style={{ color: theme.colors.text.primary }}>시간순</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              testID="sort-page"
+              onPress={() => onSortChange('page')}
+              style={[
+                styles.sortBtn,
+                {
+                  backgroundColor:
+                    sort === 'page'
+                      ? theme.colors.brand[200]
+                      : theme.colors.bg.surface,
+                  borderColor: theme.colors.border.default,
+                },
+              ]}
+            >
+              <Text style={{ color: theme.colors.text.primary }}>페이지순</Text>
+            </TouchableOpacity>
+          </View>
+        </>
+      }
+      ListEmptyComponent={
+        <View
+          style={[styles.center, { backgroundColor: theme.colors.bg.base }]}
+          testID="timeline-empty"
+        >
+          <Text style={{ color: theme.colors.text.secondary }}>
+            아직 감정 기록이 없습니다. 첫 기록을 남겨보세요.
+          </Text>
+        </View>
+      }
+      ItemSeparatorComponent={() => <View style={{ height: spacing[3] }} />}
+      contentContainerStyle={[
+        styles.container,
+        { backgroundColor: theme.colors.bg.base },
+      ]}
+      style={{ backgroundColor: theme.colors.bg.base }}
       testID="timeline-screen"
-    >
-      {/* 정렬 토글 (REQ-EMO-009, 시나리오 4.3/4.4) */}
-      <View style={styles.sortRow}>
-        <TouchableOpacity
-          testID="sort-time"
-          onPress={() => onSortChange('time')}
-          style={[
-            styles.sortBtn,
-            {
-              backgroundColor:
-                sort === 'time'
-                  ? theme.colors.brand[200]
-                  : theme.colors.bg.surface,
-              borderColor: theme.colors.border.default,
-            },
-          ]}
-        >
-          <Text style={{ color: theme.colors.text.primary }}>시간순</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          testID="sort-page"
-          onPress={() => onSortChange('page')}
-          style={[
-            styles.sortBtn,
-            {
-              backgroundColor:
-                sort === 'page'
-                  ? theme.colors.brand[200]
-                  : theme.colors.bg.surface,
-              borderColor: theme.colors.border.default,
-            },
-          ]}
-        >
-          <Text style={{ color: theme.colors.text.primary }}>페이지순</Text>
-        </TouchableOpacity>
-      </View>
-
-      <FlatList
-        data={items}
-        keyExtractor={(item) => item.record.id}
-        renderItem={({ item }) => (
-          <EmotionRecordCard
-            nickname={item.record.users?.nickname ?? '익명'}
-            page={item.record.page_number ?? 0}
-            daysAgo={0}
-            content={item.record.content}
-            bookTitle={bookTitle}
-            stickers={item.record.sticker_reactions.map((s) => ({
-              type: s.sticker_type,
-              count: s.count,
-            }))}
-            isSpoiler={item.isSpoiler}
-          />
-        )}
-        ItemSeparatorComponent={() => <View style={{ height: spacing[3] }} />}
-      />
-    </View>
+    />
   );
 };
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
+    // flex:1 제거 — FlatList contentContainerStyle 에 flex:1 은 콘텐츠를 뷰포트 높이로
+    // 고정해 스크롤을 차단한다. padding 만으로 콘텐츠 높이만큼 늘어나 스크롤이 가능.
     padding: spacing[4],
   },
   center: {
