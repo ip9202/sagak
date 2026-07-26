@@ -40,6 +40,14 @@ labels: [emotion, archive, sticker, acceptance, phase-2]
 **Then** 시스템은 201 Created를 반환한다
 **And** 반환된 행의 `visibility`는 `"club"`, `club_id`는 `C1`이다
 
+#### 시나리오 1.2.1: 감정 기록 생성 성공 (private)
+
+**Given** 인증된 사용자가 서재에 등록된 책(`book_id=B1`, `current_page=100`)을 보유하고 있다
+**When** 사용자가 `page_number=95`, `content="혼자만의 기록"`, `visibility="private"`로 감정 기록 생성을 요청한다
+**Then** 시스템은 `emotion_records`에 새 행을 INSERT하고 201 Created를 반환한다
+**And** 반환된 행의 `visibility`는 `"private"`, `club_id`는 `null`이다 (CHECK `emotion_records_visibility_requires_club` — `'public'`/`'private'`는 `club_id` 불필요)
+**And** 이후 타 인증 사용자가 해당 책의 감정 기록 목록을 조회해도 이 행은 반환되지 않는다 (RLS `emotion_records_select_visible` — `user_id = auth.uid()` 조건으로만 충족) — REQ-EMO-010 매핑
+
 #### 시나리오 1.3: 감정 기록 생성 실패 — 빈 content
 
 **Given** 인증된 사용자가 감정 기록 입력 화면에 있다
@@ -239,6 +247,22 @@ labels: [emotion, archive, sticker, acceptance, phase-2]
 **Then** 시스템은 200 OK를 반환하고 `visibility`가 `"public"`으로 갱신된다
 **And** `club_id`는 `null`로 설정된다 (또는 무시됨)
 
+#### 시나리오 4.7: 공개 범위 제어 — private 읽기 권한 (작성자 본인만) — REQ-EMO-010 매핑
+
+**Given** 인증된 사용자 U1이 본인 소유의 `visibility="private"` 감정 기록을 보유하고 있다
+**And** 인증된 사용자 U2 (타 사용자)가 동일한 책(`book_id=B1`)에 접근할 수 있다
+**When** U1이 해당 책의 감정 기록 목록을 조회한다
+**Then** U1에게는 본인의 private 기록이 반환된다 (`user_id = auth.uid()` 일치)
+**And** U2가 동일한 책의 목록을 조회하면 U1의 private 기록은 반환되지 않는다 (RLS `emotion_records_select_visible` — `visibility='public'` OR `user_id = auth.uid()` OR (`visibility='club'` AND 멤버) 조건을 private 행은 어떤 OR 분기도 충족 못 함)
+
+#### 시나리오 4.8: 공개 범위 제어 — public → private 전환 — REQ-EMO-010 매핑
+
+**Given** 인증된 사용자가 본인의 `visibility="public"` 감정 기록을 보유하고 있다
+**When** 사용자가 해당 기록을 `visibility="private"`으로 수정한다
+**Then** 시스템은 200 OK를 반환하고 `visibility`가 `"private"`으로 갱신된다
+**And** `club_id`는 `null`로 설정된다 (`'private'`는 `club_id` 불필요)
+**And** 이후 타 인증 사용자는 해당 기록을 더 이상 조회할 수 없다 (RLS `user_id = auth.uid()` 조건)
+
 ---
 
 ## 2. 엣지 케이스 (Edge Cases)
@@ -319,7 +343,7 @@ labels: [emotion, archive, sticker, acceptance, phase-2]
 - [ ] 권한 거부 시나리오(타인 수정/삭제, 비인증) 테스트 포함
 - [ ] 스티커 409 시나리오 테스트 포함
 - [ ] 스포일러 블러 활성화/해제 테스트 포함
-- [ ] 공개 범위(public/club) 전환 테스트 포함
+- [ ] 공개 범위(public/club/private) 전환 테스트 포함
 
 ### 3.3 TRUST 5
 
