@@ -47,6 +47,10 @@ export default function EmotionBookRoute() {
   const isAuthenticated = session?.isAuthenticated ?? false;
 
   const libraryQuery = useLibraryItem({ bookId, userId });
+  // F1: libraryQuery 해결 전까지 EmotionInputScreen 마운트를 게이트
+  // (defaultVisibility race 방지 — is_public 미확정 시 'public'으로 마운트되어
+  //  비공개 책 감정 기록이 public으로 저장되는 프라이버시 회귀 차단)
+  const libraryLoading = libraryQuery.isLoading;
   const currentPage = libraryQuery.data?.current_page ?? 0;
   // 서재 책 비공개(is_public=false) 시 감정 기록 기본값도 'private' (사용자 기대 연동)
   const defaultVisibility: Visibility =
@@ -125,26 +129,34 @@ export default function EmotionBookRoute() {
         sort={sort}
         onSortChange={setSort}
         listHeader={
-          <EmotionInputScreen
-            bookId={bookId}
-            userId={userId}
-            currentPage={currentPage}
-            totalPages={totalPages}
-            defaultVisibility={defaultVisibility}
-            onSubmit={async (input) => {
-              await createMutation.mutateAsync(input);
-              // 감정 기록 페이지로 서재 진도 업데이트 — 더 큰 페이지만 (뒤로감기 방지).
-              // updateProgressMutation onSuccess 가 libraryQuery 를 invalidate → currentPage 최신화.
-              const libraryItem = libraryQuery.data;
-              const pageNumber = input.pageNumber;
-              if (libraryItem && pageNumber !== null && pageNumber > currentPage) {
-                await updateProgressMutation.mutateAsync({
-                  id: libraryItem.id,
-                  currentPage: pageNumber,
-                });
-              }
-            }}
-          />
+          libraryLoading ? null : (
+            <EmotionInputScreen
+              bookId={bookId}
+              userId={userId}
+              currentPage={currentPage}
+              totalPages={totalPages}
+              defaultVisibility={defaultVisibility}
+              onSubmit={async (input) => {
+                await createMutation.mutateAsync(input);
+                // F2: 진도 업데이트 — 실패해도 감정 기록 저장은 유지 (비차단).
+                // createMutation 성공 후 updateProgress 실패 시 에러가 사용자에게
+                // "저장 실패"로 오도되는 것을 방지 (중복 저장 회귀 차단).
+                const libraryItem = libraryQuery.data;
+                const pageNumber = input.pageNumber;
+                if (libraryItem && pageNumber !== null && pageNumber > currentPage) {
+                  try {
+                    await updateProgressMutation.mutateAsync({
+                      id: libraryItem.id,
+                      currentPage: pageNumber,
+                    });
+                  } catch (progressErr) {
+                    // 비차단 — 감정 기록은 이미 저장됨
+                    console.warn('진도 업데이트 실패 (감정 기록은 저장됨):', progressErr);
+                  }
+                }
+              }}
+            />
+          )
         }
       />
     </View>
