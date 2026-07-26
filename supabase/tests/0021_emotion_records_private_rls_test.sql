@@ -60,9 +60,11 @@ SELECT results_eq(
 
 -- 3) user_id 변조 INSERT → RLS INSERT WITH CHECK 거부
 SELECT set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-000000000001","role":"authenticated"}', false);
+-- lesson #18: throws_ok 4-arg(errcode+errmsg+desc) — 3-arg는 '42501'이 errmsg로 잘못 해석되어 false fail
 SELECT throws_ok(
     $$INSERT INTO emotion_records (user_id, book_id, page_number, content, visibility) VALUES ('00000000-0000-0000-0000-000000000002', '00000000-0000-0000-0000-000000000100', 20, '변조 시도', 'private')$$,
     '42501',
+    'new row violates row-level security policy for table "emotion_records"',
     'user_id 변조 INSERT 거부 (RLS INSERT WITH CHECK auth.uid() = user_id)'
 );
 
