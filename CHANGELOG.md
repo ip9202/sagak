@@ -7,6 +7,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **감정 기록 visibility `'private'`(나만 보기) 추가** (PR #173, SPEC-EMOTION-001 후속)
+  - DB CHECK 확장 + RLS 정책 (`user_id = auth.uid()`) — 작성자만 조회 가능한 프라이빗 감정 기록 지원
+  - 서재 책 비공개 (`is_public=false`) ↔ 감정 기록 기본 private 자동 연동 (프라이버시 기본값 일관성)
+  - UI 버튼(공개/모임/나만) 토글 — `EmotionInputScreen.tsx` 가시성 선택 UX
+- **진도 연동** — 감정 기록 저장 시 서재 진도(`current_page`) 업데이트 (뒤로감기 방지 로직 포함)
+- **프롬프트 개선** — 무작위 질문 9개 풀 + 폰트 강조(`headingSm`) + 가운데 정렬 (`questionPrompts.ts`)
+- **`expo-dev-client` 설치** — 실기기 dev client 빌드 환경
+
+### Fixed
+- **`user_id` DEFAULT `auth.uid()` 추가** (회귀 수정) — NOT NULL 제약 + DEFAULT 누락으로 인한 INSERT 실패 해소. 코드 주석과 DB 스키마 불일치 정리. 마이그레이션 `20260726000002`
+- **react-query queryKey 접두사 매칭 수정** — 객체 vs 문자열 요소 불일치로 인해 `invalidateQueries`가 리스트를 갱신하지 못하던 회귀 해결. 저장 후 폼 초기화 + 리스트 자동 갱신 정상화
+- **VirtualizedList 중첩 해결** — `TimelineScreen.tsx` 단일 FlatList 통합 (`ListHeaderComponent`). `contentContainerStyle flex:1` 스크롤 차단 이슈 해결
+- **sync-auditor F1 — defaultVisibility race 회귀 차단** — `[bookId].tsx` libraryLoading 게이트 추가. libraryQuery 해결 전 EmotionInputScreen 마운트 차단하여 비공개 책 감정 기록이 public으로 저장되는 프라이버시 회귀 방지
+- **sync-auditor F2 — 진도 업데이트 부분 실패 처리** — updateProgressMutation try/catch 비차단 처리. 진도 업데이트 실패해도 감정 기록 저장은 유지 (중복 저장 및 오도 에러 메시지 방지)
+- **sync-auditor F3 — pgTAP RLS 검증 추가** — `supabase/tests/0021_emotion_records_private_rls_test.sql`. visibility=`private` 가시성 (작성자 SELECT 1건 / 타인 0건 / user_id 변조 INSERT 거부) 종단간 검증
+
+### Changed
+- **감정 기록 저장 UX 개선** — 저장 후 폼 초기화 + 타임라인 자동 갱신 (위 fix 항목 참조)
+- **DB 마이그레이션** (dev 적용 완료):
+  - `20260726000001_emotion_records_visibility_private.sql` — visibility `'private'` 허용 (CHECK + 복합 CHECK)
+  - `20260726000002_emotion_records_user_id_default.sql` — user_id DEFAULT `auth.uid()`
+
+### Technical Notes
+- jest 114개 PASS (emotion 91 + `[bookId]` 14 + BookCard 등)
+- typecheck PASS, 실기기 dev client 검증 완료
+- 발견된 회귀 (함정 기록): user_id NOT NULL + DEFAULT 누락 / queryKey 접두사 매칭 실패 / contentContainerStyle flex:1 스크롤 차단
+
 ## [v1.2.3] - 2026-07-24
 
 ### Fixed
