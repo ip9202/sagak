@@ -1,13 +1,14 @@
 ---
 id: SPEC-EMOTION-001
 title: "감정 아카이브 및 스티커 반응"
-version: "1.0.0"
-status: completed
+version: "1.1.0"
+status: in-progress
 created: 2026-06-14
 updated: 2026-07-26
 author: "강력쇠주먹"
 priority: high
 issue_number: 0
+amendment_of: SPEC-EMOTION-001
 labels: [emotion, archive, sticker, rls, supabase, phase-2]
 ---
 
@@ -21,20 +22,38 @@ labels: [emotion, archive, sticker, rls, supabase, phase-2]
 
 ---
 
+## Amendments
+
+### Amendment 1 — 2026-07-26 (v1.0.0 → v1.1.0, in-place)
+
+- **prior completed version**: 1.0.0
+- **prior_completed_sha**: `c1f61da` (docs(sync): SPEC-EMOTION-001 구현 완료 문서 동기화, 2026-06-17 — 최초 `status: completed` 부여 지점)
+- **amendment rationale**: PR #173 (commit `30e2207`)에서 `visibility='private'`(나만 보기) 기능이 구현되었으나(마이그레이션 `20260726000001_emotion_records_visibility_private.sql` — DB CHECK 허용 집합 확장 + 기존 RLS `user_id = auth.uid()` 조건으로 본인-only 보장), SPEC 본문은 `'public'`/`'club'` 2옵션에 머물러 코드-문서 불일치가 발생. 본 amendment는 REQ-EMO-010 본문과 산재 visibility 정의를 코드 실제 상태와 일치시킨다 (사후 반영 — sync #174 `73f6404`에서 frontmatter만 갱신하고 본문은 skip한 사용자 합의 후속 처리).
+- **amendment scope**:
+  - REQ-EMO-010 본문: `'private'` 세 번째 옵션 추가 (club_id 불필요, RLS 본인-only 열람 명시)
+  - §1 환경 — ENUM 정의·visibility 값 나열·CHECK 제약·RLS 읽기 정책 4곳 동기화
+  - §2 가정 2.2.4 — 기본값 설명에 `'private'` 옵션 추가
+  - REQ-EMO-001 — INSERT 본문 club_id 조건 명시 (`'public'`/`'private'` 시 불필요)
+  - REQ-EMO-002 — RLS 허용 행 명시에 `'private'` 본인-only 포함
+  - acceptance.md — `'private'` AC 시나리오 3개 추가 (1.2.1 생성 성공, 4.7 읽기 권한, 4.8 public→private 전환), 품질 게이트 공개 범위 라벨 동기화
+- **소스 코드 변경**: 없음 (이미 PR #173에서 구현됨). 본 amendment는 SPEC 본문/AC만 수정한다.
+
+---
+
 ## 1. 환경 (Environment)
 
 - **백엔드**: Supabase (관리형 PostgreSQL + PostgREST + Realtime)
 - **데이터 엔터티**:
-  - `emotion_records` (SPEC-DB-001 REQ-DB-004) — 페이지별 감정 기록. 컬럼: `id`, `user_id`, `book_id`, `page_number(NOT NULL)`, `content(NOT NULL)`, `visibility(ENUM public/club, default public)`, `club_id(nullable, NOT NULL when visibility=club)`, `created_at`, `updated_at`
+  - `emotion_records` (SPEC-DB-001 REQ-DB-004) — 페이지별 감정 기록. 컬럼: `id`, `user_id`, `book_id`, `page_number(NOT NULL)`, `content(NOT NULL)`, `visibility(ENUM public/club/private, default public)`, `club_id(nullable, NOT NULL when visibility=club)`, `created_at`, `updated_at`
   - `sticker_reactions` (SPEC-DB-001 REQ-DB-005) — 공감 스티커 반응. 컬럼: `id`, `record_id`, `user_id`, `sticker_type(ENUM empathy/touching/comforted, NOT NULL)`, `created_at`
 - **ENUM 타입**:
-  - `visibility`: `'public'`, `'club'` (PostgREST CHECK 제약)
+  - `visibility`: `'public'`, `'club'`, `'private'` (PostgREST CHECK 제약 — `'private'`는 본인만 열람, RLS `user_id = auth.uid()` 조건으로만 충족)
   - `sticker_type`: `'empathy'`(완전히 공감해요), `'touching'`(마음이 찡해지네요), `'comforted'`(덕분에 위로받았어요) — SPEC-DB-001 ERD 편차 메모: text에서 전용 ENUM으로 상향 정의
 - **제약**:
-  - `emotion_records`: CHECK `visibility='club' → club_id NOT NULL`
+  - `emotion_records`: CHECK `visibility='club' → club_id NOT NULL` (`'public'`/`'private'`는 `club_id` 불필요 — `emotion_records_visibility_requires_club` 복합 제약)
   - `sticker_reactions`: UNIQUE `(record_id, user_id)` — 기록당 사용자당 1개만 허용
 - **RLS 정책** (이미 SPEC-DB-001로 구현됨):
-  - `emotion_records` (REQ-DB-016): 읽기 = 본인 OR `visibility='public'` OR (`visibility='club'` AND 모임 멤버). 쓰기 = `auth.uid() = user_id`만
+  - `emotion_records` (REQ-DB-016): 읽기 = 본인(`user_id = auth.uid()`) OR `visibility='public'` OR (`visibility='club'` AND 모임 멤버). `visibility='private'`는 본인만(`user_id = auth.uid()` 조건으로만 충족 — 타 인증 사용자에게 미노출). 쓰기 = `auth.uid() = user_id`만
   - `sticker_reactions` (REQ-DB-017): 읽기 = 전체 공개(`USING (true)`). 쓰기 = `auth.uid() = user_id`만
 - **API 서피스** (structure.md "Records CRUD+sticker"):
   - `GET /records/{book_id}` — 특정 책의 감정 기록 목록 (스포일러 필터, 작성자 조인, 스티커 집계)
@@ -70,7 +89,7 @@ labels: [emotion, archive, sticker, rls, supabase, phase-2]
 1. **단어/한 줄 범위**: 감정 기록 `content`는 단어 또는 한 줄(긴 독후감이 아닌 초미니 기록)을 전제한다. 클라이언트에서 길이 상한(예: 120자)을 적용하되, DB 컬럼은 `text`로 넉넉히 유지한다 (DB는 길이를 강제하지 않음).
 2. **안전한 글쓰기 울타리**: 단어 질문지는 사용자 진도(현재 페이지 근처)에 맞춘 1~2개의 짧은 질문을 제안한다. 이는 강제가 아닌 **유도 프롬프트**이며, 사용자가 자유 입력을 선택할 수 있다 (pages_03 §2.2).
 3. **스포일러 블러 기준**: 피드 조회 시 `page_number > current_page`(사용자 진도)인 기록은 블러 처리한다. 기준 `current_page`는 `user_books.current_page`(SPEC-LIBRARY-001)를 사용한다.
-4. **공개 범위 기본값**: `visibility` 기본값은 `'public'`이다. `club`으로 설정 시 `club_id`가 필수이며, 해당 모임의 멤버만 읽을 수 있다 (RLS 정책).
+4. **공개 범위 기본값**: `visibility` 기본값은 `'public'`이다. `'club'`으로 설정 시 `club_id`가 필수이며, 해당 모임의 멤버만 읽을 수 있다 (RLS 정책). `'private'`(나만 보기)는 `club_id` 없이 설정 가능하며, 작성자 본인만 열람할 수 있다 (RLS `user_id = auth.uid()` 조건 — `emotion_records_select_visible` 정책의 본인 OR 분기로만 충족).
 5. **스티커 집계**: 기록별 스티커 집계는 `sticker_reactions` 테이블 GROUP BY 쿼리로 실시간 산출한다. 별도 집계 테이블을 두지 않는다 (MVP 단순화).
 6. **타임라인 정렬**: 타임라인은 페이지순(`page_number ASC`) 또는 시간순(`created_at DESC`) 토글을 제공한다. 기본값은 시간순이다.
 
@@ -87,7 +106,7 @@ labels: [emotion, archive, sticker, rls, supabase, phase-2]
 #### REQ-EMO-001: 감정 기록 생성
 
 **WHEN** 인증된 사용자가 서재에 등록된 책(`user_books` 행 존재)에 대해 감정 기록 작성을 요청하면,
-**THEN** 시스템은 `emotion_records`에 새 행을 INSERT해야 한다. 행은 `user_id`(auth.uid 자동 주입), `book_id`, `page_number(NOT NULL)`, `content(NOT NULL, 공백 불가)`, `visibility(default 'public')`, `club_id(visibility='club' 시 필수)`를 포함한다.
+**THEN** 시스템은 `emotion_records`에 새 행을 INSERT해야 한다. 행은 `user_id`(auth.uid 자동 주입), `book_id`, `page_number(NOT NULL)`, `content(NOT NULL, 공백 불가)`, `visibility(default 'public', ENUM `'public'`|`'club'`|`'private'`)`, `club_id(visibility='club' 시 필수, 'public'/'private' 시 불필요)`를 포함한다.
 
 **IF** 요청의 `visibility='club'`이고 `club_id`가 누락되거나 사용자가 해당 모임의 멤버가 아니면,
 **THEN** 시스템은 DB CHECK 제약 또는 RLS 정책에 의해 INSERT를 거부해야 한다. 클라이언트는 400/403 에러를 사용자 친화적 메시지로 변환한다.
@@ -98,7 +117,7 @@ labels: [emotion, archive, sticker, rls, supabase, phase-2]
 #### REQ-EMO-002: 감정 기록 조회 (스포일러 필터 + 작성자 조인 + 스티커 집계)
 
 **WHEN** 인증된 사용자가 특정 책의 감정 기록 목록을 조회하면,
-**THEN** 시스템은 RLS 정책(REQ-DB-016)에 의해 허용된 행만 반환해야 한다: 본인 기록 OR `visibility='public'` OR (`visibility='club'` AND 모임 멤버).
+**THEN** 시스템은 RLS 정책(REQ-DB-016)에 의해 허용된 행만 반환해야 한다: 본인 기록(`user_id = auth.uid()` — `visibility='private'` 포함) OR `visibility='public'` OR (`visibility='club'` AND 모임 멤버).
 
 **WHILE** 감정 기록 목록 응답을 구성할 때,
 **THEN** 시스템은 각 행에 작성자 공개 프로필(`nickname`, `avatar_url` — `user_profiles` 뷰 조인)과 스티커 집계(`sticker_reactions` GROUP BY, 각 `sticker_type`별 count)를 포함해야 한다.
@@ -188,10 +207,13 @@ labels: [emotion, archive, sticker, rls, supabase, phase-2]
 #### REQ-EMO-010: 공개 범위 제어
 
 **WHEN** 인증된 사용자가 감정 기록 생성/수정 시 `visibility`를 선택하면,
-**THEN** 시스템은 `'public'`(전체 인증 사용자 공개) 또는 `'club'`(지정 모임 멤버만) 중 하나를 요구해야 한다.
+**THEN** 시스템은 `'public'`(전체 인증 사용자 공개), `'club'`(지정 모임 멤버만), `'private'`(작성자 본인만 — 나만 보기) 중 하나를 요구해야 한다.
 
 **IF** `visibility='club'`이면,
 **THEN** 시스템은 `club_id`가 필수임을 검증해야 하고, 사용자가 해당 모임의 멤버임을 확인해야 한다 (RLS `fn_user_in_club` 헬퍼). 검증 실패 시 400/403을 반환한다.
+
+**IF** `visibility='private'`이면,
+**THEN** 시스템은 `club_id` 없이 저장을 허용해야 한다 (`'public'`과 동일 취급 — CHECK 제약 `emotion_records_visibility_requires_club`). RLS `emotion_records_select_visible` 정책의 `user_id = auth.uid()` 조건에 의해 작성자 본인만 열람할 수 있으며, 타 인증 사용자는 해당 행을 SELECT할 수 없다.
 
 ---
 
