@@ -193,7 +193,7 @@ Tier M + frontend 단일 도메인 + coding-heavy 작업. Anthropic multi-agent 
 
 ```yaml
 sync_complete_at: 2026-07-27
-sync_commit_sha: pending-backfill-sync  # 본 sync 커밋의 SHA — 커밋 후 백필 예정
+sync_commit_sha: e0b02df  # 본 sync 커밋의 SHA (백필 완료)
 sync_status: audit-ready
 changelog_entry_added: true  # CHANGELOG.md [Unreleased] Added 섹션에 SPEC-CLUB-004 항목 추가 완료
 frontmatter_transition_completed: true  # spec.md status: in-progress → completed (2026-07-27)
