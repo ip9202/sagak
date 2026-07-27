@@ -186,3 +186,19 @@ Tier M + frontend 단일 도메인 + coding-heavy 작업. Anthropic multi-agent 
 - research.md § 정찰 근거
 - `.claude/rules/moai/development/spec-frontmatter-schema.md` § progress.md Section Map
 - 메모리: `~/.claude/projects/-Users-ip9202-develop-vibe-sagak/memory/lessons.md` (sagak-specific lessons — run-phase 준수)
+
+---
+
+## §E.4 Sync-phase Audit-Ready Signal
+
+```yaml
+sync_complete_at: 2026-07-27
+sync_commit_sha: e0b02df  # 본 sync 커밋의 SHA (백필 완료)
+sync_status: audit-ready
+changelog_entry_added: true  # CHANGELOG.md [Unreleased] Added 섹션에 SPEC-CLUB-004 항목 추가 완료
+frontmatter_transition_completed: true  # spec.md status: in-progress → completed (2026-07-27)
+mx_tag_validation_performed: true  # @MX:NOTE/@MX:ANCHOR tags 확인됨 (BookSelectionHub.tsx)
+codemaps_refreshed: false  # codemaps/ 디렉토리 미존재 — 스킵
+```
+
+> sync-phase audit-ready. 3-phase close 완료 (plan→run→sync). SPEC-CLUB-004 lifecycle 종료.
