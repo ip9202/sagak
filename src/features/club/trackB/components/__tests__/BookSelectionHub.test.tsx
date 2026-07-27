@@ -19,7 +19,7 @@
 import React from 'react';
 import { render, fireEvent, waitFor } from '@testing-library/react-native';
 import { ThemeProvider } from '../../../../../theme/theme';
-import type { LibraryItem } from '../../../../../library/types';
+import type { LibraryItem } from '../../../../library/types';
 
 // useLibrary mock — hub 이 reading/shelved 두 번 호출하므로 args.status 로 분기
 const mockUseLibrary = jest.fn();
