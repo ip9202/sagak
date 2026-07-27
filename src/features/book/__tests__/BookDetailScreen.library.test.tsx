@@ -288,10 +288,12 @@ describe('SPEC-LIBRARY-001 TASK-010: 상태 탭 Alert 확인 다이얼로그', (
       expect(getByTestId('status-chip-reading')).toBeTruthy();
     });
     fireEvent.press(getByTestId('status-chip-reading'));
-    // 정책 5.5 (reading 단일): reading 전환 시 기존 읽던 책의 보관함 자동 이동 안내 포함
+    // 비배타 전환 (SPEC-LIBRARY-002 REQ-LIB2-020): reading 전환은 기존 reading 책에
+    // 영향을 주지 않는다 — 과거 정책 5.5(reading 단일, 자동 배타)는 철회됨.
+    // Alert 메시지에 "보관함으로 이동" 안내가 포함되지 않아야 한다.
     expect(alertSpy).toHaveBeenCalledWith(
       '읽는중으로 변경',
-      expect.stringContaining('보관함으로 이동'),
+      '이 책을 읽는중으로 변경할까요?',
       expect.any(Array),
     );
     confirmStatusAlert(alertSpy);
