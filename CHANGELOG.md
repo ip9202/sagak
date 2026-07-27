@@ -8,6 +8,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **병행 독서 지원 — enforce_single_reading 정책 철회** (SPEC-LIBRARY-002)
+  - 메인 홈 화면에 reading 상태인 책 다중 표시 (기존: 단일 표시)
+  - 각 BookCard에 독립적인 "기록하기" 버튼 추가 (기존 "오늘의 감정 기록하기" 헤더 CTA 제거)
+  - 상태 전환 비배타화: `reading → reading` (기존 reading 유지), 사용자 명시적 `reading → shelved` 전환만 허용
+  - DB migration: `enforce_single_reading` 트리거/함수/부분 UNIQUE 인덱스 DROP, `(user_id, status)` 복합 인덱스 신설
+  - 공개 가시성 회귀 수정: 공개 책(`is_public=true`)의 reader list 정상 노출 확인
+  - SPEC-LIBRARY-001 in-place amendment: 정책 5.5(reading 단일) 철회 표시 + `partially_superseded_by: [SPEC-LIBRARY-002]`
 - **감정 기록 visibility `'private'`(나만 보기) 추가** (PR #173, SPEC-EMOTION-001 후속)
   - DB CHECK 확장 + RLS 정책 (`user_id = auth.uid()`) — 작성자만 조회 가능한 프라이빗 감정 기록 지원
   - 서재 책 비공개 (`is_public=false`) ↔ 감정 기록 기본 private 자동 연동 (프라이버시 기본값 일관성)
@@ -27,10 +34,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - **감정 기록 저장 UX 개선** — 저장 후 폼 초기화 + 타임라인 자동 갱신 (위 fix 항목 참조)
 - **DB 마이그레이션** (dev 적용 완료):
+  - `20240630000001_enforce_single_reading_policy.sql` 회수 (enforce_single_reading 트리거/함수/인덱스 DROP, idx_user_books_user_status 신설)
   - `20260726000001_emotion_records_visibility_private.sql` — visibility `'private'` 허용 (CHECK + 복합 CHECK)
   - `20260726000002_emotion_records_user_id_default.sql` — user_id DEFAULT `auth.uid()`
 
 ### Technical Notes
+- SPEC-LIBRARY-002: pgTAP 324 tests PASS (23 files, 신규 0022 15 tests 포함), 회귀 0건
 - jest 114개 PASS (emotion 91 + `[bookId]` 14 + BookCard 등)
 - typecheck PASS, 실기기 dev client 검증 완료
 - 발견된 회귀 (함정 기록): user_id NOT NULL + DEFAULT 누락 / queryKey 접두사 매칭 실패 / contentContainerStyle flex:1 스크롤 차단

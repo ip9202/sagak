@@ -2,7 +2,7 @@
 id: SPEC-LIBRARY-002
 title: "Parallel Reading Support (다중 독서 병행)"
 version: "0.2.0"
-status: draft
+status: completed
 created: 2026-07-27
 updated: 2026-07-27
 author: "강력쇠주먹"
