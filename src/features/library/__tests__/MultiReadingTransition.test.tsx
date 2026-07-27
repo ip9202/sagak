@@ -92,7 +92,6 @@ jest.mock('../useLibraryItem', () => ({
 import { useSession } from '../../../auth/useSession';
 import { getBookDetail } from '../../book/bookDetailApi';
 import {
-  getLibraryItem,
   updateStatus,
   updateProgress,
 } from '../libraryApi';
@@ -104,7 +103,6 @@ import {
 
 const mockedUseSession = useSession as jest.MockedFunction<typeof useSession>;
 const mockedGetBookDetail = getBookDetail as jest.MockedFunction<typeof getBookDetail>;
-const mockedGetLibraryItem = getLibraryItem as jest.MockedFunction<typeof getLibraryItem>;
 const mockedUseLibraryItem = useLibraryItem as jest.MockedFunction<typeof useLibraryItem>;
 const updateStatusMock = updateStatus as jest.MockedFunction<typeof updateStatus>;
 const updateProgressMock = updateProgress as jest.MockedFunction<typeof updateProgress>;

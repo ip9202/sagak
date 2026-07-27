@@ -177,6 +177,78 @@ describe('SPEC-CLUB-001 T-002: fetchActiveReaders', () => {
       expect(neqMock).not.toHaveBeenCalled();
     });
   });
+
+  // ============================================================================
+  // SPEC-LIBRARY-002 M4: 다중 reading 공개 가시성 회귀 (AC-LIB2-VIS-001)
+  // ============================================================================
+  // 요구: M1 이 enforce_single_reading 정책을 철회함에 따라 한 사용자가 다중 reading 보유 가능.
+  //       fetchActiveReaders 는 per-book 필터링(eq('book_id', X))이므로, 동일 사용자가
+  //       bookA·bookB 양쪽 리더 목록에 "각각 독립적으로" 노출되어야 한다 (단일 "대표 책" 축소 금지).
+  //
+  // @MX:ANCHOR: [AUTO] 다중 reading reader list 회귀 방어선 — per-book 필터링이 다중 reading 노출을 보장
+  // @MX:REASON: SPEC-LIBRARY-002 가 다중 reading 을 허용함에 따라, 공개 reader list 가
+  //             "한 사용자 = 한 책" 가정으로 회귀하지 않음을 영원히 보장. 회귀 시 사용자가
+  //             bookA 에서만 노출되고 bookB 리더 목록에서 사라지는 결함 발생.
+  describe('SPEC-LIBRARY-002 M4: 다중 reading reader list 회귀 (AC-LIB2-VIS-001)', () => {
+    /**
+     * 다중 reading 컨텍스트: 동일 사용자(u-multi)가 bookA·bookB 를 모두 public reading 보유.
+     * user_books_public 뷰는 per-book 으로 조회되므로, fetchActiveReaders('bookA') 와
+     * fetchActiveReaders('bookB') 는 각각 해당 책의 리더만 반환한다.
+     * 동일 사용자가 양쪽 조회에 모두 등장하는 것이 정상 동작 (회귀 방어).
+     *
+     * 체인: from().select().eq(book_id).eq(status) → 동일 eqMock 가 양쪽 호출 캡처 (beforeEach 패턴 준용).
+     */
+    function buildPerBookChain(rows: unknown[]) {
+      const final = { data: rows, error: null };
+      const orderMockLocal = jest.fn().mockResolvedValue(final);
+      // eqMockLocal 선언 후 mockReturnValue 설정 — 자기 참조 시 TDZ 회피 (beforeEach 패턴 준용).
+      // eq 는 자기 자신을 반환 — eq('book_id') 와 eq('status') 양쪽 호출을 하나의 mock 이 캡처.
+      const eqMockLocal = jest.fn();
+      eqMockLocal.mockReturnValue({ eq: eqMockLocal, order: orderMockLocal });
+      const selectMockLocal = jest.fn().mockReturnValue({ eq: eqMockLocal });
+      const fromMockLocal = jest.fn().mockReturnValue({ select: selectMockLocal });
+      (getSupabaseClient as jest.Mock).mockReturnValue({ from: fromMockLocal });
+      return { eqMockLocal, selectMockLocal, fromMockLocal, orderMockLocal };
+    }
+
+    it('한 사용자가 다중 reading 보유 시 fetchActiveReaders(bookA) 와 fetchActiveReaders(bookB) 양쪽에 독립 노출된다', async () => {
+      // bookA 리더 조회 — u-multi 포함
+      const chainA = buildPerBookChain([
+        { user_id: 'u-multi', book_id: 'bookA', current_page: 50, started_reading_at: '2026-06-01' },
+      ]);
+      await fetchActiveReaders('bookA');
+      expect(chainA.eqMockLocal).toHaveBeenCalledWith('book_id', 'bookA');
+      expect(chainA.eqMockLocal).toHaveBeenCalledWith('status', 'reading');
+
+      // bookB 리더 조회 — 동일 u-multi 가 다른 책 컨텍스트로 노출 (독립 필터링)
+      const chainB = buildPerBookChain([
+        { user_id: 'u-multi', book_id: 'bookB', current_page: 30, started_reading_at: '2026-06-15' },
+      ]);
+      const resultB = await fetchActiveReaders('bookB');
+      expect(chainB.eqMockLocal).toHaveBeenCalledWith('book_id', 'bookB');
+      // 다중 reading 회귀 방어: u-multi 가 bookB 리더 목록에도 노출 (단일 "대표 책" 축소 부재)
+      expect(resultB).toHaveLength(1);
+      expect(resultB[0].user_id).toBe('u-multi');
+      expect(resultB[0].book_id).toBe('bookB');
+    });
+
+    it('다중 reading 사용자의 book_id 는 조회 대상 bookId 와 일치한다 (교차 오염 부재)', async () => {
+      // fetchActiveReaders('bookA') 결과의 book_id 는 항상 'bookA' 여야 함 —
+      // 다중 reading 컨텍스트에서 다른 책이 섞여 들어가지 않음.
+      const chain = buildPerBookChain([
+        { user_id: 'u-multi', book_id: 'bookA', current_page: 50, started_reading_at: '2026-06-01' },
+        { user_id: 'u-other', book_id: 'bookA', current_page: 10, started_reading_at: '2026-06-02' },
+      ]);
+      const result = await fetchActiveReaders('bookA');
+
+      expect(chain.eqMockLocal).toHaveBeenCalledWith('book_id', 'bookA');
+      expect(result).toHaveLength(2);
+      // 모든 결과 행의 book_id 가 조회한 bookA 와 일치 (교차 오염 부재 — 다중 reading 회귀 방어)
+      for (const row of result) {
+        expect(row.book_id).toBe('bookA');
+      }
+    });
+  });
 });
 
 describe('SPEC-CLUB-001 T-003: resolveClubIdsForUsers', () => {
