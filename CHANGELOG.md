@@ -8,6 +8,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **모임 생성 책 선택 허브** (SPEC-CLUB-004)
+  - `/clubs/new` 게이트를 통합 북선택 허브로 재설계 — 단일 화면에 서재(reading+shelved) + 외부(Kakao) 검색 동시 렌더링
+  - "책 검색하기" 단일 CTA 제거 — 서재 아이템 탭 또는 외부 검색 결과 선택으로만 책 선택
+  - 서재 목록 필터: reading+shelved 표시, completed 제외 (완독한 책은 모임 생성 이유 없음)
+  - 외부 검색 dead-end fix — 모임 생성 컨텍스트에서 검색 결과 선택 시 `/[bookId]` 이탈 대신 모임 생성 폼으로 핸드오프 (`router.replace({params:{bookId}})`)
+  - 빈 서재 fallback — reading+shelved 0건 시 서재 섹션 생략 + 외부 검색 부각
+  - 허브 내 인라인 검색 (Option B) — 별도 `/search` 화면 이동 없음, standalone `/search` 동작 유지
+  - DB 스키마 변경 없음 — `clubs.book_id` ↔ `user_books.book_id` 동일 `books.id` 참조로 FK 호환성 확인됨
+  - Implementation files: `src/features/club/trackB/components/BookSelectionHub.tsx` (NEW, 375 lines), `app/(tabs)/clubs/new.tsx` (MODIFIED), 2 test files (NEW, 25 tests)
+  - 회귀 안전: standalone `/search`, `ClubCreateScreen`, `clubs.tsx`, SPEC-LIBRARY-002 다중 reading 모두 green 유지
+
+### Added
 - **병행 독서 지원 — enforce_single_reading 정책 철회** (SPEC-LIBRARY-002)
   - 메인 홈 화면에 reading 상태인 책 다중 표시 (기존: 단일 표시)
   - 각 BookCard에 독립적인 "기록하기" 버튼 추가 (기존 "오늘의 감정 기록하기" 헤더 CTA 제거)
