@@ -23,13 +23,8 @@ import {
   ScrollView,
   StyleSheet,
   Text,
-  TextInput,
   View,
 } from 'react-native';
-// @MX:NOTE: [AUTO] SPEC-UI-002 — 아이콘 라이브러리를 Feather(@expo/vector-icons)에서
-//           lucide-react-native 로 이관 (.pen library: "lucide" 준거).
-//           success→CircleCheck, warning→TriangleAlert, info→Info 컴포넌트 직접 매핑.
-import { CircleCheck, TriangleAlert, Info, type LucideIcon } from 'lucide-react-native';
 import { useTheme } from '../../theme/theme';
 import { typography, radius, borderWidth } from '../../theme/tokens';
 import { useRouter } from 'expo-router';
@@ -39,7 +34,6 @@ import { formatPublishedMonth } from './format';
 import type { BookRow } from '../../types/book';
 import { useLibraryItem } from '../library/useLibraryItem';
 import {
-  useUpdateProgress,
   useUpdateStatus,
   useUpdateVisibility,
   useDeleteBook,
@@ -47,7 +41,6 @@ import {
 } from '../library/useLibrary';
 import { ProgressBar } from '../../components/ProgressBar';
 import { calcProgressRate } from '../library/progressRate';
-import { validatePage } from '../library/progressValidation';
 import { getUserFriendlyMessage } from '../../lib/api/errors';
 import type { ReadingStatus } from '../library/types';
 
@@ -91,16 +84,6 @@ function mapErrorMessage(category: string | undefined, fallback: string): string
     default:
       return fallback;
   }
-}
-
-/**
- * 통일된 사용자 피드백 메시지 모델 (SPEC-UI-002).
- * 진행률 검증 메시지가 동일한 박스 UI 로 렌더된다.
- * 상태 변경 피드백은 Alert.alert 확인 다이얼로그로 대체되었다.
- */
-interface Feedback {
-  text: string;
-  kind: 'success' | 'info' | 'warning';
 }
 
 /**
@@ -150,55 +133,7 @@ function statusAlertContent(
   }
 }
 
-// @MX:NOTE: [AUTO] SPEC-UI-002 — 피드백 박스 kind 별 lucide 아이콘 컴포넌트 매핑.
-//           Feather(check-circle/alert-triangle/info) → lucide(CircleCheck/TriangleAlert/Info) 이관.
-const FEEDBACK_ICON: Record<Feedback['kind'], LucideIcon> = {
-  success: CircleCheck,
-  warning: TriangleAlert,
-  info: Info,
-};
 
-/**
- * @MX:ANCHOR: [AUTO] FeedbackBox — 통일된 피드백 메시지 박스 (SPEC-UI-002)
- * @MX:REASON: 진행률 검증·상태 변경·완독 처리 세 곳에서 동일 박스 UI 로 렌더되어야 한다.
- *            스타일/아이콘/색상 매핑이 한 곳에서 변경되지 않으면 메시지 UI 가 분산되어 사용자 경험이 깨진다.
- */
-function FeedbackBox({
-  feedback,
-  theme,
-  testID,
-}: {
-  feedback: Feedback;
-  theme: ReturnType<typeof useTheme>;
-  testID: string;
-}) {
-  const tc = theme.colors;
-  const color =
-    feedback.kind === 'success'
-      ? tc.semantic.success
-      : feedback.kind === 'warning'
-        ? tc.semantic.warning
-        : tc.semantic.info;
-  return (
-    <View
-      testID={testID}
-      style={[
-        styles.feedbackBox,
-        {
-          backgroundColor: tc.bg.muted,
-          borderRadius: theme.radius.md,
-          borderLeftColor: color,
-        },
-      ]}
-    >
-      {(() => {
-        const Icon = FEEDBACK_ICON[feedback.kind];
-        return <Icon size={16} color={color} />;
-      })()}
-      <Text style={[styles.feedbackText, { color }]}>{feedback.text}</Text>
-    </View>
-  );
-}
 
 /**
  * @MX:ANCHOR: [AUTO] BookDetailScreen — 도서 상세 화면 공개 컴포넌트
@@ -225,49 +160,13 @@ export const BookDetailScreen: React.FC<BookDetailScreenProps> = ({
   // --- SPEC-LIBRARY-001 TASK-010: 서재 데이터 + mutation hooks ---
   const libraryItemQuery = useLibraryItem({ bookId, userId });
   const libraryItem = libraryItemQuery.data ?? null;
-  const updateProgressMutation = useUpdateProgress({ userId });
   const updateStatusMutation = useUpdateStatus({ userId });
   const updateVisibilityMutation = useUpdateVisibility({ userId });
   const deleteBookMutation = useDeleteBook({ userId });
   // SPEC-LIBRARY-001: 서재에 추가 — 미등록 책(libraryItem null) 진입점 (REQ-LIB-001/002/032)
   const addBookMutation = useAddBook({ userId });
 
-  // 진행률 입력 로컬 상태 (검증 메시지 표시용)
-  const [progressDraft, setProgressDraft] = useState<string>('');
-  // @MX:NOTE: [AUTO] SPEC-UI-002 — 진행률 검증 메시지는 인라인 FeedbackBox 로 렌더.
-  //           상태 변경 피드백은 Alert.alert 확인 다이얼로그로 대체하여 statusMessage state 는 제거됨.
-  const [progressMessage, setProgressMessage] = useState<Feedback | null>(null);
-  // @MX:NOTE: [AUTO] book 참조를 상위로 끌어올려 mutation 핸들러가 total_pages 에 접근.
   const book = state.book;
-  // libraryItem 이 로드되면 입력란 초기값 세팅
-  useEffect(() => {
-    if (libraryItem) {
-      setProgressDraft(String(libraryItem.current_page ?? 0));
-    }
-  }, [libraryItem?.id, libraryItem?.current_page]);
-
-  // 진행률 제출: 검증 후 mutation
-  const handleSubmitProgress = () => {
-    if (!libraryItem) return;
-    const parsed = Number(progressDraft);
-    if (Number.isNaN(parsed)) {
-      setProgressMessage({ text: '숫자를 입력해 주세요.', kind: 'warning' });
-      return;
-    }
-    const totalPages = book?.total_pages ?? null;
-    const validationError = validatePage(parsed, totalPages);
-    if (validationError) {
-      // @MX:NOTE: [AUTO] validatePage 메시지(한국어) 를 그대로 노출 — 음수/초과 케이스
-      setProgressMessage({ text: validationError.message, kind: 'warning' });
-      return;
-    }
-    setProgressMessage(null);
-    updateProgressMutation.mutate({
-      id: libraryItem.id,
-      currentPage: parsed,
-      totalPages: totalPages ?? undefined,
-    });
-  };
 
   /**
    * @MX:ANCHOR: [AUTO] handleStatusChange — 상태 탭 클릭 시 Alert.alert 확인 후 상태 변경
@@ -550,49 +449,22 @@ export const BookDetailScreen: React.FC<BookDetailScreenProps> = ({
             />
           )}
 
-          {/* 진행률 입력 */}
+          {/* 책갈피 — 현재 페이지 (읽기 전용 표시). 진행률 업데이트는 감정 기록 저장 시 자동 경로로만. */}
           <View style={styles.progressInputRow}>
-            <TextInput
-              testID="progress-input"
-              value={progressDraft}
-              onChangeText={setProgressDraft}
-              onSubmitEditing={handleSubmitProgress}
-              keyboardType="numeric"
+            <Text
+              testID="current-page-display"
               accessibilityLabel="현재 페이지"
               style={[
                 styles.progressInput,
                 {
                   color: tc.text.primary,
-                  borderColor: tc.border.default,
                   borderRadius: theme.radius.md,
                 },
               ]}
-            />
-            <Pressable
-              testID="progress-submit"
-              onPress={handleSubmitProgress}
-              style={[
-                styles.progressSubmitBtn,
-                {
-                  backgroundColor: tc.brand[500],
-                  borderRadius: theme.radius.md,
-                },
-              ]}
-              accessibilityRole="button"
-              accessibilityLabel="진행률 저장"
             >
-              <Text style={[styles.progressSubmitText, { color: tc.text.inverse }]}>
-                저장
-              </Text>
-            </Pressable>
+              현재 {currentPage ?? 0}페이지{totalPages ? ` / ${totalPages}페이지` : ''}
+            </Text>
           </View>
-          {progressMessage && (
-            <FeedbackBox
-              feedback={progressMessage}
-              theme={theme}
-              testID="progress-message"
-            />
-          )}
 
           {/* status 선택 */}
           <View style={styles.statusRow}>
@@ -831,22 +703,6 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     ...typography.bodyMd,
   },
-  progressSubmitBtn: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-  },
-  // @MX:NOTE: [AUTO] SPEC-UI-002 book-auth-tokenization — ctaLabel(14/600/22) 토큰 적용.
-  progressSubmitText: { ...typography.ctaLabel },
-  // @MX:NOTE: [AUTO] SPEC-UI-002 — 통일 피드백 박스 스타일 (진행률/상태/완독 메시지 공유).
-  feedbackBox: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    padding: 12,
-    borderLeftWidth: 3,
-  },
-  // @MX:NOTE: [AUTO] SPEC-UI-002 book-auth-tokenization — caption(12/400/17) 토큰 적용.
-  feedbackText: { ...typography.caption, flex: 1 },
   statusRow: {
     gap: 8,
   },
