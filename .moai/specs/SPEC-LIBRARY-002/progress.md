@@ -97,18 +97,18 @@ tier: M
 ## §E.4 Sync-phase Audit-Ready Signal
 
 - `sync_complete_at`: 2026-07-27
-- `sync_commit_sha`: _<pending sync-phase backfill — 본 sync commit의 SHA>_
+- `sync_commit_sha`: b4dbb4a
 - `sync_status`: completed (3-phase close: plan → run → sync)
 - `changelog_entry_position`: `[Unreleased]` Added 섹션 — "병행 독서 지원 — enforce_single_reading 정책 철회, 메인 다중 reading 표시, 각 BookCard 기록 버튼, 상태 전환 비배타, 공개 가시성 회귀 수정"
 - `frontmatter_status_transitions`:
   - SPEC-LIBRARY-002: `draft → in-progress → completed` (merged 3-phase close on single sync commit)
   - SPEC-LIBRARY-001: `completed → in-progress (amendment) → completed` (D-NEW-1 in-place amendment via manager-spec, sync-phase에서 본 SPEC-LIBRARY-002 sync commit에 통합)
-- `amendment_commit_sha`: _<pending sync-phase backfill — SPEC-LIBRARY-001 amendment SHA (manager-spec가 별도 커밋으로 수행했을 가능성 있음; git log로 확인 후 backfill)>_
+- `amendment_commit_sha`: b4dbb4a (SPEC-LIBRARY-001 amendment은 본 sync commit에 통합됨)
 - `canary_compliance_check`:
   - SPEC-LIBRARY-002 frontmatter `status: completed` ✅
   - SPEC-LIBRARY-001 amendment (정책 5.5 RESCINDED 표시, `partially_superseded_by: [SPEC-LIBRARY-002]`) ✅
   - CHANGELOG.md [Unreleased] Added 섹션에 본 SPEC entry 존재 ✅
-  - spec-compact.md 생성 (SPEC-LIBRARY-002) ✅
+  - spec-compact.md 생성 (SPEC-LIBRARY-002) + SPEC-LIBRARY-001 spec-compact.md amendment 기록 ✅
 
 ---
 
