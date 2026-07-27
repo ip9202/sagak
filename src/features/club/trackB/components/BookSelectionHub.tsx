@@ -169,6 +169,7 @@ export const BookSelectionHub: React.FC<BookSelectionHubProps> = ({
         <View testID="hub-library-section" style={styles.librarySection}>
           <Text
             style={[styles.sectionLabel, { color: tc.text.secondary, ...typography.sectionLabel }]}
+            accessibilityRole="header"
           >
             내 서재
           </Text>
@@ -203,6 +204,7 @@ export const BookSelectionHub: React.FC<BookSelectionHubProps> = ({
       >
         <Text
           style={[styles.searchLabel, { color: tc.text.primary, ...typography.headingSm }]}
+          accessibilityRole="header"
         >
           {hasLibraryItems ? '또는 외부에서 책 검색' : '책 검색으로 시작하기'}
         </Text>
@@ -242,6 +244,7 @@ export const BookSelectionHub: React.FC<BookSelectionHubProps> = ({
             ]}
             accessibilityRole="button"
             accessibilityLabel="책 검색"
+            accessibilityHint="입력한 검색어로 외부 도서를 검색합니다."
           >
             <Text style={[styles.submitText, { color: tc.text.inverse, ...typography.ctaLabel }]}>
               검색

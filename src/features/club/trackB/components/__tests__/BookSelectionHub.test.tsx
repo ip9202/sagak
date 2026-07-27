@@ -367,3 +367,49 @@ describe('SPEC-CLUB-004 M2: 외부 검색 핸드오프 (허브 내 인라인 검
     });
   });
 });
+
+// ---------------------------------------------------------------------------
+// M3: 빈 상태 강조 + 접근성 polish (characterization)
+// ---------------------------------------------------------------------------
+
+describe('SPEC-CLUB-004 M3: 빈 상태 강조 + 접근성 polish', () => {
+  it('AC-013: 빈 서재일 때 검색 섹션 라벨이 "시작하기" 강조로 변경된다', () => {
+    stubLibrary({ reading: [], shelved: [] });
+    const { getByText } = renderHub();
+
+    // 빈 서재 → 검색이 1차 선택지 (시각적 부각 라벨)
+    expect(getByText('책 검색으로 시작하기')).toBeTruthy();
+  });
+
+  it('AC-013: 서재에 책이 있으면 검색 섹션 라벨이 "또는" 보조 라벨로 표시된다', () => {
+    stubLibrary({ reading: [makeItem('b1', 'reading')], shelved: [] });
+    const { getByText, queryByText } = renderHub();
+
+    expect(getByText('또는 외부에서 책 검색')).toBeTruthy();
+    expect(queryByText('책 검색으로 시작하기')).toBeNull();
+  });
+
+  it('서재 섹션이 외부 검색 섹션보다 먼저(상단) 렌더링된다 (사용자 요구: 서재 먼저)', () => {
+    stubLibrary({ reading: [makeItem('b-first', 'reading')], shelved: [] });
+    const { getByTestId, getByText } = renderHub();
+
+    // 두 섹션 모두 존재 + 서재 섹션 라벨("내 서재")이 렌더링됨 (구현 순서: library → search)
+    expect(getByTestId('hub-library-section')).toBeTruthy();
+    expect(getByTestId('hub-search-section')).toBeTruthy();
+    expect(getByText('내 서재')).toBeTruthy();
+  });
+
+  it('로딩 중에는 빈 상태(0건) UI가 렌더링되지 않는다 (메모리 #37 race 회피)', () => {
+    stubLibrary({
+      readingLoading: true,
+      shelvedLoading: true,
+      reading: [],
+      shelved: [],
+    });
+    const { getByTestId, queryByTestId } = renderHub();
+
+    expect(getByTestId('hub-library-loading')).toBeTruthy();
+    // 로딩 중에는 라이브러리 섹션/빈 상태 미렌더
+    expect(queryByTestId('hub-library-section')).toBeNull();
+  });
+});
