@@ -366,6 +366,28 @@ describe('SPEC-CLUB-004 M2: 외부 검색 핸드오프 (허브 내 인라인 검
       expect(getByTestId('hub-search-empty')).toBeTruthy();
     });
   });
+
+  it('빈 검색어 제출 시 VALIDATION 에러를 표시하고 searchBooks 를 호출하지 않는다', () => {
+    const { getByTestId } = renderHub();
+
+    // 검색어 입력 없이 제출
+    fireEvent.press(getByTestId('hub-search-submit'));
+
+    expect(getByTestId('hub-search-error')).toBeTruthy();
+    expect(mockSearchBooks).not.toHaveBeenCalled();
+  });
+
+  it('searchBooks 실패 시 에러 메시지를 표시한다', async () => {
+    mockSearchBooks.mockRejectedValue(new Error('네트워크 오류'));
+    const { getByTestId } = renderHub();
+
+    fireEvent.changeText(getByTestId('hub-search-input'), '에러검색');
+    fireEvent.press(getByTestId('hub-search-submit'));
+
+    await waitFor(() => {
+      expect(getByTestId('hub-search-error')).toBeTruthy();
+    });
+  });
 });
 
 // ---------------------------------------------------------------------------
