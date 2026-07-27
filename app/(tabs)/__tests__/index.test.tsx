@@ -7,7 +7,7 @@
  * - 알림 설정 시 동적 문구("매일 HH:MM에 알려드릴게요")
  * - 읽는중 책 존재 시 BookCard 렌더링
  * - 읽는중 책 없을 때 빈 상태(검색 진입) 렌더링
- * - CTA "오늘의 감정 기록하기" 네비게이션 (책 유무 분기)
+ * - SPEC-LIBRARY-002 M2: 기존 단일 전체폭 CTA 제거 — 각 BookCard "기록하기" 버튼으로 일원화 (사용자 합의 #2)
  *
  * @jest-environment jsdom
  */
@@ -288,34 +288,28 @@ describe('SPEC-NAV-001 홈 탭: F03-Home 렌더링', () => {
     });
   });
 
-  describe('CTA "오늘의 감정 기록하기"', () => {
-    it('CTA 텍스트를 렌더링한다', () => {
-      const { getByText } = renderTab(createTestQueryClient());
-      expect(getByText('오늘의 감정 기록하기')).toBeTruthy();
+  describe('SPEC-LIBRARY-002 M2: 감정 기록 진입 (각 BookCard "기록하기" 버튼)', () => {
+    it('기존 단일 전체폭 CTA 텍스트는 더 이상 렌더링되지 않는다 (사용자 합의 #2)', () => {
+      const { queryByText } = renderTab(createTestQueryClient());
+      expect(queryByText('오늘의 감정 기록하기')).toBeNull();
     });
 
-    it('읽는중 책이 있으면 CTA 누를 때 책 상세 라우트로 이동한다', async () => {
+    it('읽는중 책의 "기록하기" 버튼 누르면 /emotion/[bookId] 로 이동한다', async () => {
       mockedUseLibrary.mockReturnValue({
         data: [sampleReadingItem],
         isLoading: false,
         isError: false,
         error: null,
       } as any);
-      const { getByText } = renderTab(createTestQueryClient());
-      const cta = getByText('오늘의 감정 기록하기');
-      fireEvent.press(cta);
-      expect(mockPush).toHaveBeenCalledWith(
-        expect.objectContaining({
-          pathname: '/emotion/[bookId]',
-          params: { bookId: 'b-1' },
-        }),
+      const { getByTestId } = renderTab(createTestQueryClient());
+      const recordBtn = await waitFor(() =>
+        getByTestId('home-reading-record-b-1'),
       );
-    });
-
-    it('읽는중 책이 없으면 CTA 누를 때 /search 로 이동한다', () => {
-      const { getByText } = renderTab(createTestQueryClient());
-      fireEvent.press(getByText('오늘의 감정 기록하기'));
-      expect(mockPush).toHaveBeenCalledWith('/search');
+      fireEvent.press(recordBtn);
+      expect(mockPush).toHaveBeenCalledWith({
+        pathname: '/emotion/[bookId]',
+        params: { bookId: 'b-1' },
+      });
     });
   });
 });

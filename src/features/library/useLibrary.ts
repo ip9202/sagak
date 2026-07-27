@@ -6,15 +6,24 @@
  * - status 필터를 getLibrary 에 그대로 전달한다
  * - 정렬(last_progress_at DESC, 정책 5.2) 은 getLibrary 가 DB order 로 담당한다
  *
+ * 다중 reading 지원 (SPEC-LIBRARY-002, 정책 5.5 RESCINDED):
+ * - 한 사용자가 0/1/N 권의 status='reading' 행을 보유할 수 있다 (DB enforce_single_reading 정책 철회).
+ * - 본 훅은 status='reading' 필터 시 다중 행을 그대로 반환하며, 홈(tabs)/index 가 다중 표시를 담당한다.
+ * - status 기본값은 'shelved' 를 유지한다 (사용자 명시 전환 전까지 보관 상태 — 변경 없음).
+ * - 로딩 상태 분기(REQ-LIB2-014): isLoading === true 시 소비측에서 스켈레톤/스피너를 렌더링해야 한다.
+ *
  * queryKey: ['library', { userId, status }] — status 별로 캐시를 분리한다.
+ *           단일 항목(useLibraryItem) 포함 모든 서재 캐시는 libraryRootKey(userId) 하위에 위치하므로
+ *           invalidateQueries / getQueriesData 가 하나의 접두사로 목록+단일을 모두 커버한다 (메모리 #35).
  *
  * mutation (REQ-LIB-013):
  * - onMutate: 캐시 optimistic 갱신 (이전값 스냅샷 저장)
  * - onError: 스냅샷으로 롤백
  * - onSuccess: invalidateQueries 로 서버 정합성 보정
  *
- * @MX:NOTE: [AUTO] 서재 조회/뮤테이션 캐싱/로딩/에러/optimistic 상태의 단일 진입점. LibraryScreen(LIBRARY) 과 BookDetail 의 서재 섹션 확장(BOOK) 이 소비한다.
+ * @MX:NOTE: [AUTO] 서재 조회/뮤테이션 캐싱/로딩/에러/optimistic 상태의 단일 진입점. LibraryScreen(LIBRARY) 과 BookDetail 의 서재 섹션 확장(BOOK), 홈(tabs)/index 다중 reading 표시가 소비한다.
  * @MX:SPEC SPEC-LIBRARY-001
+ * @MX:SPEC SPEC-LIBRARY-002
  */
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
@@ -278,7 +287,8 @@ export interface AddBookMutationInput {
 
 /**
  * 서재에 책 추가 mutation (REQ-LIB-001 / REQ-LIB-002).
- * - 기본 status='shelved' (정책 5.5 — reading 단일), current_page=0, is_public=true (DB default 의존)
+ * - 기본 status='shelved' (사용자 명시 전환 전 보관 상태 — 정책 5.5 reading 단일 제약은 SPEC-LIBRARY-002 로 철회됨, 다중 reading 허용)
+ * - current_page=0, is_public=true (DB default 의존)
  * - UNIQUE(user_id, book_id) 위반 → AppError category='VALIDATION', code='23505'
  *   (libraryApi.addBook → normalizeError → classifyError 경유, HTTP 409 아님에 주의)
  *
