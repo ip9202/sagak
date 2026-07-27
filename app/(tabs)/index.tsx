@@ -3,11 +3,13 @@
  *
  * 3계층 레이아웃 (SPEC-UI-002 REQ-SCREEN-LAYOUT):
  *  1. 헤더 — "오늘의 독서" 타이틀 + 알림종 아이콘
- *  2. 본문 — AlarmCard(따뜻한 리마인더) + SectionLabel + CurrentBook(BookCard/빈상태) + CTA
+ *  2. 본문 — AlarmCard(따뜻한 리마인더) + SectionLabel + 다중 reading BookCard 목록(빈 상태 분기)
  *
  * 데이터 흐름:
  *  - useSession: 미인증/로딩(null) 시 빈 userId → 쿼리 비활성화
- *  - useLibrary({status:'reading'}): 첫 항목을 CurrentBook 으로 표시
+ *  - useLibrary({status:'reading'}): 다중 reading 목록 전체 표시 (SPEC-LIBRARY-002 M2).
+ *    정렬(last_progress_at DESC)은 libraryApi.getLibrary 가 서버 쿼리에서 담당하므로
+ *    본 화면은 반환된 배열 순서를 그대로 렌더링한다.
  *  - useAlarmSettings: alarm_enabled && alarm_time 시 동적 카피("매일 HH:MM에 알려드릴게요")
  *
  * SPEC-UI-002 준수:
@@ -18,8 +20,16 @@
  *
  * 비과시 원칙(SPEC-UI-002 FROZEN): 좋아요/팔로워/랭킹 표시 없음.
  *
- * @MX:NOTE: [AUTO] 홈 탭 화면 — session/library/alarmSettings 훅 결합. 읽는중 책 유무에 따라 CurrentBook/EmptyState 분기.
+ * SPEC-LIBRARY-002 M2 (다중 reading 지원, 사용자 합의 #2):
+ *  - 기존 단일 전체폭 감정 기록 CTA 제거 — 각 BookCard 의 "기록하기" 버튼으로 일원화.
+ *  - reading 목록은 0/1/N 권 모두 다중 표시. 각 항목의 "기록하기" 버튼은
+ *    /emotion/[bookId] 로 bookId 를 개별 전달한다.
+ *
+ * @MX:NOTE: [AUTO] 홈 탭 화면 — session/library/alarmSettings 훅 결합. reading 다중 표시 + 로딩/빈 상태 분기.
+ * @MX:ANCHOR: [AUTO] 다중 reading "기록하기" 버튼 → /emotion/[bookId] 진입 — fan_in 다수(각 읽는 책마다 1개).
+ * @MX:REASON: 각 BookCard 의 감정 기록 진입이 단일 CTA 가 아닌 카드 단위로 분산되며, bookId 격리가 UI 계약이 된다.
  * @MX:SPEC SPEC-NAV-001
+ * @MX:SPEC SPEC-LIBRARY-002
  */
 import React from 'react';
 import {
@@ -39,7 +49,6 @@ import { useSession } from '../../src/auth/useSession';
 import { useLibrary } from '../../src/features/library/useLibrary';
 import { useAlarmSettings } from '../../src/features/routine/useAlarmSettings';
 import { BookCard } from '../../src/components/BookCard';
-import { Button } from '../../src/components/Button';
 import { AlarmCard } from '../../src/components/AlarmCard';
 
 // 알림 미설정 시 기본 따뜻한 카피 (브랜드 보이스: 다정하고 위압 없는 톤).
@@ -76,8 +85,8 @@ export default function HomeTab(): React.JSX.Element {
   const { data: alarmSettings } = useAlarmSettings();
 
   // @MX:NOTE: [AUTO] 미인증/세션 로딩(useSession null) 시 빈 userId → 쿼리 비활성화. 인증 복구 후 자동 활성화.
-  const currentBook = readingList?.[0];
-  const hasCurrentBook = Boolean(currentBook);
+  // readingList 는 libraryApi.getLibrary 가 last_progress_at DESC 로 서버 정렬해 반환 — 본 화면은 배열 순서 그대로 다중 표시.
+  const hasReadings = Boolean(readingList && readingList.length > 0);
 
   // 알림 설정 동적 카피 — alarm_enabled && alarm_time 일 때만 시간 표시.
   const alarmTime = alarmSettings?.alarm_enabled
@@ -178,7 +187,7 @@ export default function HomeTab(): React.JSX.Element {
           subtitle={alarmSubtitle}
         />
 
-        {/* 지금 읽는 책 섹션 */}
+        {/* 지금 읽는 책 섹션 — SPEC-LIBRARY-002 M2: 0/1/N 권 다중 표시 */}
         <View style={[styles.section, { gap: theme.spacing[2] }]}>
           <Text
             style={[
@@ -190,20 +199,64 @@ export default function HomeTab(): React.JSX.Element {
           </Text>
 
           {isLoading ? (
+            // AC-LIB2-UI-008: 로딩 중 스켈레톤/스피너 — 빈 상태 UI 와 분기 분리.
             <View
+              testID="home-reading-loading"
               style={[styles.bookSlot, { paddingVertical: theme.spacing[6] }]}
             >
               <ActivityIndicator color={theme.colors.brand[500]} />
             </View>
-          ) : hasCurrentBook && currentBook?.books ? (
-            <BookCard
-              testID="home-current-book"
-              title={currentBook.books.title}
-              author={currentBook.books.author}
-              currentPage={currentBook.current_page ?? 0}
-              totalPages={currentBook.books.total_pages ?? 0}
-              coverUri={currentBook.books.cover_url ?? undefined}
-            />
+          ) : hasReadings && readingList ? (
+            // 다중 reading BookCard 목록 — last_progress_at DESC(서버 정렬) 배열 순서대로 표시.
+            // 각 카드의 "기록하기" 버튼은 /emotion/[bookId] 로 bookId 개별 전달 (사용자 합의 #2).
+            <View style={[styles.readingList, { gap: theme.spacing[3] }]}>
+              {readingList.map((item) => {
+                if (!item.books) return null;
+                const bookId = item.books.id;
+                return (
+                  <BookCard
+                    key={item.id}
+                    testID={`home-reading-card-${bookId}`}
+                    title={item.books.title}
+                    author={item.books.author}
+                    currentPage={item.current_page ?? 0}
+                    totalPages={item.books.total_pages ?? 0}
+                    coverUri={item.books.cover_url ?? undefined}
+                    rightAccessory={
+                      <Pressable
+                        testID={`home-reading-record-${bookId}`}
+                        onPress={() =>
+                          router.push({
+                            pathname: '/emotion/[bookId]',
+                            params: { bookId },
+                          })
+                        }
+                        accessibilityRole="button"
+                        accessibilityLabel={`'${item.books.title}' 감정 기록하기`}
+                        style={[
+                          styles.recordCta,
+                          {
+                            backgroundColor: theme.colors.brand[500],
+                            borderRadius: theme.radius.md,
+                            paddingVertical: theme.spacing[2],
+                            paddingHorizontal: theme.spacing[4],
+                          },
+                        ]}
+                      >
+                        <Text
+                          style={[
+                            theme.typography.label,
+                            { color: theme.colors.text.inverse },
+                          ]}
+                        >
+                          기록하기
+                        </Text>
+                      </Pressable>
+                    }
+                  />
+                );
+              })}
+            </View>
           ) : (
             <View
               style={[
@@ -260,27 +313,6 @@ export default function HomeTab(): React.JSX.Element {
             </View>
           )}
         </View>
-
-        {/* CTA — 읽는중 책이 있으면 책 상세, 없으면 검색으로 이동 */}
-        {/* @MX:NOTE: [AUTO] Button 컴포넌트가 testID prop 을 지원하지 않아(하드코딩 "button") 텍스트로 식별. */}
-        <Button
-          variant="primary"
-          accessibilityLabel="오늘의 감정 기록하기"
-          onPress={() => {
-            if (hasCurrentBook && currentBook?.books) {
-              // SPEC-EMOTION-001 P1-B — 감정 입력/타임라인 통합 라우트로 직접 진입
-              router.push({
-                pathname: '/emotion/[bookId]',
-                params: { bookId: currentBook.books.id },
-              });
-            } else {
-              // 읽는중 책이 없으면 먼저 책을 추가하도록 검색으로 안내.
-              router.push('/search');
-            }
-          }}
-        >
-          오늘의 감정 기록하기
-        </Button>
       </ScrollView>
     </View>
   );
@@ -300,6 +332,14 @@ const styles = StyleSheet.create({
   },
   section: {
     flexDirection: 'column',
+  },
+  // 다중 reading 카드 목록 컨테이너 — FlatList 대신 ScrollView + map 패턴 (메모리 #36 회피).
+  readingList: {
+    flexDirection: 'column',
+  },
+  // 각 BookCard 우측 "기록하기" 버튼 — rightAccessory 슬롯에 배치.
+  recordCta: {
+    alignSelf: 'center',
   },
   bookSlot: {
     alignItems: 'center',

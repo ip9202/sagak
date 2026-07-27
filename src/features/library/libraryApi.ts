@@ -8,7 +8,10 @@
  * 정책 (SPEC 5.1~5.5):
  * - 정렬: last_progress_at DESC (5.2)
  * - 삭제: 단일 항목만, 자식 데이터(emotion_records 등) 가 있으면 DB FK 가 차단 (5.3)
- * - addBook 기본 status: 'shelved', reading 단일 보장은 DB enforce_single_reading 트리거가 담당 (5.5)
+ * - addBook 기본 status: 'shelved'. 과거 정책 5.5(reading 단일)은 SPEC-LIBRARY-002 로
+ *   철회됨(RESCINDED) — DB enforce_single_reading 트리거/함수/부분 UNIQUE 인덱스는
+ *   SPEC-LIBRARY-002 M1 migration 으로 DROP 되었으며, 한 사용자가 다수의 reading 행을
+ *   보유할 수 있다.
  */
 import { getSupabaseClient } from '../../lib/supabase/client';
 import { normalizeError } from '../../lib/api/errors';
@@ -30,9 +33,14 @@ const LIBRARY_SELECT = '*, books(id,title,author,cover_url,total_pages)';
 /**
  * user_books 에 새 항목을 INSERT 한다.
  *
- * 기본 status: 'shelved' (정책 5.5 — reading 단일). 서재 추가는 보관 상태로 시작하며,
- * 사용자가 "읽기 시작"을 명시해야 reading 으로 전환된다. DB enforce_single_reading 트리거가
- * reading 단일(한 사용자 1개)을 보장한다.
+ * 기본 status: 'shelved'. 서재 추가는 보관 상태로 시작하며, 사용자가 "읽기 시작"을
+ * 명시해야 reading 으로 전환된다.
+ *
+ * 다중 reading 지원 (SPEC-LIBRARY-002, 정책 5.5 RESCINDED): 과거 enforce_single_reading
+ * 트리거가 한 사용자 reading 행을 1개로 제한했으나, 본 정책은 SPEC-LIBRARY-002 M1
+ * migration 으로 철회되었다. 이제 한 사용자가 0/1/N 개의 status='reading' 행을 보유할 수
+ * 있다. 본 함수는 단일 항목 INSERT 만 담당하며 reading 단일 제약은 부과하지 않는다.
+ *
  * UNIQUE(book_id, user_id) 위반(23505) → VALIDATION (이미 등록된 책).
  *
  * @returns 생성된 user_books 행

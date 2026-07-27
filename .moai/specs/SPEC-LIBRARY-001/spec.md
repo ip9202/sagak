@@ -1,17 +1,21 @@
 ---
-# 8-field frontmatter (SPEC-DB-001 형식 준수)
+# 8-field frontmatter (SPEC-DB-001 형식 준수) + amendment 메타데이터
 id: SPEC-LIBRARY-001
 title: "Personal Library Management"
-version: "1.0.0"
+version: "1.0.1"
 status: completed
 created: 2026-06-14
-updated: 2026-06-16
+updated: 2026-07-27
 completed: 2026-06-16
 author: "강력쇠주먹"
 priority: high
 issue_number: 0
 labels: [library, user-books, progress-tracking, reading-status, visibility, crud, domain]
+amendment_of: SPEC-LIBRARY-001
+partially_superseded_by: [SPEC-LIBRARY-002]
 ---
+
+> **Amendment 공지 (2026-07-27)**: 본 SPEC은 정책 5.5(reading 단일 보장) 영역이 후속 SPEC `SPEC-LIBRARY-002`에 의해 부분 철회되었다. 본문 내 `(RESCINDED by SPEC-LIBRARY-002)` 표시를 따라갈 것. 상세는 § HISTORY `### Amendments` 참조. CRUD/진도 추적/공개 토글 등 나머지 영역은 본 SPEC이 여전히 단일 진실 원천이다.
 
 # SPEC-LIBRARY-001: 개인 서재 관리
 
@@ -20,6 +24,28 @@ labels: [library, user-books, progress-tracking, reading-status, visibility, cru
 | 날짜 | 버전 | 변경 내용 | 작성자 |
 |------|------|-----------|--------|
 | 2026-06-14 | 1.0.0 | 최초 작성 — 서재 CRUD, 진도 추적, 독서 상태 관리, 공개/비공개 설정 정의 | 강력쇠주먹 |
+| 2026-07-27 | 1.0.1 | in-place amendment — 정책 5.5(reading 단일) 철회 표시 (RESCINDED by SPEC-LIBRARY-002). REQ-LIB-020 각서·REQ-LIB-023 자동 배타 묘사·제외 범위 7 예외 구문 철회 표시. frontmatter `amendment_of` + `partially_superseded_by: [SPEC-LIBRARY-002]` 선언 | 강력쇠주먹 |
+
+### Amendments (in-place amendment at sync-phase per D-NEW-1)
+
+본 SPEC(`SPEC-LIBRARY-001`)은 **in-place amendment** 처리되었다. v1.0.0 completed 상태에서 정책 5.5(reading 단일 보장) 영역이 후속 SPEC `SPEC-LIBRARY-002`에 의해 부분 철회되었다. 본 amendment는 철회 사실을 선행 SPEC 본문에 기록하여 문서 일관성을 유지한다.
+
+- **amendment 종류**: in-place amendment (자기 참조, `amendment_of: SPEC-LIBRARY-001`)
+- **prior completed version**: SPEC-LIBRARY-001 v1.0.0 (2026-06-16 completed; 정책 5.5는 2026-06-30 추가 반영)
+- **prior_completed_sha**: `350e7f0` (full: `350e7f097891d9e58ad2270e10964cc078b91dae` — `feat(library): SPEC-LIBRARY-001 reading 단일 정책 (정책 5.5) (#102)`, 2026-06-30)
+- **superseding SPEC**: `SPEC-LIBRARY-002` (v0.2.0 plan-phase, sync-phase에서 본 amendment와 동시 머지 예정)
+- **amendment rationale**: SPEC-LIBRARY-001 정책 5.5(reading 단일 보장)가 실제 사용자 행동(다중 책 병행 독서)과 충돌함이 사용자 보고로 확인됨. 단일 reading 제약은 제품 가정 오류로 판명되었고, 무제한 병행 reading을 허용하도록 SPEC-LIBRARY-002가 정책을 철회한다. 본 amendment는 철회 사실을 선행 SPEC 본문에 in-place로 기록한다.
+- **amendment scope (본 amendment로 표시된 영역 / REQ IDs)**:
+  - `정책 5.5` "reading 단일 정책 — 해결됨 (2026-06-30 채택)" → `(RESCINDED by SPEC-LIBRARY-002)`로 상태 전환 + 철회 사유/일자 기록 (§ 5.5)
+  - `REQ-LIB-020` 본문 내 "정책 5.5 (reading 단일)" 각서 → 철회 표시 (REQ-LIB-020)
+  - `REQ-LIB-023` — "자동 shelved 배타 전환" 묘사 철회 표시 (REQ-LIB-023; 사용자 명시적 `reading → shelved` 전환만 허용, 자동 배타 없음)
+  - `제외 범위 7`의 "예외 (정책 5.5)" 문구 → 철회 표시 (스키마 변경은 SPEC-LIBRARY-002가 주도)
+  - frontmatter `amendment_of: SPEC-LIBRARY-001` + `partially_superseded_by: [SPEC-LIBRARY-002]` 선언
+- **partially_superseded_by**: `[SPEC-LIBRARY-002]` — 정책 5.5(reading 단일) 영역이 SPEC-LIBRARY-002에 의해 부분 철회됨. CRUD/진도 추적/공개 토글 등 나머지 동작은 본 SPEC이 여전히 단일 진실 원천이다.
+- **amendment 타이밍 (사용자 합의 clarification #3 — D1 해소)**: sync-phase에서 수행 (D-NEW-1 경로). 근거: `* → superseded` / `completed → in-progress (amendment)` 전환 및 선행 SPEC body 수정은 manager-spec 소관이며, sync-phase에서 SPEC-LIBRARY-001 body 수정은 manager-docs 금지(`.claude/rules/moai/development/spec-frontmatter-schema.md` forbidden crossings) → **D-NEW-1 경로**: manager-docs가 blocker report 반환 → orchestrator가 manager-spec에 재위임하여 본문 수정 후 manager-docs의 단일 sync commit에 포함.
+- **잔여 유효 영역**: 본 amendment는 정책 5.5(reading 단일) 영역만 철회한다. `REQ-LIB-CRUD`(001~005), `REQ-LIB-PROGRESS`(010~013), `REQ-LIB-VISIBILITY`(030~032), 그리고 `REQ-LIB-STATUS`의 비-단일-보장 영역(REQ-LIB-021 완독 처리, REQ-LIB-022 역방향 전환, REQ-LIB-023 사용자 명시적 서재 정리)은 여전히 유효하다. 철회된 정책의 실제 구현 회수(트리거/함수/부분 UNIQUE 인덱스 DROP)는 SPEC-LIBRARY-002 run-phase에서 수행된다.
+
+> 본 amendment는 SPEC-LIBRARY-002 § HISTORY `### Amendments (successor amendment)` 선언과 쌍을 이룬다. 양쪽 모두 동일한 amendment rationale을 공유하며, 본 SPEC은 "부분 철회된 선행 SPEC" 역할을, SPEC-LIBRARY-002는 "정책 철회를 주도하는 후속 SPEC" 역할을 담당한다.
 
 ---
 
@@ -228,9 +254,16 @@ labels: [library, user-books, progress-tracking, reading-status, visibility, cru
 이 UPDATE 본문은 `status` 값만 포함하며, `completed_at`은 포함하지 않는다.
 `completed_at` 설정은 DB 트리거가 자동 처리한다.
 
-> 정책 5.5 (reading 단일): `status='reading'`으로 전환 시 DB `enforce_single_reading`
-> 트리거가 같은 사용자의 기존 `reading` 행을 자동으로 `shelved`로 전환한다. 클라이언트는
-> 단일 `status` UPDATE만 전송한다 (추가 클라이언트 로직 불필요).
+> ~~정책 5.5 (reading 단일): `status='reading'`으로 전환 시 DB `enforce_single_reading`~~
+> ~~트리거가 같은 사용자의 기존 `reading` 행을 자동으로 `shelved`로 전환한다. 클라이언트는~~
+> ~~단일 `status` UPDATE만 전송한다 (추가 클라이언트 로직 불필요).~~
+>
+> **(RESCINDED by SPEC-LIBRARY-002 — 2026-07-27)** 위 "정책 5.5 (reading 단일)" 각서는
+> 철회되었다. 한 사용자가 동시에 여러 `status='reading'` 행을 보유할 수 있도록 허용한다
+> (병행 독서). `enforce_single_reading` 트리거/함수/부분 UNIQUE 인덱스는 SPEC-LIBRARY-002
+> run-phase 마이그레이션으로 DROP된다. 클라이언트는 `status` UPDATE만 전송하며, 기존 reading
+> 행의 자동 배타 전환은 더 이상 발생하지 않는다. 상세는 § 5.5 및 SPEC-LIBRARY-002
+> REQ-LIB2-POLICY 참조.
 
 #### REQ-LIB-021: 완독 처리 (reading → completed)
 
@@ -261,6 +294,13 @@ labels: [library, user-books, progress-tracking, reading-status, visibility, cru
 **THEN** 시스템은 `status='shelved'` UPDATE를 전송한다. `shelved` 상태의
 서재 항목은 기본 서재 목록(진행 중인 책)에서 필터링되어 표시되거나 별도
 "보관함" 섹션에 표시된다 (UI 구현은 SPEC-NAV-001 및 본 SPEC 화면 산출물).
+
+> **(자동 배타 전환 — RESCINDED by SPEC-LIBRARY-002 — 2026-07-27)** 과거 정책 5.5
+> 시행 중에는 다른 책을 "읽기 시작"할 때 기존 `reading` 행이 자동으로 `shelved`로
+> 배타 전환되는 동작이 있었다. 이 자동 배타 전환은 철회되었다. 사용자가 **명시적으로**
+> "보관" 액션을 취할 때만 `reading → shelved` 전환이 발생한다. 다른 책을 "읽기 시작"해도
+> 기존 reading 책은 자동 shelved 되지 않는다 (병행 독서 허용). 상세는 § 5.5 및
+> SPEC-LIBRARY-002 REQ-LIB2-POLICY 참조.
 
 ---
 
@@ -320,9 +360,14 @@ Track A 독자 목록에 노출된다.
    본 SPEC은 Edge Function을 호출하지 않는다.
 7. **백엔드 스키마 변경**: `user_books` 테이블, 트리거, RLS 정책, 보안 뷰는
    SPEC-DB-001에 이미 구현되어 있으며, 본 SPEC은 원칙적으로 변경하지 않는다.
-   **예외 (정책 5.5)**: reading 단일 정책을 위해 부분 UNIQUE 인덱스 + 배타적 전환
-   트리거 + 기본값 변경을 포함한 스키마 마이그레이션(`20240630000001_enforce_single_reading_policy`)을
-   본 SPEC이 주도한다.
+   ~~**예외 (정책 5.5)**: reading 단일 정책을 위해 부분 UNIQUE 인덱스 + 배타적 전환~~
+   ~~트리거 + 기본값 변경을 포함한 스키마 마이그레이션(`20240630000001_enforce_single_reading_policy`)을~~
+   ~~본 SPEC이 주도한다.~~
+   **(RESCINDED by SPEC-LIBRARY-002 — 2026-07-27)** 위 "예외 (정책 5.5)" 구문은 철회되었다.
+   정책 5.5(reading 단일) 자체가 철회됨에 따라, 본 SPEC이 주도하던 스키마 마이그레이션
+   `20240630000001_enforce_single_reading_policy`도 회수 대상이 된다. 후속 SPEC-LIBRARY-002가
+   신규 마이그레이션으로 `enforce_single_reading` 트리거/함수 + 부분 UNIQUE 인덱스를 DROP한다
+   (SPEC-LIBRARY-002 REQ-LIB2-001 ~ REQ-LIB2-003). 본 SPEC은 더 이상 스키마 변경을 주도하지 않는다.
 8. **데이터 페칭 라이브러리 선택**: React Query vs SWR vs 순수 훅은
    SPEC-API-001 미결정 사항 6.1이며, 본 SPEC 범위 밖이다. 본 SPEC은 라이브러리
    무관하게 인터페이스를 정의한다.
@@ -398,29 +443,45 @@ FK `ON DELETE RESTRICT` 정책은 유지됨.
 **상태**: 미해결 — 사용자 승인 대기. MVP v1.0.0은 (A)로 작성됨. 후속 버전에서
 (B) 추가 가능.
 
-### 5.5 reading 단일 정책 — 해결됨 (2026-06-30 채택)
+### 5.5 reading 단일 정책 — ~~해결됨 (2026-06-30 채택)~~ **(RESCINDED by SPEC-LIBRARY-002 — 2026-07-27)**
+
+> **철회 공지 (2026-07-27)**: 본 정책은 후속 SPEC-LIBRARY-002에 의해 **철회되었다**.
+> 한 사용자가 동시에 여러 `status='reading'` 행을 보유할 수 있도록 허용한다 (병행 독서).
+> 아래 "결정"/"구현"/"영향"/"상태" 블록은 역사적 참조 목적으로 원문 그대로 보존하되,
+> **더 이상 유효하지 않다**. 실제 철회 구현(트리거/함수/부분 UNIQUE 인덱스 DROP)은
+> SPEC-LIBRARY-002 run-phase에서 수행된다.
 
 **질문**: 한 사용자가 동시에 여러 책을 `reading` 상태로 보유할 수 있는가?
 
-**결정**: 아니오 — 한 사용자는 동시에 **최대 1개의 `status='reading'` 행**만 보유한다.
-새 `reading`이 발생하면(INSERT `reading` 또는 타 상태→`reading` UPDATE) 기존 `reading`
-행은 자동으로 `shelved`로 배타 전환된다.
+**결정 (RESCINDED)**: ~~아니오 — 한 사용자는 동시에 **최대 1개의 `status='reading'` 행**만 보유한다.~~
+~~새 `reading`이 발생하면(INSERT `reading` 또는 타 상태→`reading` UPDATE) 기존 `reading`~~
+~~행은 자동으로 `shelved`로 배타 전환된다.~~
+**현재 정책 (2026-07-27 이후)**: 예 — 한 사용자는 동시에 **여러 개의 `status='reading'` 행**을
+보유할 수 있다. 새 `reading`이 발생해도 기존 `reading` 행은 자동으로 전환되지 않는다.
 
-**구현**:
-- `addBook` 기본 status: `'reading'` → **`'shelved'`** (서재 추가는 보관 상태로 시작)
-- 부분 UNIQUE 인덱스 `user_books_one_reading_per_user ON (user_id) WHERE status='reading'`
-  — 동시성 최종 방어선 (위반 시 23505 `unique_violation`)
-- `enforce_single_reading()` BEFORE INSERT OR UPDATE OF status 트리거 — 기존 `reading`
-  자동 `shelved` 전환 (트리거 이름이 알파벳순 실행 규칙에 의해 다른 BEFORE 트리거보다 선행)
-- 기존 다중 `reading` 데이터 정리: `updated_at` DESC 최신 1개만 `reading` 유지
+**구현 (RESCINDED — 과거 기록)**:
+- ~~`addBook` 기본 status: `'reading'` → **`'shelved'`** (서재 추가는 보관 상태로 시작)~~
+  - **참고**: `addBook` 기본값 `'shelved'` 자체는 SPEC-LIBRARY-002 결정 A로 유지됨 (사용자가 명시적으로 "읽기 시작"하기 전에는 보관 상태). 단, 그 사유가 더 이상 "단일 reading 보장"이 아니라 "사용자 명시적 액션 대기"로 변경됨.
+- ~~부분 UNIQUE 인덱스 `user_books_one_reading_per_user ON (user_id) WHERE status='reading'`~~
+  ~~— 동시성 최종 방어선 (위반 시 23505 `unique_violation`)~~ → SPEC-LIBRARY-002 REQ-LIB2-003이 DROP
+- ~~`enforce_single_reading()` BEFORE INSERT OR UPDATE OF status 트리거 — 기존 `reading`~~
+  ~~자동 `shelved` 전환 (트리거 이름이 알파벳순 실행 규칙에 의해 다른 BEFORE 트리거보다 선행)~~ → SPEC-LIBRARY-002 REQ-LIB2-001/002가 DROP
+- ~~기존 다중 `reading` 데이터 정리: `updated_at` DESC 최신 1개만 `reading` 유지~~ → 자동 복구 없음 (과거 데이터는 그대로)
 
-**영향**: 홈 "지금 읽는 책"은 유일한 `reading` 책 1권으로 단순화된다 (`pickCurrentBook`
-updated_at 휴리스틱 불필요 — PR #101 흡수/close). 사용자가 다른 책을 "읽기 시작"하면
-직전 `reading` 책이 보관함으로 이동함을 UI가 안내한다.
+**영향 (RESCINDED — 과거 기록)**: ~~홈 "지금 읽는 책"은 유일한 `reading` 책 1권으로 단순화된다~~
+~~(`pickCurrentBook` updated_at 휴리스틱 불필요 — PR #101 흡수/close). 사용자가 다른 책을 "읽기 시작"하면~~
+~~직전 `reading` 책이 보관함으로 이동함을 UI가 안내한다.~~
+**현재 영향 (2026-07-27 이후)**: 홈 "지금 읽는 책"은 다수의 `reading` 책을 `last_progress_at` DESC로
+표시한다 (SPEC-LIBRARY-002 REQ-LIB2-HOME). 단일 "지금 읽는 책 1권" 개념은 제거된다. 사용자가 다른 책을
+"읽기 시작"해도 기존 reading 책은 자동 shelved 되지 않는다.
 
-**상태**: 해결됨 — 2026-06-30 채택. 제외 범위 7(스키마 변경 금지)에 대한 예외로
-SPEC-LIBRARY-001이 스키마 변경을 주도한다 (migration `20240630000001_enforce_single_reading_policy`).
-REQ-LIB-020 에 단일 보장 조건이 추가되었다.
+**상태**: ~~해결됨 — 2026-06-30 채택. 제외 범위 7(스키마 변경 금지)에 대한 예외로~~
+~~SPEC-LIBRARY-001이 스키마 변경을 주도한다 (migration `20240630000001_enforce_single_reading_policy`).~~
+~~REQ-LIB-020 에 단일 보장 조건이 추가되었다.~~
+**RESCINDED — 2026-07-27 by SPEC-LIBRARY-002**. 정책 5.5는 철회되었으며, 관련 스키마 변경
+(`migration 20240630000001_enforce_single_reading_policy`)도 SPEC-LIBRARY-002 신규 마이그레이션이
+회수한다. REQ-LIB-020의 단일 보장 각서, REQ-LIB-023의 자동 배타 묘사, 제외 범위 7의 "예외 (정책 5.5)"
+구문도 동일 일자로 철회 표시되었다. 상세는 § HISTORY `### Amendments` 및 SPEC-LIBRARY-002 참조.
 
 ---
 

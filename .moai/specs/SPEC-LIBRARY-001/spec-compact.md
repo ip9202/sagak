@@ -1,13 +1,15 @@
 ---
 id: SPEC-LIBRARY-001
 title: "Personal Library Management - Compact Spec"
-version: "1.0.0"
+version: "1.0.1"
 status: completed
 created: 2026-06-14
-updated: 2026-06-25
+updated: 2026-07-27
 author: "강력쇠주먹"
 priority: high
 issue_number: 0
+amendment_of: SPEC-LIBRARY-001
+partially_superseded_by: [SPEC-LIBRARY-002]
 ---
 
 # SPEC-LIBRARY-001: 개인 서재 관리 (Compact)
@@ -122,3 +124,24 @@ issue_number: 0
 | 5.2 | 서재 정렬 기본값? | last_progress_at 내림차순 (A) | 미해결 |
 | 5.3 | 자식 데이터 있는 항목 삭제 정책? | 삭제 금지 + 안내 (A) | 미해결 |
 | 5.4 | 대량 삭제 UX 필요? | 개별 삭제만 (A) | 미해결 |
+
+---
+
+## Amendment 기록 (2026-07-27)
+
+**in-place amendment** — 정책 5.5(reading 단일 보장) 영역이 SPEC-LIBRARY-002에 의해 부분 철회됨.
+
+### 철회 범위
+
+- **정책 5.5**: `enforce_single_reading` 정책 — `(RESCINDED by SPEC-LIBRARY-002)` 상태 전환
+- **REQ-LIB-020**: 정책 5.5 각서 제거 (단일 reading 제약 철회)
+- **REQ-LIB-023**: "자동 shelved 배타 전환" 묘사 제거 (사용자 명시적 전환만 허용)
+- **제외 범위 7**: "예외 (정책 5.5)" 문구 제거 (스키마 변경은 SPEC-LIBRARY-002 주도)
+
+### 잔여 유효 영역
+
+본 amendment는 정책 5.5(reading 단일) 영역만 철회한다. `REQ-LIB-CRUD`, `REQ-LIB-PROGRESS`, `REQ-LIB-VISIBILITY`, 그리고 `REQ-LIB-STATUS`의 비-단일-보장 영역은 여전히 유효하다. 실제 구현 회수(트리거/함수/인덱스 DROP)는 SPEC-LIBRARY-002 run-phase에서 수행됨.
+
+### successor SPEC
+
+`SPEC-LIBRARY-002`가 정책 철회를 주도하며 메인 다중 reading 표시, 상태 전환 정리, 공개 가시성 점검을 담당한다.
