@@ -2,7 +2,7 @@
 id: SPEC-CLUB-004
 title: "모임 생성 책 선택 허브 — 서재 + 외부 검색 통합 (Club Creation Book-Selection Hub)"
 version: "0.1.0"
-status: draft
+status: in-progress
 created: 2026-07-27
 updated: 2026-07-27
 author: "강력쇠주먹"
