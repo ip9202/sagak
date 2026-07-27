@@ -210,15 +210,8 @@ describe('SPEC-LIBRARY-001 TASK-010: 진행률 섹션', () => {
     });
     // ProgressBar 존재
     expect(getByTestId('progress-bar')).toBeTruthy();
-    // 진행률 캡션(120 / 400p) 표시
-    expect(getByText(/120/)).toBeTruthy();
-  });
-
-  it('현재 페이지 입력란을 렌더링한다', async () => {
-    const { getByTestId } = renderScreen({ bookId: 'b-1' });
-    await waitFor(() => {
-      expect(getByTestId('progress-input')).toBeTruthy();
-    });
+    // 현재 페이지 표시(책갈피, 읽기 전용)
+    expect(getByTestId('current-page-display')).toBeTruthy();
   });
 });
 
@@ -411,32 +404,6 @@ describe('SPEC-LIBRARY-001 TASK-010: 공개 여부', () => {
 });
 
 describe('SPEC-LIBRARY-001 TASK-010: 엣지 케이스 메시지', () => {
-  it('진행률 음수 입력 시 검증 메시지를 표시한다', async () => {
-    const { getByTestId, getByText } = renderScreen({ bookId: 'b-1' });
-    await waitFor(() => {
-      expect(getByTestId('progress-input')).toBeTruthy();
-    });
-    const input = getByTestId('progress-input');
-    fireEvent.changeText(input, '-5');
-    fireEvent(getByTestId('progress-input'), 'submitEditing');
-    await waitFor(() => {
-      expect(getByText(/0 이상|음수/)).toBeTruthy();
-    });
-  });
-
-  it('진행률 초과 입력 시 검증 메시지를 표시한다', async () => {
-    const { getByTestId, getByText } = renderScreen({ bookId: 'b-1' });
-    await waitFor(() => {
-      expect(getByTestId('progress-input')).toBeTruthy();
-    });
-    const input = getByTestId('progress-input');
-    fireEvent.changeText(input, '9999');
-    fireEvent(getByTestId('progress-input'), 'submitEditing');
-    await waitFor(() => {
-      expect(getByText(/초과|총 페이지/)).toBeTruthy();
-    });
-  });
-
   it('역전환(completed→reading) 시 Alert 메시지에 "다시 읽는중" 안내 (정책 5.1-A)', async () => {
     // 이미 완독 상태
     mockedUseLibraryItem.mockReturnValue({
@@ -613,7 +580,7 @@ describe('SPEC-LIBRARY-001: 서재에 추가 end-to-end gap 보강', () => {
       );
     });
 
-    // 3) useAddBook.onSuccess 가 ['library-item'] 캐시를 무효화 →
+    // 3) useAddBook.onSuccess 가 libraryRootKey 접두사로 서재 캐시를 무효화 →
     //    useLibraryItem 재조회로 data 가 채워진 상태를 시뮬레이션
     mockedUseLibraryItem.mockReturnValue({
       data: sampleLibraryItem,

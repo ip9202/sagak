@@ -34,8 +34,16 @@ export interface UseLibraryArgs {
   status?: LibraryFilter['status'];
 }
 
-/** library 쿼리키 접두부 — status 무관하게 모든 서재 캐시 매칭용 */
-function libraryRootKey(userId: string): readonly unknown[] {
+/**
+ * library 쿼리키 접두부 — status 무관하게 모든 서재 캐시(목록 + 단일 항목) 매칭용.
+ *
+ * 단일 항목 캐시(useLibraryItem) 도 이 접두사 하위('item' 식별자) 에 위치하여
+ * invalidateQueries / getQueriesData / cancelQueries 가 하나의 경로로 목록+단일을 모두 커버.
+ * @MX:ANCHOR: [AUTO] 서재 캐시 계층 루트 — queryKey 구조 변경 시 목록/단일 양쪽 영향.
+ * @MX:REASON: mutateCachedItem·invalidateLibrary·cancelQueries 가 이 접두사로 동작하며,
+ *             구조 변경은 곧 서재 전체 캐시 일관성 계약 변경이다.
+ */
+export function libraryRootKey(userId: string): readonly unknown[] {
   return ['library', { userId }];
 }
 
@@ -59,39 +67,54 @@ export function useLibrary(args: UseLibraryArgs) {
 
 /**
  * 캐시에서 특정 user_books.id 항목을 발견하면 updater 로 갱신한다.
- * status 무관 매칭을 위해 queryKey prefix 로 순회한다.
+ * libraryRootKey 접두사로 순회하며 캐시 형태에 따라 분기한다.
+ *
+ * 대상 캐시:
+ * - 목록 캐시(LibraryItem[]): 일치하는 항목만 map 갱신
+ * - 단일 항목 캐시(LibraryItem, useLibraryItem): id 일치 시 직접 갱신
+ *   (id 불일치 = 다른 책의 단일 항목 → 미수정)
  */
 function mutateCachedItem(
   qc: ReturnType<typeof useQueryClient>,
   userId: string,
   itemId: string,
   updater: (item: LibraryItem) => LibraryItem,
-): { previousSnapshots: Map<string, LibraryItem[]> } {
-  const previousSnapshots = new Map<string, LibraryItem[]>();
-  const cache = qc.getQueriesData<LibraryItem[]>({
+): { previousSnapshots: Map<string, unknown> } {
+  const previousSnapshots = new Map<string, unknown>();
+  const cache = qc.getQueriesData<unknown>({
     queryKey: libraryRootKey(userId),
   });
   for (const [key, value] of cache) {
     if (!value) continue;
     const keyStr = JSON.stringify(key);
     previousSnapshots.set(keyStr, value);
-    const next = value.map((it) =>
-      it.id === itemId ? updater(it) : it,
-    );
-    qc.setQueryData(key, next);
+    if (Array.isArray(value)) {
+      // 목록 캐시: 일치하는 항목만 갱신
+      const next = value.map((it) =>
+        it.id === itemId ? updater(it) : it,
+      );
+      qc.setQueryData(key, next);
+    } else if (
+      typeof value === 'object' &&
+      (value as LibraryItem).id === itemId
+    ) {
+      // 단일 항목 캐시(useLibraryItem): id 일치 시 직접 갱신
+      qc.setQueryData(key, updater(value as LibraryItem));
+    }
   }
   return { previousSnapshots };
 }
 
 /**
  * 스냅샷을 기반으로 캐시를 복원한다 (onError).
+ * 목록/단일 항목 캐시 형태 무관 — 저장된 원본 값을 그대로 복원한다.
  */
 function rollbackSnapshots(
   qc: ReturnType<typeof useQueryClient>,
   userId: string,
-  snapshots: Map<string, LibraryItem[]>,
+  snapshots: Map<string, unknown>,
 ): void {
-  const cache = qc.getQueriesData<LibraryItem[]>({
+  const cache = qc.getQueriesData<unknown>({
     queryKey: libraryRootKey(userId),
   });
   for (const [key] of cache) {
@@ -103,18 +126,18 @@ function rollbackSnapshots(
   }
 }
 
-/** 서재 캐시 전체를 무효화한다 (onSuccess 정합성 보정). */
+/**
+ * 서재 캐시 전체를 무효화한다 (onSuccess 정합성 보정).
+ *
+ * libraryRootKey 접두사 하나로 목록 + 단일 항목(useLibraryItem) 캐시를 모두 무효화.
+ * useLibraryItem queryKey 가 libraryRootKey 하위('item' 식별자) 에 위치하므로
+ * 단일 invalidate 호출로 status/progress/visibility mutation 후 refetch 가 보장된다.
+ */
 function invalidateLibrary(
   qc: ReturnType<typeof useQueryClient>,
   userId: string,
 ): void {
-  // 서재 목록 캐시 (status 무관 전체)
   qc.invalidateQueries({ queryKey: libraryRootKey(userId) });
-  // @MX:NOTE: [AUTO] 단일 항목 캐시(useLibraryItem, queryKey ['library-item', ...]) 도 같이
-  //           무효화 — BookDetailScreen 의 status/progress/visibility mutation 이 성공한 뒤
-  //           libraryItem 이 refetch 되어 chip 활성 전환/진행률 갱신이 즉시 반영되려면 필수.
-  //           bookId 무관 prefix 매칭으로 모든 library-item 쿼리를 무효화한다.
-  qc.invalidateQueries({ queryKey: ['library-item'] });
 }
 
 export interface UseUpdateProgressArgs {
@@ -259,10 +282,11 @@ export interface AddBookMutationInput {
  * - UNIQUE(user_id, book_id) 위반 → AppError category='VALIDATION', code='23505'
  *   (libraryApi.addBook → normalizeError → classifyError 경유, HTTP 409 아님에 주의)
  *
- * onSuccess: 서재 목록 + 단일 항목 캐시 모두 무효화.
+ * onSuccess: 서재 목록 + 단일 항목 캐시 모두 무효화 (invalidateLibrary 접두사 하나로 커버).
  * optimistic update 는 신규 항목이라 캐시에 예상 데이터가 없어 생략.
  *
- * @MX:NOTE: [AUTO] invalidate 대상에 ['library-item', { bookId, userId }] 포함 — BookDetailScreen 의 useLibraryItem 이 이 키로 재조회해 미등록 → 등록으로 UI 전환.
+ * @MX:NOTE: [AUTO] useLibraryItem queryKey 가 libraryRootKey 하위에 위치하므로 invalidateLibrary 만으로
+ *           미등록→등록 전환(refetch)이 보장된다 — 별도 explicit 무효화 불필요.
  * @MX:SPEC SPEC-LIBRARY-001
  */
 export function useAddBook(args: UseAddBookArgs) {
@@ -274,13 +298,9 @@ export function useAddBook(args: UseAddBookArgs) {
         userId: args.userId,
         status: input.status,
       } satisfies AddBookInput),
-    onSuccess: (_data, input) => {
-      // 서재 목록 캐시 (status 무관 전체)
+    onSuccess: () => {
+      // 서재 목록 + 단일 항목 캐시 모두 무효화 (libraryRootKey 접두사로 커버).
       invalidateLibrary(qc, args.userId);
-      // 단일 항목 캐시 — useLibraryItem queryKey 와 동일 구조
-      qc.invalidateQueries({
-        queryKey: ['library-item', { bookId: input.bookId, userId: args.userId }],
-      });
     },
   });
 }
@@ -303,18 +323,27 @@ export function useDeleteBook(args: UseDeleteBookArgs) {
       deleteBook({ id: input.id, userId: args.userId }),
     onMutate: async (input) => {
       await qc.cancelQueries({ queryKey: libraryRootKey(args.userId) });
-      const previousSnapshots = new Map<string, LibraryItem[]>();
-      const cache = qc.getQueriesData<LibraryItem[]>({
+      const previousSnapshots = new Map<string, unknown>();
+      const cache = qc.getQueriesData<unknown>({
         queryKey: libraryRootKey(args.userId),
       });
       for (const [key, value] of cache) {
         if (!value) continue;
         const keyStr = JSON.stringify(key);
         previousSnapshots.set(keyStr, value);
-        qc.setQueryData(
-          key,
-          value.filter((it) => it.id !== input.id),
-        );
+        if (Array.isArray(value)) {
+          // 목록 캐시: 삭제 항목 제거
+          qc.setQueryData(
+            key,
+            value.filter((it) => it.id !== input.id),
+          );
+        } else if (
+          typeof value === 'object' &&
+          (value as LibraryItem).id === input.id
+        ) {
+          // 단일 항목 캐시(useLibraryItem): 삭제 → 서재 미등록(null)
+          qc.setQueryData(key, null);
+        }
       }
       return { previousSnapshots };
     },
