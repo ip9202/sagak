@@ -18,6 +18,87 @@
 
 ---
 
+## §E.2 Run-phase Evidence
+
+> TDD RED-GREEN-REFACTOR (cycle_type=tdd). run-phase 완료: 2026-07-27.
+
+### AC Binary PASS/FAIL Matrix (16 AC)
+
+| AC | Status | Verification Command | Actual Output |
+|----|--------|----------------------|---------------|
+| AC-CLUB4-001 | PASS | `npx jest BookSelectionHub.test -t "AC-001"` | hub-library-section + hub-search-section 동시 렌더 |
+| AC-CLUB4-002 | PASS | `npx jest clubs.new.route.test -t "AC-002"` | club-new-search testID 부재 (게이트 CTA 제거) |
+| AC-CLUB4-010 | PASS | `npx jest BookSelectionHub.test -t "AC-010"` | reading+shelved 표시, completed 는 쿼리 단 status 필터로 제외 |
+| AC-CLUB4-011 | PASS | `npx jest BookSelectionHub.test -t "AC-011" + clubs.new.route -t "AC-011"` | hub onSelectBook(book_id) → route router.replace({params:{bookId}}) |
+| AC-CLUB4-012 | PASS | `npx jest BookSelectionHub.test -t "AC-012"` | BookCard 재사용으로 title/author 표시 (M1-3) |
+| AC-CLUB4-013 | PASS | `npx jest BookSelectionHub.test -t "AC-013"` | 빈 서재(0건) → library-section 생략 + "책 검색으로 시작하기" 강조 라벨 |
+| AC-CLUB4-014 | PASS | `npx jest BookSelectionHub.test -t "AC-014"` | hub-library-loading (ActivityIndicator) 표시; 빈 상태 UI 는 로딩 중 미렌더 |
+| AC-CLUB4-015 | PASS | `npx jest BookSelectionHub.test -t "AC-015"` | hub-library-error 메시지 + hub-search-section 접근 유지 |
+| AC-CLUB4-020 | PASS | `npx jest BookSelectionHub.test -t "AC-020"` | resolveBookId(isbn) → onSelectBook(books.id); NOT_FOUND 시 onSelectBook 미호출 + 안내 |
+| AC-CLUB4-021 | PASS | `npx jest search.route.test` | standalone /search → resolveBookId → router.push(/<UUID>) 유지 (search.tsx 미변경) |
+| AC-CLUB4-022 | PASS | `npx jest BookSelectionHub.test -t "AC-022"` | 허브 내 인라인 검색 (Option B) — hub-search-input/submit 렌더 |
+| AC-CLUB4-030 | PASS | `npx jest clubs.new.route.test -t "AC-030"` | bookId param → ClubCreateScreen 렌더 (SPEC-CLUB-002 회귀 유지) |
+| AC-CLUB4-031 | PASS | `npx jest search.route.test` | standalone /search 회귀 게이트 green (AC-021 쌍, search.tsx 미변경) |
+| AC-CLUB4-032 | PASS | clubs.tsx 미변경 (검사) | onCreateClub={() => router.push('/clubs/new')} wiring 유지 |
+| AC-CLUB4-033 | PASS | `npx jest BookSelectionHub.test -t "AC-033"` | reading 3행 fixture → hub-library-item 3개 렌더 (SPEC-LIBRARY-002 호환) |
+| AC-CLUB4-040 | PASS | `ls supabase/migrations/*CLUB-004* 2>/dev/null` | 0 matches (DB migration 부재) |
+
+### Lint Status (NEW vs baseline)
+
+- `npm run lint` → **0 errors, 19 warnings** (baseline 동일 — 본 SPEC 신규 warning 0건)
+- baseline 19 warnings 는 전부 unrelated 파일의 pre-existing `no-console`/`unused-vars` (본 SPEC 파일 아님)
+
+### Test Suite
+
+- `npx jest` (전체) → **1 failed / 153 passed suites, 1428 passed / 2 failed tests**
+- 유일 실패: `src/lib/__tests__/credential-hygiene.test.ts` (gitignore service.account 매칭 — develop baseline 실패, 본 SPEC 무관)
+- 본 SPEC 신규 테스트 25개 (hub 21 + route 4) 전원 PASS, 기존 회귀 테스트 green 유지
+
+### Coverage (신규/수정 파일, 85%+ 게이트)
+
+- `BookSelectionHub.tsx`: **100% stmts / 85.41% branch / 100% funcs / 100% lines**
+- `clubs/new.tsx` (route): **100% stmts / 83.33% branch / 100% funcs / 100% lines**
+
+### Subagent Boundary (C-HRA-008)
+
+- `grep -rn 'AskUserQuestion' src/features/club/trackB/ "app/(tabs)/clubs/" "app/(tabs)/search.tsx" | grep -v _test` → **0 matches**
+
+### PRESERVE regression (E8)
+
+- `git diff develop --stat -- ClubCreateScreen.tsx hooks.ts clubApi.ts supabase/migrations/` → **empty** (PRESERVE 파일 전부 미변경)
+
+### Gaps (미검증)
+
+- **cross-platform build (iOS/Android Expo prebuild)**: NOT executed — 본 run-phase 는 unit/component/integration 테스트 한정. 실기기 검증(ios/android dev client + ADB)은 별도 일정 권장 (메모리 `real-device-test-environment.md` 기준).
+- **실기기 검증**: hub 진입 → 서재 책 탭 → 폼 진입 플로우, 외부 검색 → 결과 선택 → 폼 진입 플로우, 빈 서재 fallback — 실기기 미검증 (단위/컴포넌트 테스트로는 동작 입증, 런타임 검증은 별도).
+
+---
+
+## §E.3 Run-phase Audit-Ready Signal
+
+```yaml
+run_complete_at: 2026-07-27
+run_commit_sha: 804e262  # M4 (run-phase 종료 커밋). 전체 run-phase 범위: e34e533..804e262 (M1~M4)
+run_status: audit-ready
+ac_pass_count: 16
+ac_fail_count: 0
+preserve_list_post_run_count: 4  # ClubCreateScreen.tsx / hooks.ts / clubApi.ts / supabase/migrations/* — 전부 미변경
+l44_pre_commit_fetch: skipped (단일 세션, feature branch — 병렬 세션 race 없음)
+l44_post_push_fetch: pending  # push 후 검증 예정
+new_warnings_or_lints_introduced: 0  # baseline 19 warnings 유지, 신규 0
+cross_platform_build:
+  ios: not-executed  # unit/component/integration 테스트 한정 — 실기기 검증 별도
+  android: not-executed  # 동일
+total_run_phase_files: 4  # BookSelectionHub.tsx(new) + clubs/new.tsx(modify) + 2 test files(new)
+m1_to_mN_commit_strategy: per-milestone (plan artifacts commit + M1/M2/M3/M4 각 1 commit = 5 commits)
+methodology: tdd (RED-GREEN-REFACTOR per milestone)
+cycle_type: tdd
+```
+
+> run-phase audit-ready. 16/16 AC PASS (standalone /search · ClubCreateScreen · SPEC-LIBRARY-002 다중 reading 회귀 전부 green). sync-phase (manager-docs) 대기.
+
+---
+
 ## Plan-phase Decisions Log (확정 — frozen)
 
 Context-First Discovery(3질문 Socratic interview) + Approach-First 승인으로 확정된 결정. 재논의 금지.
