@@ -14,7 +14,7 @@
  *
  * @MX:SPEC SPEC-EMOTION-001
  */
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -63,6 +63,20 @@ export const EmotionInputScreen: React.FC<EmotionInputScreenProps> = ({
 }) => {
   const theme = useTheme();
   const [pageNumber, setPageNumber] = useState<string>(String(currentPage));
+  // pageNumber 가 마지막으로 동기화된 currentPage 값 (사용자 직접 입력 감지용).
+  // SPEC-LIBRARY-002 regression: 백그라운드 refetch 가 currentPage 를 갱신해도
+  // useState 최초 마운트 값에 고정되는 결함을 useEffect 동기화로 보정.
+  const syncedPageRef = useRef<number>(currentPage);
+  useEffect(() => {
+    // prop 이 변경된 경우에만 동기화 고려 (마운트 시 중복 실행 방지)
+    if (currentPage === syncedPageRef.current) return;
+    // 가드: 사용자가 직접 페이지를 수정 중이면(pageNumber 가 이전 prop 값과 불일치)
+    // prop 변화로 덮어쓰지 않음 — 입력 중인 값을 보존.
+    if (pageNumber === String(syncedPageRef.current)) {
+      setPageNumber(String(currentPage));
+    }
+    syncedPageRef.current = currentPage;
+  }, [currentPage, pageNumber]);
   const [content, setContent] = useState('');
   // 화면 진입(마운트)마다 무작위 질문 — 입력 중에는 유지 (REQ-EMO-005)
   const [prompt] = useState(() => getRandomPrompt());

@@ -230,4 +230,54 @@ describe('SPEC-EMOTION-001 T-009: EmotionInputScreen', () => {
     // 페이지 번호도 currentPage 기본값으로 리셋
     expect(getByDisplayValue('50')).toBeTruthy();
   });
+
+  // ---------------------------------------------------------------------
+  // SPEC-LIBRARY-002 regression: currentPage prop 동기화 결함
+  // 시나리오: reading→shelved→reading 사이클 후 stale 캐시(current_page=0)로
+  // 마운트 → 백그라운드 refetch 가 currentPage=10 으로 갱신해도 useState 가
+  // 최초 마운트 값("0")에 고정되어 감정 기록 저장 시 페이지가 0 으로 리셋.
+  // ---------------------------------------------------------------------
+
+  it('currentPage prop 변경 시 pageNumber 가 갱신된다 (stale 캐시 → refetch 보정)', () => {
+    // 결함 재현: 마운트 시 currentPage=0 (stale) → refetch 로 prop 이 10 으로 변화
+    // useState 만으로는 추적 불가 → useEffect 동기화 필요.
+    const { rerender, getByDisplayValue } = renderScreen({ currentPage: 0 });
+    expect(getByDisplayValue('0')).toBeTruthy();
+
+    rerender(
+      <ThemeProvider>
+        <EmotionInputScreen
+          bookId="b1"
+          userId="u1"
+          currentPage={10}
+          totalPages={300}
+          onSubmit={jest.fn().mockResolvedValue(undefined)}
+        />
+      </ThemeProvider>,
+    );
+    // prop 변화 반영 — "0" 에 고정되지 않고 "10" 으로 갱신되어야 함
+    expect(getByDisplayValue('10')).toBeTruthy();
+  });
+
+  it('사용자가 직접 페이지 수정 중일 때 currentPage prop 변화로 덮어쓰지 않는다', () => {
+    // 가드 계약: 사용자가 페이지를 15 로 수정한 직후 prop 이 변해도 15 는 보존.
+    // 입력 중인 값을 prop 동기화가 덮어쓰면 사용자 신뢰 훼손.
+    const { rerender, getByDisplayValue } = renderScreen({ currentPage: 10 });
+    fireEvent.changeText(getByDisplayValue('10'), '15');
+    expect(getByDisplayValue('15')).toBeTruthy();
+
+    // prop 변화 (백그라운드 refetch 시뮬레이션) — 사용자 입력 보존
+    rerender(
+      <ThemeProvider>
+        <EmotionInputScreen
+          bookId="b1"
+          userId="u1"
+          currentPage={12}
+          totalPages={300}
+          onSubmit={jest.fn().mockResolvedValue(undefined)}
+        />
+      </ThemeProvider>,
+    );
+    expect(getByDisplayValue('15')).toBeTruthy();
+  });
 });

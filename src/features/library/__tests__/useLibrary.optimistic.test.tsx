@@ -350,14 +350,11 @@ describe('SPEC-LIBRARY-001: useAddBook onSuccess 캐시 무효화', () => {
       userId: 'u-1',
       status: undefined,
     });
-    // onSuccess: 서재 목록 캐시(status 무관 전체) 무효화
+    // onSuccess: libraryRootKey 접두사로 서재 목록 + 단일 항목(useLibraryItem) 캐시를
+    // 동시에 무효화 — useLibraryItem queryKey 가 libraryRootKey 하위('item' 식별자) 에
+    // 위치하므로 단일 invalidate 호출로 미등록→등록 UI 전환(refetch)이 보장된다.
     expect(invalidateSpy).toHaveBeenCalledWith({
       queryKey: ['library', { userId: 'u-1' }],
-    });
-    // onSuccess: 단일 항목 캐시 무효화 — useLibraryItem queryKey 와 동일 구조.
-    // BookDetailScreen 의 useLibraryItem 이 이 키로 재조회해 미등록→등록 UI 전환.
-    expect(invalidateSpy).toHaveBeenCalledWith({
-      queryKey: ['library-item', { bookId: 'b-1', userId: 'u-1' }],
     });
   });
 });
