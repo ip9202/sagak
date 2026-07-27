@@ -2,7 +2,7 @@
 id: SPEC-LIBRARY-002
 title: "Parallel Reading Support (다중 독서 병행) — Progress"
 version: "0.2.0"
-status: draft
+status: in-progress
 created: 2026-07-27
 updated: 2026-07-27
 author: "강력쇠주먹"
@@ -64,13 +64,33 @@ tier: M
 
 ## §E.2 Run-phase Evidence
 
-_<pending run-phase — manager-develop 채움>_
+### M1 — DB migration: enforce_single_reading 정책 철회 (2026-07-27)
+
+| AC | Status | Actual Output |
+|----|--------|---------------|
+| AC-LIB2-DB-001 (트리거 DROP) | PASS | pg_trigger count = 0 (enforce_single_reading 제거됨) |
+| AC-LIB2-DB-002 (함수 DROP) | PASS | pg_proc count = 0 (enforce_single_reading() 제거됨) |
+| AC-LIB2-DB-003 (부분 UNIQUE 인덱스 DROP) | PASS | pg_indexes count = 0 (user_books_one_reading_per_user 제거됨) |
+| D11 (idx_user_books_user_status 신설) | PASS | has_index PASS — (user_id, status) 복합 인덱스 |
+| AC-LIB2-DB-004 (다중 reading INSERT + UPDATE) | PASS | INSERT 3행 + UPDATE→reading 3행 모두 reading 유지 (D10 양쪽) |
+| AC-LIB2-DB-005 (completed/shelved 동작 유지) | PASS | completed_at 자동 설정 + completion_report 생성 + shelved 전환 + UNIQUE(user_id,book_id) 23505 유지 |
+| AC-LIB2-DB-006 (잔여 BEFORE ROW 트리거 순서) | PASS | on_user_books_update 알파벳순 최초 + current_page→last_progress_at 갱신 (메모리 #20 회귀 부재) |
+| AC-LIB2-DB-007 (pgTAP 4-arg throws_ok / lives_ok) | PASS | grep: throws_ok 1건(4-arg) + lives_ok 2건, 3-arg throws_ok 0건 (메모리 #18) |
+| AC-LIB2-DB-008 (동시 INSERT 경쟁 순차 근사) | PASS | 순차 lives_ok INSERT x2 + reading 2행 존재 (D6 — 단일 세션 한계 순차 근사) |
+
+**전체 pgTAP suite**: 23 files / 324 tests PASS (로컬 `supabase db test`, 2026-07-27). 0022 신규 15 tests 포함. 기존 0000-0021 회귀 0건.
 
 ---
 
 ## §E.3 Run-phase Audit-Ready Signal
 
-_<pending run-phase — manager-develop 채움>_
+- `run_complete_at`: _<M1 단계 완료 2026-07-27; M2/M3 pending>_
+- `run_commit_sha`: _<M1 커밋 후 backfill>_
+- `run_status`: M1 완료 (M2/M3 대기 — semi-autonomous 게이트)
+- `ac_pass_count`: 8 (DB AC 전체 PASS — AC-LIB2-DB-001~008)
+- `ac_fail_count`: 0
+- `preserve_list_post_run_count`: 0 (기존 0000-0021 pgTAP 회귀 0건)
+- `m1_to_mN_commit_strategy`: per-milestone 커밋 (M1 → M2 → M3 각각 별도 커밋)
 
 ---
 
