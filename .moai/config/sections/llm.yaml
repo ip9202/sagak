@@ -4,12 +4,69 @@ llm:
     glm_env_var: GLM_API_KEY
     performance_tier: medium
     profile: ""
-    profiles: {}
+    profiles:
+        low:
+            advisor:
+                model: opus
+                effort: high
+            design_harness_e2e:
+                model: opus
+                effort: low
+            develop:
+                model: opus
+                effort: medium
+            docs:
+                model: sonnet
+                effort: medium
+            git:
+                model: sonnet
+                effort: low
+            spec_auditors:
+                model: opus
+                effort: low
+        max:
+            advisor:
+                model: fable
+                effort: medium
+            design_harness_e2e:
+                model: opus
+                effort: high
+            develop:
+                model: fable
+                effort: low
+            docs:
+                model: sonnet
+                effort: medium
+            git:
+                model: sonnet
+                effort: low
+            spec_auditors:
+                model: fable
+                effort: medium
+        medium:
+            advisor:
+                model: fable
+                effort: low
+            design_harness_e2e:
+                model: opus
+                effort: medium
+            develop:
+                model: opus
+                effort: high
+            docs:
+                model: sonnet
+                effort: medium
+            git:
+                model: sonnet
+                effort: low
+            spec_auditors:
+                model: opus
+                effort: high
     agent_overrides: {}
     claude_models:
-        high: claude-opus-4-7
-        medium: sonnet
-        low: haiku
+        high: ""
+        medium: ""
+        low: ""
     glm:
         base_url: https://api.z.ai/api/anthropic
         models:
