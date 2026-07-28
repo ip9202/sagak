@@ -17,7 +17,7 @@
  * @MX:NOTE: [AUTO] 모임 생성 폼 — useCreateClub 2단계 시퀀스 호출. 필수 필드 검증(name, bookId).
  * @MX:SPEC SPEC-CLUB-002
  */
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -35,6 +35,9 @@ import { typography, borderWidth } from '../../../../theme/tokens';
 import { useCreateClub, type ClubFormInput } from '../hooks';
 import { getUserFriendlyMessage } from '../../../../lib/api/errors';
 import { AppError } from '../../../../errors';
+import { getBookDetail } from '../../../book/bookDetailApi';
+import { BookCard } from '../../../../components/BookCard';
+import type { BookRow } from '../../../../types/book';
 
 export interface ClubCreateScreenProps {
   /** auth.uid() — host_id 주입용 */
@@ -63,6 +66,25 @@ export const ClubCreateScreen: React.FC<ClubCreateScreenProps> = ({
   const [dailyPages, setDailyPages] = useState('');
   const [triggerPage, setTriggerPage] = useState('');
   const [validationError, setValidationError] = useState<string | null>(null);
+  const [book, setBook] = useState<BookRow | null>(null);
+
+  // issue #182: bookId 로 선택한 책을 폼 상단에 표시.
+  // bookId 는 상위 라우트(new.tsx 게이트 + 허브/search)에서 검증돼 전달되므로
+  // 로드 실패 시에도 폼 자체는 정상 렌더 (빈 폼 회귀 부재).
+  useEffect(() => {
+    if (!bookId) return;
+    let cancelled = false;
+    getBookDetail(bookId)
+      .then((row) => {
+        if (!cancelled) setBook(row);
+      })
+      .catch((err) => {
+        console.warn('ClubCreateScreen: 책 정보 로드 실패', err);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [bookId]);
 
   // REQ-CLUBB-003 + REQ-SCREEN-030: 빈 이름도 submit 시도 가능 — 친절한 검증 에러로 안내.
   // bookId 가 없으면 폼 자체가 진입 불가(new.tsx 게이트)이므로 여기서는 isPending 만 비활성화.
@@ -160,6 +182,23 @@ export const ClubCreateScreen: React.FC<ClubCreateScreenProps> = ({
           ]}
           keyboardShouldPersistTaps="handled"
         >
+          {/* issue #182: 선택한 책 표시 (bookId 로 조회) */}
+          {book && (
+            <View style={{ marginBottom: 16 }}>
+              <Text style={[styles.label, { color: theme.colors.text.secondary }]}>
+                선택한 책
+              </Text>
+              <BookCard
+                testID="club-create-selected-book"
+                title={book.title}
+                author={book.author}
+                currentPage={0}
+                totalPages={book.total_pages ?? 0}
+                coverUri={book.cover_url ?? undefined}
+              />
+            </View>
+          )}
+
           {/* 모임 이름 (필수) */}
           <Text style={[styles.label, { color: theme.colors.text.secondary }]}>
             모임 이름
