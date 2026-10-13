@@ -1,7 +1,7 @@
 // ESLint 9 flat config - minimal TypeScript/React Native setup
 module.exports = [
   {
-    ignores: ['node_modules/', 'dist/', '.expo/', '.expo-types/'],
+    ignores: ['node_modules/', 'dist/', '.expo/', '.expo-types/', '.claude/'],
   },
   {
     languageOptions: {
